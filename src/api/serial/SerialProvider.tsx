@@ -112,6 +112,7 @@ const SerialProvider = ({
         // Can identify the vendor and product IDs by plugging in the device and visiting: chrome://device-log/
         // the IDs will be labeled `vid` and `pid`, respectively
         { usbVendorId: 0x1a86, usbProductId: 0x7523 }, // USB Serial
+        { usbVendorId: 0x303a, usbProductId: 0x1001 }, // Jtag/serial
       ];
       try {
         const port = await navigator.serial.requestPort({ filters });
