@@ -19,11 +19,11 @@ export const MspContext = createContext<MspContextValue>({
   writeText: () => Promise.resolve(),
 });
 
-interface MspProviderProps { }
+type MspProviderProps = PropsWithChildren & {}
 
 const MspProvider = ({
   children,
-}: PropsWithChildren<MspProviderProps>) => {
+}: MspProviderProps) => {
 
   const { write, subscribe } = useSerial()
 

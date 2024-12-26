@@ -34,11 +34,11 @@ export const SerialContext = createContext<SerialContextValue>({
   write: () => Promise.resolve(),
 });
 
-interface SerialProviderProps {}
+type SerialProviderProps = PropsWithChildren & {}
 
 const SerialProvider = ({
   children,
-}: PropsWithChildren<SerialProviderProps>) => {
+}: SerialProviderProps) => {
   const [supports] = useState(() => "serial" in navigator); 
   const [portState, setPortState] = useState<PortState>("closed");
   const portRef = useRef<SerialPort | null>(null);
@@ -120,8 +120,9 @@ const SerialProvider = ({
         await port.open({ baudRate: 115200 });
         setPortState("open");
         return true;
-      } catch (error) {
+      } catch (err) {
         setPortState("closed");
+        console.error(err)
         console.error("User did not select port");
       }
     }
