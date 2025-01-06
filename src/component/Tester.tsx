@@ -66,7 +66,9 @@ const Tester = () => {
       <pre style={preStyle}>{mspResponse}</pre>
     </>
   } else {
-    return 'Not connectd'
+    return <>
+      <span>Not connectd</span>
+    </>
   }
 }
 

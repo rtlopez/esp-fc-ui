@@ -12,7 +12,7 @@ export interface MspContextValue {
   writeText: (message: string) => Promise<void>
 }
 
-export const MspContext = createContext<MspContextValue>({
+const MspContext = createContext<MspContextValue>({
   subscribeMsp: () => () => { },
   writeMsp: () => Promise.resolve(),
   subscribeText: () => () => { },

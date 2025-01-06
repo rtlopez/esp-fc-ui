@@ -47,15 +47,15 @@ export class MspMessage {
   checksum = 0
   onReceive = null
   data: ArrayBuffer
-  view: Uint8Array
+  view: DataView
 
   constructor(cmd: number = 0) {
-    this.cmd = cmd || 0
-    this.data = new ArrayBuffer(192)
-    this.view = new Uint8Array(this.data);
+    this.cmd = cmd
+    this.data = new ArrayBuffer(256)
+    this.view = new DataView(this.data);
   }
 
-  remain() {
+  remain(): number {
     return this.size - this.read
   }
 
@@ -63,18 +63,32 @@ export class MspMessage {
     this.read += size
   }
 
-  readU8() {
-    return this.view[this.read++]
+  readU8(): number {
+    //return this.view[this.read++]
+    return this.view.getUint8(this.read++)
   }
-  readU16() {
+  readU16(): number {
     return this.readU8() | (this.readU8() << 8)
   }
-  readU32() {
+  readU32(): number {
     return this.readU16() | (this.readU16() << 16)
+  }
+  read8(): number {
+    return this.view.getInt8(this.read++)
+  }
+  read16(): number {
+    const v = this.view.getInt16(this.read, true)
+    this.read += 2
+    return v
+  }
+  read32(): number {
+    const v = this.view.getInt32(this.read, true)
+    this.read += 4
+    return v
   }
 
   writeU8(num: number) {
-    this.view[this.read++] = num
+    this.view.setUint8(this.read++, num)
   }
   writeU16(num: number) {
     this.writeU8(num & 0xff)
@@ -85,7 +99,7 @@ export class MspMessage {
     this.writeU16((num >> 16) & 0xffff)
   }
 
-  toDataBuffer() {
+  toDataBuffer(): Uint8Array {
     const size = this.read + 3 + 2 + 1 // data size + 3 bytes of header + 2 bytes for size and cmd + 1 byte for checksum
     const data = new ArrayBuffer(size)
     const view = new Uint8Array(data);
@@ -98,18 +112,19 @@ export class MspMessage {
     view[i++] = this.cmd
     checksum ^= this.cmd
     for(let k = 0; k < this.read; k++) {
-      view[i++] = this.view[k]
-      checksum ^= this.view[k]
+      view[i++] = this.view.getUint8(k)
+      checksum ^= view[k]
     }
     view[i++] = checksum
     return view
   }
 
-  toString() {
+  toString(): string {
+    const view = new Uint8Array(this.data);
     let str = mspCommandFromValue(this.cmd) || 'MSP_UNKNOWN'
     str += '(' + this.cmd + ') '
     str += '['
-    str += this.view.map(i => i).slice(0, this.size).join(', ')
+    str += view.map(i => i).slice(0, this.size).join(', ')
     str += ']'
     return str
   }
