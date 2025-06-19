@@ -4,6 +4,7 @@ import { useMsp } from '@/api/msp/MspProvider'
 import { MspMessage, MspCommand } from '@/api/msp/msp'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Card, Col, Container, Row } from 'react-bootstrap'
+import TabView from './TabView'
 
 const StatusTab = () => {
  
@@ -34,10 +35,9 @@ const StatusTab = () => {
   const attitudeStr = `${attitude.roll.toFixed(1)}\u00b0 x ${attitude.pitch.toFixed(1)}\u00b0`
   const headingStr = `${attitude.yaw.toFixed(1)}\u00b0`
 
-  return <Container>
-    <Row>
+  return <TabView title='Status' nosave>
 
-      <Col md={3}>
+      <Col md={6}>
         <Card>
           <Card.Header>Attitude {attitudeStr}</Card.Header>
           <Card.Body>
@@ -46,7 +46,7 @@ const StatusTab = () => {
         </Card>
       </Col>
 
-      <Col md={3}>
+      <Col md={6}>
         <Card>
           <Card.Header>Heading {headingStr}</Card.Header>
           <Card.Body>
@@ -55,8 +55,7 @@ const StatusTab = () => {
         </Card>
       </Col>
 
-    </Row>
-  </Container>
+    </TabView>
 }
 
 export default StatusTab

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Col, Container, Row, Form } from 'react-bootstrap'
+import { Card, Col, Row, Form } from 'react-bootstrap'
+import TabView from './TabView'
 
 type AxisNamesType = "roll" | "pitch" | "yaw"
 type PidNamesType = "p" | "i" | "d" | "f"
@@ -19,33 +20,24 @@ const TuningTab = () => {
     yaw: { p: 80, i: 80, d: 80, f: 80 }
   })
 
-  return <Container>
-    <Row>
-      <h1>Tuning</h1>
-    </Row>
-    <Row>
+  return <TabView title='Input'>
 
-      <Col md={6}>
-        <Form>
-
+    <Col md={6}>
+      <Card className='mb-3'>
+        <Card.Header>Tunnig</Card.Header>
+        <Card.Body>
           <Row>
             <Form.Group as={Col} controlId="rollPitchGain" className="mb-3">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Form.Label>Roll Pitch Gain</Form.Label>
-                <span style={{ fontWeight: 'bold' }}>{rollPitchGain}%</span>
-              </div>
+              <Form.Label>Roll Pitch Gain {rollPitchGain}%</Form.Label>
               <Form.Range min={0} max={200} step={10} onChange={(e) => {
                 setRollPitchGain(+e.target.value)
-              }}/>
+              }} />
             </Form.Group>
           </Row>
 
           <Row>
             <Form.Group as={Col} controlId="yawGain" className="mb-3">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Form.Label>Yaw Gain</Form.Label>
-                <span style={{ fontWeight: 'bold' }}>{yawGain}%</span>
-              </div>
+              <Form.Label>Yaw Gain {yawGain}%</Form.Label>
               <Form.Range min={0} max={200} step={10} onChange={(e) => {
                 setYawGain(+e.target.value)
               }} />
@@ -54,28 +46,30 @@ const TuningTab = () => {
 
           <Row>
             <Form.Group as={Col} controlId="stability" className="mb-3">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Form.Label>Stability</Form.Label>
-                <span style={{ fontWeight: 'bold' }}>{stability}%</span>
-              </div>
+              <Form.Label>Stability {stability}%</Form.Label>
               <Form.Range min={0} max={200} step={10} onChange={(e) => {
                 setStability(+e.target.value)
-              }}/>
+              }} />
             </Form.Group>
           </Row>
 
           <Row>
             <Form.Group as={Col} controlId="smoothness" className="mb-3">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Form.Label>Smoothness</Form.Label>
-                <span style={{ fontWeight: 'bold' }}>{smoothness}%</span>
-              </div>
+              <Form.Label>Smoothness {smoothness}%</Form.Label>
               <Form.Range min={0} max={200} step={10} onChange={(e) => {
                 setSmoothness(+e.target.value)
-              }}/>
+              }} />
             </Form.Group>
           </Row>
+        </Card.Body>
+      </Card>
 
+
+    </Col>
+    <Col md={6}>
+      <Card className='mb-3'>
+        <Card.Header>PIDS</Card.Header>
+        <Card.Body>
           <Row key={'h'} className="mb-2">
             {['Axis', 'P', 'I', 'D', 'F'].map(col => (
               <Col key={col} className="text-center">
@@ -83,7 +77,6 @@ const TuningTab = () => {
               </Col>
             ))}
           </Row>
-
           {AxisNames.map(row => (
             <Row key={row} className="mb-2">
               <Col key={'label'}>
@@ -99,19 +92,16 @@ const TuningTab = () => {
                         [col]: +e.target.value
                       }
                     }))
-                  }}/>
+                  }} />
                 </Col>
               ))}
             </Row>
           ))}
-        </Form>
-      </Col>
-      <Col md={6}>
+        </Card.Body>
+      </Card>
+    </Col>
 
-      </Col>
-
-    </Row>
-  </Container>
+  </TabView>
 }
 
 export default TuningTab
