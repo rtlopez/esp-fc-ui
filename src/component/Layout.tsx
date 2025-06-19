@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Col, Container, Nav, Navbar, Row } from "react-bootstrap"
 import Connection from "./Connection"
 import Tester from "./Tester"
-import { StatusTab, TuningTab } from "./tab"
+import { InputTab, HardwareTab, StatusTab, TuningTab } from "./tab"
 import { useSerial } from "@/api/serial/SerialProvider"
 
 const Layout = () => {
@@ -14,6 +14,12 @@ const Layout = () => {
   switch(tab) {
     case 'status':
       tabComponent = <StatusTab />
+      break;
+    case 'hardware':
+      tabComponent = <HardwareTab />
+      break;
+    case 'input':
+      tabComponent = <InputTab />
       break;
     case 'tuning':
       tabComponent = <TuningTab />
