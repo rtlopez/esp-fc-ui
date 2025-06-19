@@ -1,6 +1,6 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useRef  } from "react"
-import { useSerial } from '../serial/SerialProvider'
-import { MspDirection, MspMessage, mspParse, MspState } from "./msp"
+import { useSerial } from '@/api/serial/SerialProvider'
+import { MspDirection, MspMessage, mspParse, MspState } from "@/api/msp/msp"
 
 type MspMessageCallback = (message: MspMessage) => void
 type TextMessageCallback = (message: string) => void

@@ -1,5 +1,5 @@
 import Button from 'react-bootstrap/Button'
-import { useSerial } from '../api/serial/SerialProvider'
+import { useSerial } from '@/api/serial/SerialProvider'
 
 // https://gist.github.com/joshpensky/426d758c5779ac641d1d09f9f5894153
 

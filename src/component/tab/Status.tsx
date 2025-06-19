@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useSerial } from '../api/serial/SerialProvider'
-import { useMsp } from '../api/msp/MspProvider'
-import { MspMessage, MspCommand } from '../api/msp/msp'
+import { useSerial } from '@/api/serial/SerialProvider'
+import { useMsp } from '@/api/msp/MspProvider'
+import { MspMessage, MspCommand } from '@/api/msp/msp'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Card, Col, Container, Row } from 'react-bootstrap'
 
