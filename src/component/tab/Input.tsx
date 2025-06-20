@@ -6,6 +6,7 @@ const InputTab = () => {
 
   return <TabView title='Input'>
     <Row>
+
       <Col lg={6}>
         <Card>
           <Card.Header>Channel Monitor</Card.Header>
@@ -23,10 +24,11 @@ const InputTab = () => {
           </Card.Body>
         </Card>
       </Col>
+
       <Col lg={6}>
         <Card>
           <Card.Header>Sticks</Card.Header>
-          <Card.Body>
+          <Card.Body className='d-flex justify-content-between align-items-start'>
             <RcControls w={150} h={150} px={0} py={-1} pr={10} />
             <RcControls w={150} h={150} px={0} py={0} pr={10} />
           </Card.Body>
