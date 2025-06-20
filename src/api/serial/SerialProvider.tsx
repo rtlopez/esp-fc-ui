@@ -18,6 +18,7 @@ type SerialMessageCallback = (message: Uint8Array) => void;
 
 export interface SerialContextValue {
   supports: boolean;
+  connected: boolean;
   portState: PortState;
   connect(): Promise<boolean>;
   disconnect(): void;
@@ -27,6 +28,7 @@ export interface SerialContextValue {
 
 const SerialContext = createContext<SerialContextValue>({
   supports: false,
+  connected: false,
   portState: "closed",
   connect: () => Promise.resolve(false),
   disconnect: () => {},
@@ -195,10 +197,13 @@ const SerialProvider = ({
     }
   }, [portState]);
 
+  const connected = portState === "open";
+
   return (
     <SerialContext.Provider
       value={{
         supports,
+        connected,
         portState,
         connect,
         disconnect,

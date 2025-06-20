@@ -11,7 +11,7 @@ const Tester = () => {
   const [mspCode, setMspCode] = useState(1)
   const [mspResponse, setMspResponse] = useState('')
 
-  const { portState } = useSerial()
+  const { connected } = useSerial()
   const { subscribeMsp, writeMsp, subscribeText, writeText } = useMsp()
 
   useEffect(() => {
@@ -45,31 +45,25 @@ const Tester = () => {
 
   const preStyle = { border: '1px solid #ccc', padding: '2px', margin: '2px' }
 
-  if (portState === 'open') {
-    return <>
-      <select onChange={(e) => setMspCode(parseInt(e.target.value, 10))} defaultValue={mspCode}>
-        <option key={0} value={0}>Select</option>
-        {Object
-          .values(MspCommand)
-          .map(({ value, label }) => <option key={value} value={value}>{label}</option>)
-        }
-      </select>&nbsp;
-      <Button onClick={sendMsp}>Send Msp</Button>
-      <br />
-      <input type="text" onChange={(e) => setCmd(e.target.value)} value={cmd} />&nbsp;
-      <Button onClick={sendText}>Send Text</Button>
-      <br/>
-      <Button onClick={clear}>clear</Button>
-      <hr />
-      <pre style={preStyle}>{cmdResponse}</pre>
-      <br />
-      <pre style={preStyle}>{mspResponse}</pre>
-    </>
-  } else {
-    return <>
-      <span>Not connectd</span>
-    </>
-  }
+  return <>
+    <select onChange={(e) => setMspCode(parseInt(e.target.value, 10))} defaultValue={mspCode}>
+      <option key={0} value={0}>Select</option>
+      {Object
+        .values(MspCommand)
+        .map(({ value, label }) => <option key={value} value={value}>{label}</option>)
+      }
+    </select>&nbsp;
+    <Button onClick={sendMsp} disabled={!connected}>Send Msp</Button>
+    <br />
+    <input type="text" onChange={(e) => setCmd(e.target.value)} value={cmd} />&nbsp;
+    <Button onClick={sendText} disabled={!connected}>Send Text</Button>
+    <br />
+    <Button onClick={clear}>clear</Button>
+    <hr />
+    <pre style={preStyle}>{cmdResponse}</pre>
+    <br />
+    <pre style={preStyle}>{mspResponse}</pre>
+  </>
 }
 
 export default Tester

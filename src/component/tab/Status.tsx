@@ -7,13 +7,13 @@ import { Badge, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import TabView from './TabView'
 
 const StatusTab = () => {
- 
-  const [ attitude, setAttitude ] = useState({roll: 0, pitch: 0, yaw: 0})
+
+  const [attitude, setAttitude] = useState({ roll: 0, pitch: 0, yaw: 0 })
   const { portState } = useSerial()
   const { subscribeMsp, writeMsp } = useMsp()
 
   useEffect(() => {
-    if(portState !== 'open') return;
+    if (portState !== 'open') return;
     const interval = setInterval(() => {
       writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value))
     }, 200);
@@ -23,30 +23,31 @@ const StatusTab = () => {
   }, [portState, writeMsp]);
 
   useEffect(() => {
-    if(portState !== 'open') return;
+    if (portState !== 'open') return;
     return subscribeMsp((msg: MspMessage) => {
       const roll = msg.read16() * 0.1
       const pitch = msg.read16() * 0.1
       const yaw = msg.read16() * 1
-      setAttitude({roll, pitch, yaw})
+      setAttitude({ roll, pitch, yaw })
     })
   }, [portState, subscribeMsp])
-  
+
   const attitudeStr = `${attitude.roll.toFixed(1)}\u00b0 x ${attitude.pitch.toFixed(1)}\u00b0`
   const headingStr = `${attitude.yaw.toFixed(1)}\u00b0`
 
   return <TabView title='Status' nosave>
+    <Row>
 
       <Col md={6}>
         <Card>
           <Card.Header>Instruments</Card.Header>
           <Card.Body as={Row}>
             <Col md={6}>
-              <AttitudeIndicator roll={-attitude.roll} pitch={-attitude.pitch} showBox={false}/><br/>
-              Attitude {attitudeStr}<br/>
+              <AttitudeIndicator roll={-attitude.roll} pitch={-attitude.pitch} showBox={false} /><br />
+              Attitude {attitudeStr}<br />
             </Col>
             <Col md={6}>
-              <HeadingIndicator heading={attitude.yaw} showBox={false}/><br/>
+              <HeadingIndicator heading={attitude.yaw} showBox={false} /><br />
               Heading {headingStr}
             </Col>
           </Card.Body>
@@ -79,7 +80,8 @@ const StatusTab = () => {
         </Card>
       </Col>
 
-    </TabView>
+    </Row>
+  </TabView>
 }
 
 export default StatusTab

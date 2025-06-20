@@ -8,30 +8,26 @@ type TabViewProps = {
 
 const TabView: React.FC<TabViewProps> = ({ title, children, nosave }) => {
 
-  return <Container>
-    <Form>
+  return <Form>
 
-      {title ? <Row>
-        <Col>
-          <h3>{title}</h3>
-        </Col>
-      </Row> : null}
+    {title ? <Row>
+      <Col>
+        <h3>{title}</h3>
+      </Col>
+    </Row> : null}
 
-      <Row>
-        {children}
-      </Row>
+    {children}
 
-      {!nosave ? <Row>
-        <Col className="d-flex justify-content-end mt-3">
-          <ButtonGroup>
-            <Button variant='secondary'>Load</Button>
-            <Button>Save</Button>
-          </ButtonGroup>
-        </Col>
-      </Row> : null}
+    {!nosave ? <Row>
+      <Col className="d-flex justify-content-end mt-3">
+        <ButtonGroup>
+          <Button variant='secondary'>Load</Button>
+          <Button>Save</Button>
+        </ButtonGroup>
+      </Col>
+    </Row> : null}
 
-    </Form>
-  </Container>
+  </Form>
 }
 
 export default TabView
