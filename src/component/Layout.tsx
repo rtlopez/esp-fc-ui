@@ -1,8 +1,7 @@
 import React, { useState } from "react"
 import { Button, Col, Container, Nav, Navbar, Offcanvas, Row } from "react-bootstrap"
 import Connection from "./Connection"
-import Tester from "./Tester"
-import { InputTab, HardwareTab, StatusTab, TuningTab } from "./tab"
+import { InputTab, HardwareTab, OutputTab, StatusTab, TuningTab, TesterTab } from "./tab"
 import { useSerial } from "@/api/serial/SerialProvider"
 
 type MainMenuProps = {
@@ -62,11 +61,14 @@ const Layout = () => {
     case 'input':
       tabComponent = <InputTab />
       break;
+    case 'output':
+      tabComponent = <OutputTab />
+      break;
     case 'tuning':
       tabComponent = <TuningTab />
       break;
     default:
-      tabComponent = <Tester />
+      tabComponent = <TesterTab />
   }
 
   return (

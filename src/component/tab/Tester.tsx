@@ -4,7 +4,7 @@ import { useMsp } from '@/api/msp/MspProvider'
 import { MspMessage, MspCommand } from "@/api/msp/msp"
 import Button from 'react-bootstrap/Button'
 
-const Tester = () => {
+const TesterTab = () => {
 
   const [cmd, setCmd] = useState('version')
   const [cmdResponse, setCmdResponse] = useState('')
@@ -66,4 +66,4 @@ const Tester = () => {
   </>
 }
 
-export default Tester
+export default TesterTab
