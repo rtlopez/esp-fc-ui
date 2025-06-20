@@ -5,12 +5,12 @@ import TabView from './TabView'
 const InputTab = () => {
 
   return <TabView title='Input'>
-    <Col>
+    <Col lg={6}>
       <Card>
         <Card.Header>Channel Monitor</Card.Header>
         <Card.Body>
           {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(ch => {
-            return <Row>
+            return <Row key={ch}>
               <Col xs={2}>
                 CH{ch + 1}
               </Col>
@@ -22,7 +22,7 @@ const InputTab = () => {
         </Card.Body>
       </Card>
     </Col>
-    <Col>
+    <Col lg={6}>
       <Card>
         <Card.Header>Sticks</Card.Header>
         <Card.Body>

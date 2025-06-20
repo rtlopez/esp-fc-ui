@@ -7,7 +7,7 @@ const App = () => {
   return (
     <SerialProvider>
       <MspProvider>
-        <Layout/>
+        <Layout />
       </MspProvider>
     </SerialProvider>
   )

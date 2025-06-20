@@ -28,7 +28,10 @@ const TuningTab = () => {
         <Card.Body>
           <Row>
             <Form.Group as={Col} controlId="rollPitchGain" className="mb-3">
-              <Form.Label>Roll Pitch Gain {rollPitchGain}%</Form.Label>
+              <Form.Label className='d-flex justify-content-between align-items-start'>
+                Roll Pitch Gain
+                <span>{rollPitchGain}%</span>
+              </Form.Label>
               <Form.Range min={0} max={200} step={10} onChange={(e) => {
                 setRollPitchGain(+e.target.value)
               }} />
@@ -63,9 +66,8 @@ const TuningTab = () => {
           </Row>
         </Card.Body>
       </Card>
-
-
     </Col>
+
     <Col md={6}>
       <Card className='mb-3'>
         <Card.Header>PIDS</Card.Header>

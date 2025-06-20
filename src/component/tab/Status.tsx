@@ -3,7 +3,7 @@ import { useSerial } from '@/api/serial/SerialProvider'
 import { useMsp } from '@/api/msp/MspProvider'
 import { MspMessage, MspCommand } from '@/api/msp/msp'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
-import { Card, Col, Container, Row } from 'react-bootstrap'
+import { Badge, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import TabView from './TabView'
 
 const StatusTab = () => {
@@ -39,18 +39,42 @@ const StatusTab = () => {
 
       <Col md={6}>
         <Card>
-          <Card.Header>Attitude {attitudeStr}</Card.Header>
-          <Card.Body>
-            <AttitudeIndicator roll={-attitude.roll} pitch={-attitude.pitch} showBox={false} size={'200px'} />
+          <Card.Header>Instruments</Card.Header>
+          <Card.Body as={Row}>
+            <Col md={6}>
+              <AttitudeIndicator roll={-attitude.roll} pitch={-attitude.pitch} showBox={false}/><br/>
+              Attitude {attitudeStr}<br/>
+            </Col>
+            <Col md={6}>
+              <HeadingIndicator heading={attitude.yaw} showBox={false}/><br/>
+              Heading {headingStr}
+            </Col>
           </Card.Body>
         </Card>
       </Col>
 
       <Col md={6}>
         <Card>
-          <Card.Header>Heading {headingStr}</Card.Header>
+          <Card.Header>Pre-Flight Checks</Card.Header>
           <Card.Body>
-            <HeadingIndicator heading={attitude.yaw} showBox={false} size={'200px'} />
+            <ListGroup>
+              <ListGroup.Item className='d-flex justify-content-between align-items-start'>
+                <span>Battery</span>
+                <Badge bg="success">OK</Badge>
+              </ListGroup.Item>
+              <ListGroup.Item className='d-flex justify-content-between align-items-start'>
+                <span>GPS</span>
+                <Badge bg="success">OK</Badge>
+              </ListGroup.Item>
+              <ListGroup.Item className='d-flex justify-content-between align-items-start'>
+                <span>Barometer</span>
+                <Badge bg="success">OK</Badge>
+              </ListGroup.Item>
+              <ListGroup.Item className='d-flex justify-content-between align-items-start'>
+                <span>Compass</span>
+                <Badge bg="success">OK</Badge>
+              </ListGroup.Item>
+            </ListGroup>
           </Card.Body>
         </Card>
       </Col>
