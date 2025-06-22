@@ -1,75 +1,60 @@
-import React, { useState } from "react"
+import { useState } from "react"
+import { Link, useLocation } from "wouter"
 import { Button, Col, Container, Nav, Navbar, Offcanvas, Row } from "react-bootstrap"
-import Connection from "./Connection"
-import { InputTab, HardwareTab, OutputTab, StatusTab, TuningTab, TesterTab } from "./tab"
+import Connect from "./widget/Connect"
 import { useSerial } from "@/api/serial/SerialProvider"
 
-type MainMenuProps = {
-  tab: string | null
-  setTab: (tab: string | null) => void
-}
-
-const MainMenu: React.FC<MainMenuProps> = ({ tab, setTab }) => {
-  const expanded = true
-  //const [ expanded, setExpanded ] = useState(false)
-
+const MainMenuLinks = () => {
+  const [ location ] = useLocation()
   return (
     <Nav
+      as="ul"
       variant="pills"
       className="flex-column"
-      activeKey={tab!}
-      onSelect={(selected) => setTab(selected)}
     >
-      <Nav.Link eventKey="status" className="d-flex align-items-center px-2 py-3">
-        <i className="bi bi-speedometer2 fs-5"></i> {expanded && <span className="ms-2">Status</span>}
-      </Nav.Link>
-      <Nav.Link eventKey="hardware" className="d-flex align-items-center px-2 py-3">
-        <i className="bi bi-cpu fs-5"></i> {expanded && <span className="ms-2">Hardware</span>}
-      </Nav.Link>
-      <Nav.Link eventKey="input" className="d-flex align-items-center px-2 py-3">
-        <i className="bi bi-joystick fs-5"></i> {expanded && <span className="ms-2">Input</span>}
-      </Nav.Link>
-      <Nav.Link eventKey="output" className="d-flex align-items-center px-2 py-3">
-        <i className="bi bi-box-arrow-up-right fs-5"></i> {expanded && <span className="ms-2">Output</span>}
-      </Nav.Link>
-      <Nav.Link eventKey="tuning" className="d-flex align-items-center px-2 py-3">
-        <i className="bi bi-sliders fs-5"></i> {expanded && <span className="ms-2">Tuning</span>}
-      </Nav.Link>
-      <Nav.Link eventKey="cli" className="d-flex align-items-center px-2 py-3">
-        <i className="bi bi-terminal fs-5"></i> {expanded && <span className="ms-2">CLI</span>}
-      </Nav.Link>
+      <Nav.Item as="li">
+        <Nav.Link as={Link} to="/" active={location === '/'}>
+          <i className="bi bi-speedometer2 fs-5"></i> <span className="ms-2">Status</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
+        <Nav.Link as={Link} to="/hardware" active={location === '/hardware'}>
+          <i className="bi bi-cpu fs-5"></i> <span className="ms-2">Hardware</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
+        <Nav.Link as={Link} to="/input" active={location === '/input'}>
+          <i className="bi bi-joystick fs-5"></i> <span className="ms-2">Input</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
+        <Nav.Link as={Link} to="/output" active={location === '/output'}>
+          <i className="bi bi-box-arrow-up-right fs-5"></i> <span className="ms-2">Output</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
+        <Nav.Link as={Link} to="/tuning" active={location === '/tuning'}>
+          <i className="bi bi-sliders fs-5"></i> <span className="ms-2">Tuning</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
+        <Nav.Link as={Link} to="/cli" active={location === '/cli'}>
+          <i className="bi bi-terminal fs-5"></i> <span className="ms-2">CLI</span>
+        </Nav.Link>
+      </Nav.Item>
     </Nav>
   )
 }
 
-const Layout = () => {
+
+type LayoutProps = React.PropsWithChildren<{}>
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const [show, setShow] = useState(false);
   const menuClose = () => setShow(false);
   const menuShow = () => setShow(true);
-  const [tab, setTab] = useState<string | null>("status")
   const { portState } = useSerial()
-
-  let tabComponent = null
-  switch (tab) {
-    case 'status':
-      tabComponent = <StatusTab />
-      break;
-    case 'hardware':
-      tabComponent = <HardwareTab />
-      break;
-    case 'input':
-      tabComponent = <InputTab />
-      break;
-    case 'output':
-      tabComponent = <OutputTab />
-      break;
-    case 'tuning':
-      tabComponent = <TuningTab />
-      break;
-    default:
-      tabComponent = <TesterTab />
-  }
 
   return (
     <>
@@ -84,7 +69,7 @@ const Layout = () => {
           <Navbar.Collapse id="basic-navbar-nav" className="justify-content-end">
             <Nav>
               <Nav.Item>
-                <Connection />
+                <Connect />
               </Nav.Item>
             </Nav>
           </Navbar.Collapse>
@@ -98,7 +83,7 @@ const Layout = () => {
           {/* Sidebar (visible on lg+) */}
           <Col lg={2} className="d-none d-lg-block bg-light min-vh-100 p-3">
             <h5>Menu</h5>
-            <MainMenu tab={tab} setTab={setTab} />
+            <MainMenuLinks />
           </Col>
 
           {/* Sidebar for small screens */}
@@ -107,13 +92,13 @@ const Layout = () => {
               <Offcanvas.Title>Menu</Offcanvas.Title>
             </Offcanvas.Header>
             <Offcanvas.Body>
-              <MainMenu tab={tab} setTab={setTab} />
+              <MainMenuLinks />
             </Offcanvas.Body>
           </Offcanvas>
 
           {/* Main content area */}
           <Col md={10} className="my-3">
-            {tabComponent}
+            {children}
           </Col>
 
         </Row>

@@ -38,7 +38,7 @@ const HardwareTab = () => {
                 <Col>
                   UART{port + 1}
                 </Col>
-                <Form.Group key={port} as={Col} controlId={`port_fn_${port}`} className="mb-3">
+                <Form.Group key={port + 10} as={Col} controlId={`port_fn_${port}`} className="mb-3">
                   {/* <Form.Label sm={3}>Function</Form.Label> */}
                   <Form.Select>
                     <option value="0">Disabled</option>
@@ -49,7 +49,7 @@ const HardwareTab = () => {
                     <option value="5">Blackbox</option>
                   </Form.Select>
                 </Form.Group>
-                <Form.Group key={port} as={Col} controlId={`port_speed_${port}`} className="mb-3">
+                <Form.Group key={port + 20} as={Col} controlId={`port_speed_${port}`} className="mb-3">
                   {/* <Form.Label sm={3}>Speed</Form.Label> */}
                   <Form.Select>
                     <option value="0">9 600</option>
@@ -64,11 +64,11 @@ const HardwareTab = () => {
                     <option value="9">1 000 000</option>
                   </Form.Select>
                 </Form.Group>
-                <Form.Group key={port} as={Col} controlId={`port_rx_${port}`} className="mb-3">
+                <Form.Group key={port + 30} as={Col} controlId={`port_rx_${port}`} className="mb-3">
                   {/* <Form.Label sm={3}>RX Pin</Form.Label> */}
                   <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
                 </Form.Group>
-                <Form.Group key={port + 100} as={Col} controlId={`port_tx_${port}`} className="mb-3">
+                <Form.Group key={port + 40} as={Col} controlId={`port_tx_${port}`} className="mb-3">
                   {/* <Form.Label sm={3}>TX Pin</Form.Label> */}
                   <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
                 </Form.Group>

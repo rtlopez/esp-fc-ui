@@ -3,7 +3,7 @@ import { useSerial } from '@/api/serial/SerialProvider'
 
 // https://gist.github.com/joshpensky/426d758c5779ac641d1d09f9f5894153
 
-const Connection = () => {
+const Connect = () => {
   const { portState, connect, disconnect } = useSerial()
 
   if (portState === 'open') {
@@ -15,4 +15,4 @@ const Connection = () => {
   }
 }
 
-export default Connection
+export default Connect
