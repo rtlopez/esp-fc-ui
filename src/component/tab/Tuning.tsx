@@ -19,6 +19,9 @@ const TuningTab = () => {
     pitch: { p: 80, i: 80, d: 80, f: 80 },
     yaw: { p: 80, i: 80, d: 80, f: 80 }
   })
+  const [rollRate, setRollRate] = useState(240)
+  const [pitchRate, setPitchRate] = useState(240)
+  const [yawRate, setYawRate] = useState(320)
 
   return <TabView title='Input'>
     <Row>
@@ -33,15 +36,18 @@ const TuningTab = () => {
                   Roll Pitch Gain
                   <span>{rollPitchGain}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} onChange={(e) => {
+                <Form.Range min={0} max={200} step={10} value={rollPitchGain} onChange={(e) => {
                   setRollPitchGain(+e.target.value)
                 }} />
               </Form.Group>
             </Row>
 
             <Row>
-              <Form.Group as={Col} controlId="yawGain" className="mb-3">
-                <Form.Label>Yaw Gain {yawGain}%</Form.Label>
+              <Form.Group as={Col} controlId="yawGain"value={yawGain} className="mb-3">
+                <Form.Label className='d-flex justify-content-between align-items-start'>
+                  Yaw Gain
+                  <span>{yawGain}%</span>
+                </Form.Label>
                 <Form.Range min={0} max={200} step={10} onChange={(e) => {
                   setYawGain(+e.target.value)
                 }} />
@@ -50,8 +56,11 @@ const TuningTab = () => {
 
             <Row>
               <Form.Group as={Col} controlId="stability" className="mb-3">
-                <Form.Label>Stability {stability}%</Form.Label>
-                <Form.Range min={0} max={200} step={10} onChange={(e) => {
+                <Form.Label className='d-flex justify-content-between align-items-start'>
+                  Stability
+                  <span>{stability}%</span>
+                </Form.Label>
+                <Form.Range min={0} max={200} step={10} value={stability} onChange={(e) => {
                   setStability(+e.target.value)
                 }} />
               </Form.Group>
@@ -59,14 +68,59 @@ const TuningTab = () => {
 
             <Row>
               <Form.Group as={Col} controlId="smoothness" className="mb-3">
-                <Form.Label>Smoothness {smoothness}%</Form.Label>
-                <Form.Range min={0} max={200} step={10} onChange={(e) => {
+                <Form.Label className='d-flex justify-content-between align-items-start'>
+                  Smoothness
+                  <span>{smoothness}%</span>
+                </Form.Label>
+                <Form.Range min={0} max={200} step={10} value={smoothness} onChange={(e) => {
                   setSmoothness(+e.target.value)
                 }} />
               </Form.Group>
             </Row>
           </Card.Body>
         </Card>
+
+        <Card className='mb-3'>
+          <Card.Header>Rates</Card.Header>
+          <Card.Body>
+            <Row>
+              <Form.Group as={Col} controlId="rollRate" className="mb-3">
+                <Form.Label className='d-flex justify-content-between align-items-start'>
+                  Roll Rate
+                  <span>{rollRate} deg/s</span>
+                </Form.Label>
+                <Form.Range min={30} max={1800} step={10} value={rollRate} onChange={(e) => {
+                  setRollRate(+e.target.value)
+                }} />
+              </Form.Group>
+            </Row>
+
+            <Row>
+              <Form.Group as={Col} controlId="pitchRate" className="mb-3">
+                <Form.Label className='d-flex justify-content-between align-items-start'>
+                  Pitch Rate
+                  <span>{pitchRate} deg/s</span>
+                </Form.Label>
+                <Form.Range min={30} max={1800} step={10} value={[pitchRate]} onChange={(e) => {
+                  setPitchRate(+e.target.value)
+                }} />
+              </Form.Group>
+            </Row>
+
+            <Row>
+              <Form.Group as={Col} controlId="yawRate" className="mb-3">
+                <Form.Label className='d-flex justify-content-between align-items-start'>
+                  Yaw Rate
+                  <span>{yawRate} deg/s</span>
+                </Form.Label>
+                <Form.Range min={30} max={1800} step={10} value={yawRate} onChange={(e) => {
+                  setYawRate(+e.target.value)
+                }} />
+              </Form.Group>
+            </Row>
+          </Card.Body>
+        </Card>
+
       </Col>
 
       <Col md={6}>
