@@ -8,7 +8,7 @@ const HardwareTab = () => {
 
       <Col lg={6}>
         <Card className='mb-3'>
-          <Card.Header>Servs/Motors</Card.Header>
+          <Card.Header>Servos/Motors</Card.Header>
           <Card.Body>
             {[0, 1, 2, 3, 4, 5, 6, 7].map((output) => {
               return <Form.Group key={output} as={Row} controlId={`output_${output}`} className="mb-3">

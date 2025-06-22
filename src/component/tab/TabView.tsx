@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react'
-import { Button, ButtonGroup, Col, Form, Row } from 'react-bootstrap'
+import { Button, Col, Form, Row } from 'react-bootstrap'
 
 type TabViewProps = {
   title?: string
@@ -8,7 +8,7 @@ type TabViewProps = {
 
 const TabView: React.FC<TabViewProps> = ({ title, children, nosave }) => {
 
-  return <Form>
+  return <Form className='mb-5'>
 
     {title ? <Row>
       <Col>
@@ -20,10 +20,8 @@ const TabView: React.FC<TabViewProps> = ({ title, children, nosave }) => {
 
     {!nosave ? <Row>
       <Col className="d-flex justify-content-end mt-3">
-        <ButtonGroup>
-          <Button variant='secondary'>Load</Button>
-          <Button>Save</Button>
-        </ButtonGroup>
+        <Button variant='secondary' className='me-2'>Load</Button>
+        <Button>Save</Button>
       </Col>
     </Row> : null}
 

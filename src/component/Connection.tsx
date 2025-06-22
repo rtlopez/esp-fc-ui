@@ -7,9 +7,9 @@ const Connection = () => {
   const { portState, connect, disconnect } = useSerial()
 
   if (portState === 'open') {
-    return <Button onClick={disconnect}>Disconnect</Button>
+    return <Button onClick={disconnect} variant="danger"><i className='bi bi-arrow-left-right'></i> Disconnect</Button>
   } else if (portState === 'closed') {
-    return <Button onClick={connect}>Connect</Button>
+    return <Button onClick={connect}><i className='bi bi-arrow-left-right'></i> Connect</Button>
   } else {
     return <span>{portState}...</span>
   }

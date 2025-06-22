@@ -3,7 +3,7 @@ import TabView from './TabView'
 
 const OutputTab = () => {
 
-  return <TabView title='Output' nosave>
+  return <TabView title='Output'>
     <Row>
 
       <Col md={6}>
