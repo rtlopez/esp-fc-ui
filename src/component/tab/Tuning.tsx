@@ -101,7 +101,7 @@ const TuningTab = () => {
                   Pitch Rate
                   <span>{pitchRate} deg/s</span>
                 </Form.Label>
-                <Form.Range min={30} max={1800} step={10} value={[pitchRate]} onChange={(e) => {
+                <Form.Range min={30} max={1800} step={10} value={pitchRate} onChange={(e) => {
                   setPitchRate(+e.target.value)
                 }} />
               </Form.Group>
