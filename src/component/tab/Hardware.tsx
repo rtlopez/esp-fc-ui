@@ -34,11 +34,11 @@ const HardwareTab = () => {
               <Col>Tx Pin</Col>
             </Row>
             {[0, 1, 2, 3].map((port) => {
-              return <Row>
+              return <Row key={port}>
                 <Col>
                   UART{port + 1}
                 </Col>
-                <Form.Group key={port + 10} as={Col} controlId={`port_fn_${port}`} className="mb-3">
+                <Form.Group as={Col} controlId={`port_fn_${port}`} className="mb-3">
                   <Form.Select>
                     <option value="0">Disabled</option>
                     <option value="1">Serial RX</option>
@@ -48,7 +48,7 @@ const HardwareTab = () => {
                     <option value="5">Blackbox</option>
                   </Form.Select>
                 </Form.Group>
-                <Form.Group key={port + 20} as={Col} controlId={`port_speed_${port}`} className="mb-3">
+                <Form.Group as={Col} controlId={`port_speed_${port}`} className="mb-3">
                   <Form.Select>
                     <option value="0">9 600</option>
                     <option value="1">19 200</option>
@@ -62,10 +62,10 @@ const HardwareTab = () => {
                     <option value="9">1 000 000</option>
                   </Form.Select>
                 </Form.Group>
-                <Form.Group key={port + 30} as={Col} controlId={`port_rx_${port}`} className="mb-3">
+                <Form.Group as={Col} controlId={`port_rx_${port}`} className="mb-3">
                   <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
                 </Form.Group>
-                <Form.Group key={port + 40} as={Col} controlId={`port_tx_${port}`} className="mb-3">
+                <Form.Group as={Col} controlId={`port_tx_${port}`} className="mb-3">
                   <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
                 </Form.Group>
               </Row>

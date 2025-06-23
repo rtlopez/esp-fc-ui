@@ -14,31 +14,44 @@ export const MspDirection = {
   REPLY: '>',
 }
 
-export const MspCommand = {
-  MSP_API_VERSION: {value:   1, label: 'MSP_API_VERSION'},
-  MSP_FC_VARIANT:  {value:   2, label: 'MSP_FC_VARIANT'},
-  MSP_FC_VERSION:  {value:   3, label: 'MSP_FC_VERSION'},
-  MSP_BOARD_INFO:  {value:   4, label: 'MSP_BOARD_INFO'},
-  MSP_BUILD_INFO:  {value:   5, label: 'MSP_BUILD_INFO'},
-  MSP_NAME:        {value:  10, label: 'MSP_NAME'},
-  MSP_RX_MAP:      {value:  64, label: 'MSP_RX_MAP'},
-  MSP_STATUS:      {value: 101, label: 'MSP_STATUS'},
-  MSP_STATUS_EX:   {value: 150, label: 'MSP_STATUS_EX'},
-  MSP_RAW_IMU:     {value: 102, label: 'MSP_RAW_IMU'},
-  MSP_SERVO:       {value: 103, label: 'MSP_SERVO'},
-  MSP_MOTOR:       {value: 104, label: 'MSP_MOTOR'},
-  MSP_RC:          {value: 105, label: 'MSP_RC'},
-  MSP_ATTITUDE:    {value: 108, label: 'MSP_ATTITUDE'},
-  MSP_DEBUG:       {value: 254, label: 'MSP_DEBUG'},
+export type MspVariant = 'M' | 'E'
+
+export type MspCommandEntry = {
+  value: number
+  label: string
+  variant: MspVariant
 }
 
-export const mspCommandFromValue = (value: number) => {
-  return Object.values(MspCommand).find((v) => v.value === value)?.label
+export const MspCommand: Record<string, MspCommandEntry> = {
+  ESP_CMD_VERSION: {value:   0, label: 'ESP_CMD_VERSION', variant: 'E'},
+  ESP_CMD_STATUS:  {value:   1, label: 'ESP_CMD_STATUS', variant: 'E'},
+  ESP_CMD_STATISTICS: {value: 2, label: 'ESP_CMD_STATISTICS', variant: 'E'},
+
+  MSP_API_VERSION: {value:   1, label: 'MSP_API_VERSION', variant: 'M'},
+  MSP_FC_VARIANT:  {value:   2, label: 'MSP_FC_VARIANT',  variant: 'M'},
+  MSP_FC_VERSION:  {value:   3, label: 'MSP_FC_VERSION',  variant: 'M'},
+  MSP_BOARD_INFO:  {value:   4, label: 'MSP_BOARD_INFO',  variant: 'M'},
+  MSP_BUILD_INFO:  {value:   5, label: 'MSP_BUILD_INFO',  variant: 'M'},
+  MSP_NAME:        {value:  10, label: 'MSP_NAME',        variant: 'M'},
+  MSP_RX_MAP:      {value:  64, label: 'MSP_RX_MAP',      variant: 'M'},
+  MSP_STATUS:      {value: 101, label: 'MSP_STATUS',      variant: 'M'},
+  MSP_STATUS_EX:   {value: 150, label: 'MSP_STATUS_EX',   variant: 'M'},
+  MSP_RAW_IMU:     {value: 102, label: 'MSP_RAW_IMU',     variant: 'M'},
+  MSP_SERVO:       {value: 103, label: 'MSP_SERVO',       variant: 'M'},
+  MSP_MOTOR:       {value: 104, label: 'MSP_MOTOR',       variant: 'M'},
+  MSP_RC:          {value: 105, label: 'MSP_RC',          variant: 'M'},
+  MSP_ATTITUDE:    {value: 108, label: 'MSP_ATTITUDE',    variant: 'M'},
+  MSP_DEBUG:       {value: 254, label: 'MSP_DEBUG',       variant: 'M'},
+}
+
+export const mspCommandFromValue = (value: number, variant: string) => {
+  return Object.values(MspCommand).find((v) => v.value === value && v.variant === variant)?.label
 }
 
 export class MspMessage {
 
   cmd = 0
+  variant = 'E'
   state = MspState.IDLE
   dir = MspDirection.REQUEST
   size = 0
@@ -49,8 +62,9 @@ export class MspMessage {
   data: ArrayBuffer
   view: DataView
 
-  constructor(cmd: number = 0) {
+  constructor(cmd: number = 0, variant: MspVariant = 'E') {
     this.cmd = cmd
+    this.variant = variant
     this.data = new ArrayBuffer(256)
     this.view = new DataView(this.data);
   }
@@ -101,11 +115,10 @@ export class MspMessage {
 
   toDataBuffer(): Uint8Array {
     const size = this.read + 3 + 2 + 1 // data size + 3 bytes of header + 2 bytes for size and cmd + 1 byte for checksum
-    const data = new ArrayBuffer(size)
-    const view = new Uint8Array(data);
+    const view = new Uint8Array(new ArrayBuffer(size));
     let i = 0
     view[i++] = '$'.charCodeAt(0)
-    view[i++] = 'M'.charCodeAt(0)
+    view[i++] = this.variant.charCodeAt(0)
     view[i++] = '<'.charCodeAt(0)
     view[i++] = this.read
     let checksum = this.read
@@ -121,8 +134,8 @@ export class MspMessage {
 
   toString(): string {
     const view = new Uint8Array(this.data);
-    let str = mspCommandFromValue(this.cmd) || 'MSP_UNKNOWN'
-    str += '(' + this.cmd + ') '
+    let str = mspCommandFromValue(this.cmd, this.variant) || 'MSP_UNKNOWN'
+    str += '(' + this.variant + ':' + this.cmd + ') '
     str += '['
     str += view.map(i => i).slice(0, this.size).join(', ')
     str += ']'
@@ -139,7 +152,14 @@ export const mspParse = (c: number, msg: MspMessage): boolean => {
       break
 
     case MspState.START:
-      if(isCharCode(c, 'M')) msg.state = MspState.M
+      if(isCharCode(c, 'M')) {
+        msg.state = MspState.M
+        msg.variant = 'M'
+      }
+      else if(isCharCode(c, 'E')) {
+        msg.state = MspState.M
+        msg.variant = 'E'
+      }
       else msg.state = MspState.IDLE
       break
 

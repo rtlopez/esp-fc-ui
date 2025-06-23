@@ -47,7 +47,7 @@ const MainMenuLinks = () => {
 }
 
 
-type LayoutProps = React.PropsWithChildren<{}>
+type LayoutProps = React.PropsWithChildren
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
 

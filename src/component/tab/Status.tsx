@@ -15,8 +15,8 @@ const StatusTab = () => {
   useEffect(() => {
     if (portState !== 'open') return;
     const interval = setInterval(() => {
-      writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value))
-    }, 200);
+      writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value, MspCommand.MSP_ATTITUDE.variant))
+    }, 300);
     return () => {
       clearInterval(interval);
     };

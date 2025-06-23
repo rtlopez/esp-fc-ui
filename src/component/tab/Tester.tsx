@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSerial } from '@/api/serial/SerialProvider'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspMessage, MspCommand } from "@/api/msp/msp"
+import { MspMessage, MspCommand, MspVariant } from "@/api/msp/msp"
 import Button from 'react-bootstrap/Button'
 
 const TesterTab = () => {
@@ -9,6 +9,7 @@ const TesterTab = () => {
   const [cmd, setCmd] = useState('version')
   const [cmdResponse, setCmdResponse] = useState('')
   const [mspCode, setMspCode] = useState(1)
+  const [mspVariant, setMspVariant] = useState<MspVariant>('E')
   const [mspResponse, setMspResponse] = useState('')
 
   const { connected } = useSerial()
@@ -35,7 +36,9 @@ const TesterTab = () => {
 
   const sendMsp = () => {
     //console.log(["sendMsp", mspCode])
-    writeMsp(new MspMessage(mspCode))
+    const msg = new MspMessage(mspCode, mspVariant)
+    setMspResponse((old) => old + msg.toString() + '\n')
+    writeMsp(msg)
   }
 
   const clear = () => {
@@ -46,10 +49,15 @@ const TesterTab = () => {
   const preStyle = { border: '1px solid #ccc', padding: '2px', margin: '2px' }
 
   return <>
-    <select onChange={(e) => setMspCode(parseInt(e.target.value, 10))} defaultValue={mspCode}>
+    <select onChange={(e) => setMspVariant(e.target.value as MspVariant)} defaultValue={mspVariant}>
+      <option value="E">ESP</option>
+      <option value="M">MSP</option>
+    </select>&nbsp;
+    <select onChange={(e) => setMspCode(+e.target.value)} defaultValue={mspCode}>
       <option key={0} value={0}>Select</option>
       {Object
         .values(MspCommand)
+        .filter((c) => c.variant === mspVariant)
         .map(({ value, label }) => <option key={value} value={value}>{label}</option>)
       }
     </select>&nbsp;
