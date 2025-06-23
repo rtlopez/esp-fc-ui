@@ -38,4 +38,4 @@ const RcControls: React.FC<RcControlsProps> = ({ w, h, px, py, pr }) => {
   );
 };
 
-export default RcControls;
+export default RcControls

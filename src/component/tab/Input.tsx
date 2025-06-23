@@ -1,5 +1,5 @@
 import { Card, Col, ProgressBar, Row } from 'react-bootstrap'
-import RcControls from '@/component/widget/RcRontrols'
+import { RcControls } from '@/component/widget'
 import TabView from './TabView'
 
 const InputTab = () => {

@@ -1,3 +1,4 @@
+import { useSerial } from '@/api/serial/SerialProvider'
 import React, { PropsWithChildren } from 'react'
 import { Button, Col, Form, Row } from 'react-bootstrap'
 
@@ -7,6 +8,8 @@ type TabViewProps = {
 } & PropsWithChildren
 
 const TabView: React.FC<TabViewProps> = ({ title, children, nosave }) => {
+
+  const { connected } = useSerial()
 
   return <Form className='mb-5'>
 
@@ -20,8 +23,8 @@ const TabView: React.FC<TabViewProps> = ({ title, children, nosave }) => {
 
     {!nosave ? <Row>
       <Col className="d-flex justify-content-end mt-3">
-        <Button variant='secondary' className='me-2'>Load</Button>
-        <Button>Save</Button>
+        <Button variant='outline-primary' className='me-2' disabled={!connected}>Load</Button>
+        <Button variant='primary' disabled={!connected}>Save</Button>
       </Col>
     </Row> : null}
 
