@@ -23,9 +23,10 @@ export type MspCommandEntry = {
 }
 
 export const MspCommand: Record<string, MspCommandEntry> = {
-  ESP_CMD_VERSION: {value:   0, label: 'ESP_CMD_VERSION', variant: 'E'},
-  ESP_CMD_STATUS:  {value:   1, label: 'ESP_CMD_STATUS', variant: 'E'},
-  ESP_CMD_STATISTICS: {value: 2, label: 'ESP_CMD_STATISTICS', variant: 'E'},
+  ESP_CMD_VERSION:    {value:   0, label: 'ESP_CMD_VERSION',    variant: 'E'},
+  ESP_CMD_STATUS:     {value:   1, label: 'ESP_CMD_STATUS',     variant: 'E'},
+  ESP_CMD_STATISTICS: {value:   2, label: 'ESP_CMD_STATISTICS', variant: 'E'},
+  ESP_CMD_ATTITUDE:   {value:  10, label: 'ESP_CMD_ATTITUDE',   variant: 'E'},
 
   MSP_API_VERSION: {value:   1, label: 'MSP_API_VERSION', variant: 'M'},
   MSP_FC_VARIANT:  {value:   2, label: 'MSP_FC_VARIANT',  variant: 'M'},

@@ -58,16 +58,46 @@ const DroneX = () => (
   </group>
 )
 
+function quaternionToEuler(qx: number, qy: number, qz: number, qw: number) {
+
+  // const roll = Math.atan2((qx * qy + qz * qw), 0.5 * (qy * qy + qz * qz))
+  // const pitch = Math.asin(-2 * (qy * qw - qx * qy))
+  // const yaw = Math.atan2((qy * qz + qx * qw), 0.5 * (qz * qz + qw * qw))
+
+  // roll (x-axis rotation)
+  const roll = Math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy));
+
+  // pitch (y-axis rotation)
+  const sinp = 2 * (qw * qy - qz * qx);
+  let pitch;
+  if (Math.abs(sinp) >= 1) {
+    pitch = Math.sign(sinp) * Math.PI / 2; // over 90 degrees, so clamp to 90
+  } else {
+    pitch = Math.asin(sinp);
+  }
+
+  // yaw (z-axis rotation)
+  const yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
+
+  return { roll, pitch, yaw };
+}
+
+function radToDeg(rad: number) {
+  return rad * 180 / Math.PI;
+}
+
 const StatusTab = () => {
 
-  const [attitude, setAttitude] = useState({ roll: 0, pitch: 0, yaw: 0 })
+  const [attitude, setAttitude] = useState({ roll: 0, pitch: 0, yaw: 0, rollDeg: 0, pitchDeg: 0, yawDeg: 0 })
+  const [attitudeQ, setAttitudeQ] = useState({ x: 0, y: 0, z: 0, w: 1 })
   const { portState } = useSerial()
   const { subscribeMsp, writeMsp } = useMsp()
 
   useEffect(() => {
     if (portState !== 'open') return;
     const interval = setInterval(() => {
-      writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value, MspCommand.MSP_ATTITUDE.variant))
+      //writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value, MspCommand.MSP_ATTITUDE.variant))
+      writeMsp(new MspMessage(MspCommand.ESP_CMD_ATTITUDE.value, MspCommand.ESP_CMD_ATTITUDE.variant))
     }, 100);
     return () => {
       clearInterval(interval);
@@ -77,20 +107,30 @@ const StatusTab = () => {
   useEffect(() => {
     if (portState !== 'open') return;
     return subscribeMsp((msg: MspMessage) => {
-      const roll = msg.read16() * 0.1
-      const pitch = msg.read16() * 0.1
-      const yaw = msg.read16() * 1
-      setAttitude({ roll, pitch, yaw })
+      // const roll = msg.read16() * 0.1
+      // const pitch = msg.read16() * 0.1
+      // const yaw = msg.read16() * 1
+      const qx = msg.read16() * 0.001
+      const qy = msg.read16() * 0.001
+      const qz = msg.read16() * 0.001
+      const qw = msg.read16() * 0.001
+      const { roll, pitch, yaw } = quaternionToEuler(qx, qy, qz, qw)
+      const { rollDeg, pitchDeg, yawDeg } = {
+        rollDeg: radToDeg(roll),
+        pitchDeg: radToDeg(pitch),
+        yawDeg: radToDeg(yaw)
+      }
+      setAttitudeQ({ x: qx, y: qy, z: qz, w: qw })
+      setAttitude({ roll, pitch, yaw, rollDeg, pitchDeg, yawDeg })
     })
   }, [portState, subscribeMsp])
 
-  const attitudeStr = `${attitude.roll.toFixed(1)}\u00b0 x ${attitude.pitch.toFixed(1)}\u00b0`
-  const headingStr = `${attitude.yaw.toFixed(1)}\u00b0`
+  const attitudeStr = `${attitude.rollDeg.toFixed(1)}\u00b0 x ${attitude.pitchDeg.toFixed(1)}\u00b0`
+  const headingStr = `${attitude.yawDeg.toFixed(1)}\u00b0`
 
   return <TabView title='Status' nosave>
     <Row>
       <Col>
-
         <Canvas style={{ height: 240, width: '100%' }}>
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 10, 7]} intensity={0.6} />
@@ -108,11 +148,13 @@ const StatusTab = () => {
             infiniteGrid // This makes the grid appear infinite
           />
           <group position={[0, 0, 0]}
-            rotation={[
-              -attitude.pitch * Math.PI / 180,
-              -attitude.yaw * Math.PI / 180,
-              -attitude.roll * Math.PI / 180
-            ]}>
+            // rotation={[
+            //   -attitude.pitch * Math.PI / 180,
+            //   -attitude.yaw * Math.PI / 180,
+            //   -attitude.roll * Math.PI / 180
+            // ]}
+            quaternion={[-attitudeQ.y, attitudeQ.z, -attitudeQ.x, attitudeQ.w]}
+            >
             <DroneX />
           </group>
           <PerspectiveCamera makeDefault position={[0, 0.7, 2]} fov={40} rotation={[-Math.PI * 0.1, 0, 0]} />
@@ -123,19 +165,18 @@ const StatusTab = () => {
     </Row>
 
     <Row>
-
       <Col md={6}>
         <Card>
           <Card.Header>Instruments</Card.Header>
           <Card.Body>
             <Row>
               <Col md={6}>
-                <AttitudeIndicator roll={-attitude.roll} pitch={-attitude.pitch} showBox={false} />
+                <AttitudeIndicator roll={-attitude.rollDeg} pitch={-attitude.pitchDeg} showBox={false} />
                 <br />
                 Attitude {attitudeStr}
               </Col>
               <Col md={6}>
-                <HeadingIndicator heading={attitude.yaw} showBox={false} />
+                <HeadingIndicator heading={attitude.yawDeg} showBox={false} />
                 <br />
                 Heading {headingStr}
               </Col>
@@ -143,7 +184,6 @@ const StatusTab = () => {
           </Card.Body>
         </Card>
       </Col>
-
       <Col md={6}>
         <Card>
           <Card.Header>Pre-Flight Checks</Card.Header>
@@ -169,8 +209,8 @@ const StatusTab = () => {
           </Card.Body>
         </Card>
       </Col>
-
     </Row>
+
   </TabView>
 }
 
