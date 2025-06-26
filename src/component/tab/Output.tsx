@@ -112,14 +112,14 @@ const OutputTab = () => {
               <Col>
                 <Form.Switch />
               </Col>
-              <Form.Label as={Col} sm={10}>
+              <Form.Label as={Col} sm={11}>
                 <strong>I Understand a Risk</strong>
               </Form.Label>
             </Form.Group>
             {[1, 2, 3, 4].map(motor => {
               return <Form.Group as={Row} controlId={`motor_${motor}`} key={motor} className="mb-3">
                 <Form.Label as={Col}>{`M${motor}`}</Form.Label>
-                <Col sm={10}>
+                <Col sm={11}>
                   <Form.Range min={0} max={100} step={1} defaultValue={0} />
                 </Col>
               </Form.Group>

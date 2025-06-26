@@ -7,6 +7,7 @@ import { Badge, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import TabView from './TabView'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Grid, PerspectiveCamera } from '@react-three/drei'
+import { Euler, EulerDeg, eulerInDeg, Quaternion, quaternionDeviceToUi, quaternionFromDevice, quaternionToEuler } from '@/api/spatial'
 
 const DroneX = () => (
   <group>
@@ -58,43 +59,15 @@ const DroneX = () => (
   </group>
 )
 
-function quaternionToEuler(qx: number, qy: number, qz: number, qw: number) {
-
-  // const roll = Math.atan2((qx * qy + qz * qw), 0.5 * (qy * qy + qz * qz))
-  // const pitch = Math.asin(-2 * (qy * qw - qx * qy))
-  // const yaw = Math.atan2((qy * qz + qx * qw), 0.5 * (qz * qz + qw * qw))
-
-  // roll (x-axis rotation)
-  const roll = Math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy));
-
-  // pitch (y-axis rotation)
-  const sinp = 2 * (qw * qy - qz * qx);
-  let pitch;
-  if (Math.abs(sinp) >= 1) {
-    pitch = Math.sign(sinp) * Math.PI / 2; // over 90 degrees, so clamp to 90
-  } else {
-    pitch = Math.asin(sinp);
-  }
-
-  // yaw (z-axis rotation)
-  const yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
-
-  return { roll, pitch, yaw };
-}
-
-function radToDeg(rad: number) {
-  return rad * 180 / Math.PI;
-}
-
 const StatusTab = () => {
 
-  const [attitude, setAttitude] = useState({ roll: 0, pitch: 0, yaw: 0, rollDeg: 0, pitchDeg: 0, yawDeg: 0 })
-  const [attitudeQ, setAttitudeQ] = useState({ x: 0, y: 0, z: 0, w: 1 })
-  const { portState } = useSerial()
+  const [attitude, setAttitude] = useState<Euler & EulerDeg>({ roll: 0, pitch: 0, yaw: 0, rollDeg: 0, pitchDeg: 0, yawDeg: 0 })
+  const [attitudeQ, setAttitudeQ] = useState<Quaternion>({ x: 0, y: 0, z: 0, w: 1 })
+  const { connected } = useSerial()
   const { subscribeMsp, writeMsp } = useMsp()
 
   useEffect(() => {
-    if (portState !== 'open') return;
+    if (!connected) return;
     const interval = setInterval(() => {
       //writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value, MspCommand.MSP_ATTITUDE.variant))
       writeMsp(new MspMessage(MspCommand.ESP_CMD_ATTITUDE.value, MspCommand.ESP_CMD_ATTITUDE.variant))
@@ -102,28 +75,17 @@ const StatusTab = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [portState, writeMsp]);
+  }, [connected, writeMsp]);
 
   useEffect(() => {
-    if (portState !== 'open') return;
+    if (!connected) return;
     return subscribeMsp((msg: MspMessage) => {
-      // const roll = msg.read16() * 0.1
-      // const pitch = msg.read16() * 0.1
-      // const yaw = msg.read16() * 1
-      const qx = msg.read16() * 0.001
-      const qy = msg.read16() * 0.001
-      const qz = msg.read16() * 0.001
-      const qw = msg.read16() * 0.001
-      const { roll, pitch, yaw } = quaternionToEuler(qx, qy, qz, qw)
-      const { rollDeg, pitchDeg, yawDeg } = {
-        rollDeg: radToDeg(roll),
-        pitchDeg: radToDeg(pitch),
-        yawDeg: radToDeg(yaw)
-      }
-      setAttitudeQ({ x: qx, y: qy, z: qz, w: qw })
-      setAttitude({ roll, pitch, yaw, rollDeg, pitchDeg, yawDeg })
+      const q = quaternionFromDevice(msg.read16(), msg.read16(), msg.read16(), msg.read16())
+      const e = quaternionToEuler(q)
+      setAttitudeQ(q)
+      setAttitude({ ...e, ...eulerInDeg(e) })
     })
-  }, [portState, subscribeMsp])
+  }, [connected, subscribeMsp])
 
   const attitudeStr = `${attitude.rollDeg.toFixed(1)}\u00b0 x ${attitude.pitchDeg.toFixed(1)}\u00b0`
   const headingStr = `${attitude.yawDeg.toFixed(1)}\u00b0`
@@ -147,14 +109,10 @@ const StatusTab = () => {
             position={[0, -1, 0]}
             infiniteGrid // This makes the grid appear infinite
           />
-          <group position={[0, 0, 0]}
-            // rotation={[
-            //   -attitude.pitch * Math.PI / 180,
-            //   -attitude.yaw * Math.PI / 180,
-            //   -attitude.roll * Math.PI / 180
-            // ]}
-            quaternion={[-attitudeQ.y, attitudeQ.z, -attitudeQ.x, attitudeQ.w]}
-            >
+          <group
+            position={[0, 0, 0]}
+            quaternion={quaternionDeviceToUi(attitudeQ).toArray!()}
+          >
             <DroneX />
           </group>
           <PerspectiveCamera makeDefault position={[0, 0.7, 2]} fov={40} rotation={[-Math.PI * 0.1, 0, 0]} />
@@ -170,13 +128,13 @@ const StatusTab = () => {
           <Card.Header>Instruments</Card.Header>
           <Card.Body>
             <Row>
-              <Col md={6}>
-                <AttitudeIndicator roll={-attitude.rollDeg} pitch={-attitude.pitchDeg} showBox={false} />
+              <Col xs={6} className='text-center'>
+                <AttitudeIndicator roll={-attitude.rollDeg} pitch={-attitude.pitchDeg} showBox={false} size='160px' />
                 <br />
                 Attitude {attitudeStr}
               </Col>
-              <Col md={6}>
-                <HeadingIndicator heading={attitude.yawDeg} showBox={false} />
+              <Col xs={6} className='text-center'>
+                <HeadingIndicator heading={attitude.yawDeg} showBox={false} size='160px' />
                 <br />
                 Heading {headingStr}
               </Col>
