@@ -42,19 +42,19 @@ const DroneX = () => (
     {/* Rotors */}
     <mesh position={[0.5, 0.22, 0.5]}>
       <cylinderGeometry args={[0.25, 0.25, 0.01, 24]} />
-      <meshStandardMaterial color="#33ff00" />
+      <meshStandardMaterial color="#33ff00" transparent opacity={0.8} />
     </mesh>
     <mesh position={[-0.5, 0.22, 0.5]}>
       <cylinderGeometry args={[0.25, 0.25, 0.01, 24]} />
-      <meshStandardMaterial color="#33ff00" />
+      <meshStandardMaterial color="#33ff00" transparent opacity={0.8} />
     </mesh>
     <mesh position={[0.5, 0.22, -0.5]}>
       <cylinderGeometry args={[0.25, 0.25, 0.01, 24]} />
-      <meshStandardMaterial color="#ff0000" />
+      <meshStandardMaterial color="#ff0000" transparent opacity={0.8} />
     </mesh>
     <mesh position={[-0.5, 0.22, -0.5]}>
       <cylinderGeometry args={[0.25, 0.25, 0.01, 24]} />
-      <meshStandardMaterial color="#ff0000" />
+      <meshStandardMaterial color="#ff0000" transparent opacity={0.8} />
     </mesh>
   </group>
 )
