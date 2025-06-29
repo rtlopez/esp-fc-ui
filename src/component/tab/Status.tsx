@@ -4,10 +4,11 @@ import { useMsp } from '@/api/msp/MspProvider'
 import { MspMessage, MspCommand } from '@/api/msp/msp'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Badge, Card, Col, ListGroup, Row } from 'react-bootstrap'
-import TabView from './TabView'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Grid, PerspectiveCamera } from '@react-three/drei'
-import { Euler, EulerDeg, eulerInDeg, Quaternion, quaternionDeviceToUi, quaternionFromDevice, quaternionToEuler } from '@/api/spatial'
+import { createQuaternion, Euler, Quaternion, radToDeg } from '@/api/spatial'
+import { createAttitudeRequest, parseAttitudeResponse } from '@/api/esp'
+import TabView from './TabView'
 
 const DroneX = () => (
   <group>
@@ -59,36 +60,37 @@ const DroneX = () => (
   </group>
 )
 
+const QUATERNION_INIT = createQuaternion(0, 0, 0, 1)
+
 const StatusTab = () => {
 
-  const [attitude, setAttitude] = useState<Euler & EulerDeg>({ roll: 0, pitch: 0, yaw: 0, rollDeg: 0, pitchDeg: 0, yawDeg: 0 })
-  const [attitudeQ, setAttitudeQ] = useState<Quaternion>({ x: 0, y: 0, z: 0, w: 1 })
+  const [attitudeE, setAttitudeE] = useState<Euler>({ roll: 0, pitch: 0, yaw: 0 })
+  const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
   const { connected } = useSerial()
   const { subscribeMsp, writeMsp } = useMsp()
 
   useEffect(() => {
     if (!connected) return;
     const interval = setInterval(() => {
-      //writeMsp(new MspMessage(MspCommand.MSP_ATTITUDE.value, MspCommand.MSP_ATTITUDE.variant))
-      writeMsp(new MspMessage(MspCommand.ESP_CMD_ATTITUDE.value, MspCommand.ESP_CMD_ATTITUDE.variant))
+      writeMsp(createAttitudeRequest())
     }, 100);
     return () => {
-      clearInterval(interval);
+      if(interval) clearInterval(interval);
     };
   }, [connected, writeMsp]);
 
   useEffect(() => {
-    if (!connected) return;
     return subscribeMsp((msg: MspMessage) => {
-      const q = quaternionFromDevice(msg.read16(), msg.read16(), msg.read16(), msg.read16())
-      const e = quaternionToEuler(q)
-      setAttitudeQ(q)
-      setAttitude({ ...e, ...eulerInDeg(e) })
+      if (msg.isA(MspCommand.ESP_CMD_ATTITUDE)) {
+        const [q, e] = parseAttitudeResponse(msg)
+        setAttitudeQ(q)
+        setAttitudeE(e)
+      }
     })
-  }, [connected, subscribeMsp])
+  }, [subscribeMsp])
 
-  const attitudeStr = `${attitude.rollDeg.toFixed(1)}\u00b0 x ${attitude.pitchDeg.toFixed(1)}\u00b0`
-  const headingStr = `${attitude.yawDeg.toFixed(1)}\u00b0`
+  const attitudeStr = `${radToDeg(attitudeE.roll).toFixed(1)}\u00b0 x ${radToDeg(attitudeE.pitch).toFixed(1)}\u00b0`
+  const headingStr = `${radToDeg(attitudeE.yaw).toFixed(1)}\u00b0`
 
   return <TabView title='Status' nosave>
     <Row>
@@ -111,7 +113,7 @@ const StatusTab = () => {
           />
           <group
             position={[0, 0, 0]}
-            quaternion={quaternionDeviceToUi(attitudeQ).toArray!()}
+            quaternion={attitudeQ.toUi()}
           >
             <DroneX />
           </group>
@@ -129,12 +131,12 @@ const StatusTab = () => {
           <Card.Body>
             <Row>
               <Col xs={6} className='text-center'>
-                <AttitudeIndicator roll={-attitude.rollDeg} pitch={-attitude.pitchDeg} showBox={false} size='160px' />
+                <AttitudeIndicator roll={radToDeg(-attitudeE.roll)} pitch={radToDeg(-attitudeE.pitch)} showBox={false} size='160px' />
                 <br />
                 Attitude {attitudeStr}
               </Col>
               <Col xs={6} className='text-center'>
-                <HeadingIndicator heading={attitude.yawDeg} showBox={false} size='160px' />
+                <HeadingIndicator heading={radToDeg(attitudeE.yaw)} showBox={false} size='160px' />
                 <br />
                 Heading {headingStr}
               </Col>
