@@ -1,15 +1,21 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useRef  } from "react"
+import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
-import { MspDirection, MspMessage, mspParse, MspState } from "@/api/msp/msp"
+import { MspCommand, MspDirection, MspMessage, mspParse, MspState } from "@/api/msp/msp"
+import { EspVersionResponse, parseVersionResponse } from "../esp"
 
 type MspMessageCallback = (message: MspMessage) => void
 type TextMessageCallback = (message: string) => void
+
+const textEncoder = new TextEncoder()
 
 export interface MspContextValue {
   subscribeMsp(callback: MspMessageCallback): () => void
   writeMsp: (message: MspMessage) => Promise<void>
   subscribeText(callback: TextMessageCallback): () => void
   writeText: (message: string) => Promise<void>
+  connect(): Promise<boolean>
+  disconnect(): void,
+  version: EspVersionResponse | null
 }
 
 const MspContext = createContext<MspContextValue>({
@@ -17,6 +23,9 @@ const MspContext = createContext<MspContextValue>({
   writeMsp: () => Promise.resolve(),
   subscribeText: () => () => { },
   writeText: () => Promise.resolve(),
+  connect: () => Promise.resolve(false),
+  disconnect: () => { },
+  version: null
 });
 
 type MspProviderProps = PropsWithChildren & {}
@@ -25,12 +34,13 @@ const MspProvider = ({
   children,
 }: MspProviderProps) => {
 
-  const { write, subscribe } = useSerial()
+  const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, portState } = useSerial()
 
   const currentSubscriberIdRef = useRef(0)
   const mspSubscribersRef = useRef(new Map<number, MspMessageCallback>())
   const textSubscribersRef = useRef(new Map<number, TextMessageCallback>())
   const msgRef = useRef(new MspMessage())
+  const [version, setVersion] = useState<EspVersionResponse | null>(null)
 
   const receive = (data: Uint8Array) => {
     let text = '';
@@ -65,9 +75,9 @@ const MspProvider = ({
       mspSubscribersRef.current.delete(id)
     }
   }
-  const writeMsp = async (msg: MspMessage) => {
+  const writeMsp = useCallback(async (msg: MspMessage) => {
     write(msg.toDataBuffer())
-  }
+  }, [write])
 
   const subscribeText = (callback: TextMessageCallback) => {
     const id = currentSubscriberIdRef.current
@@ -78,9 +88,7 @@ const MspProvider = ({
     }
   }
   const writeText = async (message: string) => {
-    const enc = new TextEncoder()
-    const data = enc.encode(message + "\n")
-    write(data)
+    write(textEncoder.encode(message + "\n"))
   }
 
   useEffect(() => {
@@ -89,6 +97,29 @@ const MspProvider = ({
     })
   })
 
+  useEffect(() => {
+    return subscribeMsp((msg: MspMessage) => {
+      if (msg.isA(MspCommand.ESP_CMD_VERSION)) {
+        setVersion(parseVersionResponse(msg))
+      }
+    })
+  })
+
+  useEffect(() => {
+    if (portState == "open" && version === null) {
+      writeMsp(new MspMessage(MspCommand.ESP_CMD_VERSION))
+    }
+  }, [writeMsp, portState, version])
+
+  const connect = async () => {
+    return await serialConnect()
+  }
+
+  const disconnect = async () => {
+    setVersion(null)
+    serialDisconnect()
+  }
+
   return (
     <MspContext.Provider
       value={{
@@ -96,6 +127,9 @@ const MspProvider = ({
         writeMsp,
         subscribeText,
         writeText,
+        connect,
+        disconnect,
+        version,
       }}
     >
       {children}

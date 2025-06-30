@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSerial } from '@/api/serial/SerialProvider'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspMessage, MspCommand, MspVariant } from "@/api/msp/msp"
+import { MspMessage, MspCommand, MspVariant, mspCommandFromValue } from "@/api/msp/msp"
 import { Button, Col, Form, Row } from 'react-bootstrap'
 import TabView from './TabView'
 
@@ -25,9 +25,13 @@ const TesterTab = () => {
   useEffect(() => {
     return subscribeMsp((msg: MspMessage) => {
       //console.log(msg)
-      setCmdResponse((old) => old + msg.toString() + '\n')
+      setCmdResponse((old) => {
+        const parser = mspCommandFromValue(msg.cmd, msg.variant)?.parse
+        const parsed = parser ? JSON.stringify(parser(msg)) + '\n' : ''
+        return old + msg.toString() + '\n' + parsed
+      })
     })
-  })
+  }, [subscribeMsp, setCmdResponse])
 
   const sendText = () => {
     //console.log(["sendText", cmd])
@@ -38,7 +42,9 @@ const TesterTab = () => {
   const sendMsp = () => {
     //console.log(["sendMsp", mspCode, mspVariant])
     const msg = new MspMessage(mspCode, mspVariant)
-    setCmdResponse((old) => old + msg.toString() + '\n')
+    setCmdResponse((old) => {
+      return old + msg.toString() + '\n'
+    })
     writeMsp(msg)
   }
 
@@ -64,6 +70,7 @@ const TesterTab = () => {
           value={cmd}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
+              e.preventDefault()
               sendText()
             }
           }}

@@ -1,8 +1,6 @@
 import { MspCommand, MspMessage } from "@/api/msp/msp"
 import { createQuaternion, Euler, Quaternion, quaternionToEuler } from "@/api/spatial"
 
-export const createVersionRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_VERSION)
-
 export interface EspVersionResponse {
   apiMajor: number
   apiMinor: number
@@ -12,20 +10,28 @@ export interface EspVersionResponse {
   fwRevision: string
 }
 
+export const createVersionRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_VERSION)
 export const parseVersionResponse = (msg: MspMessage): EspVersionResponse => {
+  const reader = msg.getReader()
   const v = {
-    apiMajor: msg.readU8(),
-    apiMinor: msg.readU8(),
-    hwType: msg.readU8(),
-    capabilities: msg.readU32(),
+    apiMajor: reader.readU8(),
+    apiMinor: reader.readU8(),
+    hwType: reader.readU8(),
+    capabilities: reader.readU32(),
     fwVersion: '',
     fwRevision: '',
   }
-  // TODO: parse fw ver/rev
+  let c = 0
+  for (let i = 0; i < 16; i++) {
+    c = reader.readU8()
+    if (c > 0) v.fwVersion += String.fromCharCode(c)
+  }
+  for (let i = 0; i < 16; i++) {
+    c = reader.readU8()
+    if (c > 0) v.fwRevision += String.fromCharCode(c)
+  }
   return v
 }
-
-export const createStatusRequest = () : MspMessage => new MspMessage(MspCommand.ESP_CMD_STATUS)
 
 export interface EspStatusResponse {
   sensors: number
@@ -35,41 +41,151 @@ export interface EspStatusResponse {
   armingDisableFlags: number
 }
 
+export const createStatusRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_STATUS)
 export const parseStatusResponse = (msg: MspMessage): EspStatusResponse => {
+  const reader = msg.getReader()
   const v = {
-    sensors: msg.readU16(),
-    gyroTimeUs: msg.readU16(),
-    modeSwitchMask: msg.readU32(),
-    modeActiveMask: msg.readU32(),
-    armingDisableFlags: msg.readU32(),
+    sensors: reader.readU16(),
+    gyroTimeUs: reader.readU16(),
+    modeSwitchMask: reader.readU32(),
+    modeActiveMask: reader.readU32(),
+    armingDisableFlags: reader.readU32(),
+  }
+  return v
+}
+
+export interface EspStatisticsResponse {
+  uptimeMs: number
+  cpuLoad: number
+  cpu0Load: number
+  cpu1Load: number
+  heapTotal: number
+  heapFree: number
+  flashTotal: number
+  flashUsed: number
+}
+
+export const createStatisticsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_STATISTICS)
+export const parseStatisticsResponse = (msg: MspMessage): EspStatisticsResponse => {
+  const reader = msg.getReader()
+  const v = {
+    uptimeMs: reader.readU32(),
+    cpuLoad: reader.readU8(),
+    cpu0Load: reader.readU8(),
+    cpu1Load: reader.readU8(),
+    heapTotal: reader.readU32(),
+    heapFree: reader.readU32(),
+    flashTotal: reader.readU32(),
+    flashUsed: reader.readU32(),
   }
   return v
 }
 
 export const createAttitudeRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_ATTITUDE)
-
 export const parseAttitudeResponse = (msg: MspMessage): [Quaternion, Euler] => {
-  const q = createQuaternion(msg.read16() * 0.001, msg.read16() * 0.001, msg.read16() * 0.001, msg.read16() * 0.001)
+  const reader = msg.getReader()
+  const q = createQuaternion(reader.read16() * 0.001, reader.read16() * 0.001, reader.read16() * 0.001, reader.read16() * 0.001)
   const e = quaternionToEuler(q)
   return [q, e]
 }
 
-export const createSensorsRequest = () : MspMessage => new MspMessage(MspCommand.ESP_CMD_SENSORS)
-
 export interface EspSensorsResponse {
-  gyro: { x: number, y: number, z: number}
-  accel: { x: number, y: number, z: number}
-  mag: { x: number, y: number, z: number}
+  gyro: { x: number, y: number, z: number }
+  accel: { x: number, y: number, z: number }
+  mag: { x: number, y: number, z: number }
   baroAlt: number
 }
 
+export const createSensorsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SENSORS)
 export const parseSensorsResponse = (msg: MspMessage): EspSensorsResponse => {
+  const reader = msg.getReader()
   const v = {
-    gyro: { x: msg.read16() * 0.01, y: msg.read16() * 0.01, z: msg.read16() * 0.01 },
-    accel: { x: msg.read16() * 0.01, y: msg.read16() * 0.01, z: msg.read16() * 0.01 },
-    mag: { x: msg.read16() * 0.01, y: msg.read16() * 0.01, z: msg.read16() * 0.01 },
-    baroAlt: msg.read16() * 0.01,
+    gyro: { x: reader.read16() * 0.01, y: reader.read16() * 0.01, z: reader.read16() * 0.01 },
+    accel: { x: reader.read16() * 0.01, y: reader.read16() * 0.01, z: reader.read16() * 0.01 },
+    mag: { x: reader.read16() * 0.01, y: reader.read16() * 0.01, z: reader.read16() * 0.01 },
+    baroAlt: reader.read16() * 0.01,
   }
   return v
 }
 
+export interface EspInputResponse {
+  count: number
+  channels: number[]
+}
+
+export const createInputRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_INPUT)
+export const parseInputResponse = (msg: MspMessage): EspInputResponse => {
+  const reader = msg.getReader()
+  const v = {
+    count: reader.readU8(),
+    channels: [] as number[]
+  }
+  for (let i = 0; i < v.count; i++) {
+    v.channels.push(reader.readU16())
+  }
+  return v
+}
+
+export interface EspOutputResponse {
+  count: number
+  channels: number[]
+}
+
+export const createOutputRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_OUTPUT)
+export const parseOutputResponse = (msg: MspMessage): EspOutputResponse => {
+  const reader = msg.getReader()
+  const v = {
+    count: reader.readU8(),
+    channels: [] as number[]
+  }
+  for (let i = 0; i < v.count; i++) {
+    v.channels.push(reader.readU16())
+  }
+  return v
+}
+
+export interface EspVoltageResponse {
+  voltage: number
+  cells: number
+}
+
+export const createVoltageRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_VOLTAGE)
+export const parseVoltageResponse = (msg: MspMessage): EspVoltageResponse => {
+  const reader = msg.getReader()
+  const v = {
+    voltage: reader.readU16() * 0.01,
+    cells: reader.readU8(),
+  }
+  return v
+}
+
+export interface EspCurrentResponse {
+  current: number
+  consumption: number
+}
+
+export const createCurrentRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_VOLTAGE)
+export const parseCurrentResponse = (msg: MspMessage): EspCurrentResponse => {
+  const reader = msg.getReader()
+  const v = {
+    current: reader.readU16() * 0.01,
+    consumption: reader.readU32(),
+  }
+  return v
+}
+
+export interface EspDebugResponse {
+  debug: number[]
+}
+
+export const createDebugRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_DEBUG)
+export const parseDebugResponse = (msg: MspMessage): EspDebugResponse => {
+  const reader = msg.getReader()
+  const v = {
+    debug: [] as number[]
+  }
+  for (let i = 0; i < 8; i++) {
+    v.debug.push(reader.read16())
+  }
+  return v
+}

@@ -1,3 +1,9 @@
+import {
+  parseStatusResponse, parseVersionResponse, parseAttitudeResponse,
+  parseSensorsResponse, parseStatisticsResponse, parseInputResponse,
+  parseOutputResponse, parseVoltageResponse, parseCurrentResponse,
+  parseDebugResponse
+} from "../esp"
 
 export const MspState = {
   IDLE: 'IDLE',
@@ -20,6 +26,7 @@ export type MspCommandEntry = {
   value: number
   label: string
   variant: MspVariant
+  parse?: (msg: MspMessage) => object | Array<object>
 }
 
 const E = { variant: 'E' } as const
@@ -27,19 +34,19 @@ const M = { variant: 'M' } as const
 
 export const MspCommand: Record<string, MspCommandEntry> = {
   // ESP status commands
-  ESP_CMD_VERSION: { value: 0x01, label: 'ESP_CMD_VERSION', ...E },
-  ESP_CMD_STATUS: { value: 0x02, label: 'ESP_CMD_STATUS', ...E },
-  ESP_CMD_STATISTICS: { value: 0x03, label: 'ESP_CMD_STATISTICS', ...E },
-  ESP_CMD_ATTITUDE: { value: 0x04, label: 'ESP_CMD_ATTITUDE', ...E },
-  ESP_CMD_SENSORS: { value: 0x05, label: 'ESP_CMD_SENSORS', ...E },
-  ESP_CMD_INPUT: { value: 0x06, label: 'ESP_CMD_INPUT', ...E },
-  ESP_CMD_OUTPUT: { value: 0x07, label: 'ESP_CMD_OUTPUT', ...E },
-  ESP_CMD_VOLTAGE: { value: 0x08, label: 'ESP_CMD_VOLTAGE', ...E },
-  ESP_CMD_CURRENT: { value: 0x09, label: 'ESP_CMD_CURRENT', ...E },
+  ESP_CMD_VERSION: { value: 0x01, label: 'ESP_CMD_VERSION', ...E, parse: parseVersionResponse },
+  ESP_CMD_STATUS: { value: 0x02, label: 'ESP_CMD_STATUS', ...E, parse: parseStatusResponse },
+  ESP_CMD_STATISTICS: { value: 0x03, label: 'ESP_CMD_STATISTICS', ...E, parse: parseStatisticsResponse },
+  ESP_CMD_ATTITUDE: { value: 0x04, label: 'ESP_CMD_ATTITUDE', ...E, parse: parseAttitudeResponse },
+  ESP_CMD_SENSORS: { value: 0x05, label: 'ESP_CMD_SENSORS', ...E, parse: parseSensorsResponse },
+  ESP_CMD_INPUT: { value: 0x06, label: 'ESP_CMD_INPUT', ...E, parse: parseInputResponse },
+  ESP_CMD_OUTPUT: { value: 0x07, label: 'ESP_CMD_OUTPUT', ...E, parse: parseOutputResponse },
+  ESP_CMD_VOLTAGE: { value: 0x08, label: 'ESP_CMD_VOLTAGE', ...E, parse: parseVoltageResponse },
+  ESP_CMD_CURRENT: { value: 0x09, label: 'ESP_CMD_CURRENT', ...E, parse: parseCurrentResponse },
   ESP_CMD_GPS: { value: 0x0a, label: 'ESP_CMD_GPS', ...E },
   ESP_CMD_GPS_INFO: { value: 0x0b, label: 'ESP_CMD_GPS_INFO', ...E },
   ESP_CMD_RPM_TLM: { value: 0x0c, label: 'ESP_CMD_RPM_TLM', ...E },
-  ESP_CMD_DEBUG: { value: 0x0f, label: 'ESP_CMD_DEBUG', ...E },
+  ESP_CMD_DEBUG: { value: 0x0f, label: 'ESP_CMD_DEBUG', ...E, parse: parseDebugResponse },
 
   // ESP feature names commands
   ESP_CMD_MODE_NAMES: { value: 0x10, label: 'ESP_CMD_MODE_NAMES', ...E },
@@ -105,8 +112,54 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   MSP_DEBUG: { value: 254, label: 'MSP_DEBUG', ...M },
 }
 
-export const mspCommandFromValue = (value: number, variant: string) => {
-  return Object.values(MspCommand).find((v) => v.value === value && v.variant === variant)?.label
+export const mspCommandFromValue = (value: number, variant: string): MspCommandEntry | undefined => {
+  return Object.values(MspCommand).find((v) => v.value === value && v.variant === variant)
+}
+
+export class MspReader {
+  view: DataView
+  index: number = 0
+  size: number = 0
+
+  constructor(view: DataView, size: number) {
+    this.view = view
+    this.size = size
+  }
+
+  remain(): number {
+    return this.size - this.index
+  }
+
+  advance(size: number) {
+    this.index += size
+  }
+
+  readU8(): number {
+    return this.view.getUint8(this.index++)
+  }
+  readU16(): number {
+    const v = this.view.getUint16(this.index, true)
+    this.index += 2
+    return v
+  }
+  readU32(): number {
+    const v = this.view.getUint32(this.index, true)
+    this.index += 4
+    return v
+  }
+  read8(): number {
+    return this.view.getInt8(this.index++)
+  }
+  read16(): number {
+    const v = this.view.getInt16(this.index, true)
+    this.index += 2
+    return v
+  }
+  read32(): number {
+    const v = this.view.getInt32(this.index, true)
+    this.index += 4
+    return v
+  }
 }
 
 export class MspMessage {
@@ -118,6 +171,7 @@ export class MspMessage {
   size = 0
   received = 0
   read = 0
+  write = 0
   checksum = 0
   onReceive = null
   data: ArrayBuffer
@@ -137,39 +191,67 @@ export class MspMessage {
     this.view = new DataView(this.data);
   }
 
+  getReader(): MspReader {
+    return new MspReader(this.view, this.size)
+  }
+
   isA(cmd: MspCommandEntry): boolean {
     return this.cmd === cmd.value && this.variant === cmd.variant
   }
 
+  /**
+   * @deprecated
+   */
   remain(): number {
     return this.size - this.read
   }
 
+  /**
+   * @deprecated
+   */
   advance(size: number) {
     this.read += size
   }
 
+  /**
+   * @deprecated
+   */
   readU8(): number {
     return this.view.getUint8(this.read++)
   }
+  /**
+   * @deprecated
+   */
   readU16(): number {
     const v = this.view.getUint16(this.read, true)
     this.read += 2
     return v
   }
+  /**
+   * @deprecated
+   */
   readU32(): number {
     const v = this.view.getUint32(this.read, true)
     this.read += 4
     return v
   }
+  /**
+   * @deprecated
+   */
   read8(): number {
     return this.view.getInt8(this.read++)
   }
+  /**
+   * @deprecated
+   */
   read16(): number {
     const v = this.view.getInt16(this.read, true)
     this.read += 2
     return v
   }
+  /**
+   * @deprecated
+   */
   read32(): number {
     const v = this.view.getInt32(this.read, true)
     this.read += 4
@@ -177,7 +259,7 @@ export class MspMessage {
   }
 
   writeU8(num: number) {
-    this.view.setUint8(this.read++, num)
+    this.view.setUint8(this.write++, num)
   }
   writeU16(num: number) {
     this.writeU8(num & 0xff)
@@ -189,17 +271,17 @@ export class MspMessage {
   }
 
   toDataBuffer(): Uint8Array {
-    const size = this.read + 3 + 2 + 1 // data size + 3 bytes of header + 2 bytes for size and cmd + 1 byte for checksum
+    const size = this.write + 3 + 2 + 1 // data size + 3 bytes of header + 2 bytes for size and cmd + 1 byte for checksum
     const view = new Uint8Array(new ArrayBuffer(size));
     let i = 0
     view[i++] = '$'.charCodeAt(0)
     view[i++] = this.variant.charCodeAt(0)
     view[i++] = '<'.charCodeAt(0)
-    view[i++] = this.read
-    let checksum = this.read
+    view[i++] = this.write
+    let checksum = this.write
     view[i++] = this.cmd
     checksum ^= this.cmd
-    for (let k = 0; k < this.read; k++) {
+    for (let k = 0; k < this.write; k++) {
       view[i++] = this.view.getUint8(k)
       checksum ^= view[k]
     }
@@ -209,7 +291,7 @@ export class MspMessage {
 
   toString(): string {
     const view = new Uint8Array(this.data);
-    let str = mspCommandFromValue(this.cmd, this.variant) || 'MSP_UNKNOWN'
+    let str = mspCommandFromValue(this.cmd, this.variant)?.label || 'MSP_UNKNOWN'
     str += '(' + this.variant + ':' + this.cmd + ') '
     str += '['
     str += view.map(i => i).slice(0, this.size).join(', ')
@@ -223,10 +305,14 @@ const isCharCode = (code: number, c: string): boolean => code === c.charCodeAt(0
 export const mspParse = (c: number, msg: MspMessage): boolean => {
   switch (msg.state) {
     case MspState.IDLE:
-      if (isCharCode(c, '$')) msg.state = MspState.START
+      // idle, expect $ start
+      if (isCharCode(c, '$')) {
+        msg.state = MspState.START
+      }
       break
 
     case MspState.START:
+      // got start, expect protocol variant {E,M,X}
       if (isCharCode(c, 'M')) {
         msg.state = MspState.M
         msg.variant = 'M'
@@ -239,6 +325,7 @@ export const mspParse = (c: number, msg: MspMessage): boolean => {
       break
 
     case MspState.M:
+      // got protocol variant, expect direction
       if (isCharCode(c, '>')) {
         msg.state = MspState.ARROW
         msg.dir = MspDirection.REPLY
@@ -251,10 +338,12 @@ export const mspParse = (c: number, msg: MspMessage): boolean => {
       break
 
     case MspState.ARROW:
+      // got direction, expect size
       if (c <= 192) {
         msg.size = c
         msg.received = 0
         msg.read = 0
+        msg.write = 0
         msg.checksum = c
         msg.state = MspState.SIZE
       } else {
@@ -263,17 +352,20 @@ export const mspParse = (c: number, msg: MspMessage): boolean => {
       break
 
     case MspState.SIZE:
+      // got size, expect command
       msg.cmd = c
       msg.checksum ^= c
       msg.state = MspState.CMD
       break;
 
     case MspState.CMD:
+      // got command, expect data
       if (msg.received < msg.size) {
         msg.writeU8(c)
         msg.checksum ^= c
         msg.received++
       } else if (msg.received >= msg.size) {
+        // got data, check crc, return received or back to idle
         msg.state = msg.checksum === c ? MspState.RECEIVED : MspState.IDLE
         msg.read = 0
       }

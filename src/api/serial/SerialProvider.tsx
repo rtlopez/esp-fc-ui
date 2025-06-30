@@ -17,13 +17,13 @@ export type PortState = "closed" | "closing" | "open" | "opening";
 type SerialMessageCallback = (message: Uint8Array) => void;
 
 export interface SerialContextValue {
-  supports: boolean;
-  connected: boolean;
-  portState: PortState;
-  connect(): Promise<boolean>;
-  disconnect(): void;
-  subscribe(callback: SerialMessageCallback): () => void;
-  write: (message: Uint8Array) => Promise<void>;
+  supports: boolean
+  connected: boolean
+  portState: PortState
+  connect(): Promise<boolean>
+  disconnect(): void
+  subscribe(callback: SerialMessageCallback): () => void
+  write: (message: Uint8Array) => Promise<void>
 }
 
 const SerialContext = createContext<SerialContextValue>({
@@ -31,8 +31,8 @@ const SerialContext = createContext<SerialContextValue>({
   connected: false,
   portState: "closed",
   connect: () => Promise.resolve(false),
-  disconnect: () => {},
-  subscribe: () => () => {},
+  disconnect: () => { },
+  subscribe: () => () => { },
   write: () => Promise.resolve(),
 });
 
@@ -41,7 +41,7 @@ type SerialProviderProps = PropsWithChildren & {}
 const SerialProvider = ({
   children,
 }: SerialProviderProps) => {
-  const [supports] = useState(() => "serial" in navigator); 
+  const [supports] = useState(() => "serial" in navigator);
   const [portState, setPortState] = useState<PortState>("closed");
   const portRef = useRef<SerialPort | null>(null);
 
@@ -76,7 +76,7 @@ const SerialProvider = ({
     if (port.readable) {
       readerRef.current = port.readable.getReader();
       try {
-        for(;;) {
+        for (; ;) {
           const { value, done } = await readerRef.current.read();
           if (done) break;
           Array.from(subscribersRef.current).forEach(([, callback]) => {
@@ -97,7 +97,7 @@ const SerialProvider = ({
       if (port && port.writable) {
         writerRef.current = port.writable.getWriter();
         try {
-          await  writerRef.current.write(data);
+          await writerRef.current.write(data);
         } catch (error) {
           console.error(error);
         } finally {
@@ -106,7 +106,7 @@ const SerialProvider = ({
       }
     }
   }
-  
+
   const connect = async () => {
     if (supports && portState === "closed") {
       setPortState("opening");

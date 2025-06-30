@@ -33,7 +33,6 @@ const OutputTab = () => {
               </Col>
             </Form.Group>
 
-
           </Card.Body>
         </Card>
       </Col>
