@@ -14,8 +14,9 @@ export interface MspContextValue {
   subscribeText(callback: TextMessageCallback): () => void
   writeText: (message: string) => Promise<void>
   connect(): Promise<boolean>
-  disconnect(): void,
+  disconnect(): void
   version: EspVersionResponse | null
+  connected: boolean
 }
 
 const MspContext = createContext<MspContextValue>({
@@ -25,7 +26,8 @@ const MspContext = createContext<MspContextValue>({
   writeText: () => Promise.resolve(),
   connect: () => Promise.resolve(false),
   disconnect: () => { },
-  version: null
+  version: null,
+  connected: false,
 });
 
 type MspProviderProps = PropsWithChildren & {}
@@ -34,7 +36,7 @@ const MspProvider = ({
   children,
 }: MspProviderProps) => {
 
-  const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, portState } = useSerial()
+  const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, portState, connected } = useSerial()
 
   const currentSubscriberIdRef = useRef(0)
   const mspSubscribersRef = useRef(new Map<number, MspMessageCallback>())
@@ -130,6 +132,7 @@ const MspProvider = ({
         connect,
         disconnect,
         version,
+        connected,
       }}
     >
       {children}

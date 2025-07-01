@@ -12,7 +12,7 @@ const HardwareTab = () => {
           <Card.Body>
             {[0, 1, 2, 3, 4, 5, 6, 7].map((output) => {
               return <Form.Group key={output} as={Row} controlId={`output_${output}`} className="mb-3">
-                <Form.Label as={Col} sm={3} className='text-right'>Output {output + 1}</Form.Label>
+                <Form.Label column sm={3} className='text-right'>Output {output + 1}</Form.Label>
                 <Col sm={9}>
                   <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
                 </Col>

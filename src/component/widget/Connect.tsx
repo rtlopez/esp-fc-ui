@@ -2,8 +2,6 @@ import Button from 'react-bootstrap/Button'
 import { useSerial } from '@/api/serial/SerialProvider'
 import { useMsp } from '@/api/msp/MspProvider'
 
-// https://gist.github.com/joshpensky/426d758c5779ac641d1d09f9f5894153
-
 const Connect = () => {
   const { portState } = useSerial()
   const { connect, disconnect } = useMsp()

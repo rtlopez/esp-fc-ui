@@ -12,22 +12,18 @@ const OutputTab = () => {
           <Card.Body>
 
             <Form.Group as={Row} controlId="mixerType" className="mb-3">
-              <Form.Label as={Col}>
-                Mixer Type
-              </Form.Label>
+              <Form.Label column>Mixer Type</Form.Label>
               <Col sm={6}>
                 <Form.Select>
                   <option value="1">Quad X</option>
                   <option value="2">Tricopter</option>
-                  <option value="2">Custom</option>
+                  <option value="3">Custom</option>
                 </Form.Select>
               </Col>
             </Form.Group>
 
             <Form.Group as={Row} controlId="motorReversed" className="mb-3">
-              <Form.Label as={Col}>
-                Motor Reversed
-              </Form.Label>
+              <Form.Label column>Motor Reversed</Form.Label>
               <Col sm={6}>
                 <Form.Switch />
               </Col>
@@ -43,9 +39,7 @@ const OutputTab = () => {
           <Card.Body>
 
             <Form.Group as={Row} controlId="motorProtocol" className="mb-3">
-              <Form.Label as={Col}>
-                Motor Protocol
-              </Form.Label>
+              <Form.Label column>Motor Protocol</Form.Label>
               <Col sm={6}>
                 <Form.Select>
                   <option value="1">PWM</option>
@@ -55,43 +49,39 @@ const OutputTab = () => {
             </Form.Group>
 
             <Form.Group as={Row} controlId="dshotTelementry" className="mb-3">
-              <Form.Label as={Col}>
-                Dshot Telemetry
-              </Form.Label>
+              <Form.Label column>Dshot Telemetry</Form.Label>
               <Col sm={6}>
                 <Form.Switch />
               </Col>
             </Form.Group>
 
             <Form.Group as={Row} controlId="motorAsync" className="mb-3">
-              <Form.Label as={Col}>
-                Async Motor Output
-              </Form.Label>
+              <Form.Label column>Async Motor Output</Form.Label>
               <Col sm={6}>
                 <Form.Switch />
               </Col>
             </Form.Group>
             <Form.Group as={Row} controlId="motorOff" className="mb-3">
-              <Form.Label as={Col}>Async Motor Update Rate</Form.Label>
+              <Form.Label column>Async Motor Update Rate</Form.Label>
               <Col sm={6}>
                 <Form.Control type='number' min={50} max={8000} defaultValue={480} />
               </Col>
             </Form.Group>
 
             <Form.Group as={Row} controlId="motorOff" className="mb-3">
-              <Form.Label as={Col}>Motor Disarmed Command</Form.Label>
+              <Form.Label column>Motor Disarmed Command</Form.Label>
               <Col sm={6}>
                 <Form.Control type='number' min={990} max={2000} defaultValue={1000} />
               </Col>
             </Form.Group>
             <Form.Group as={Row} controlId="motorMin" className="mb-3">
-              <Form.Label as={Col}>Motor Min Command</Form.Label>
+              <Form.Label column>Motor Min Command</Form.Label>
               <Col sm={6}>
                 <Form.Control type='number' min={990} max={2000} defaultValue={1050} />
               </Col>
             </Form.Group>
             <Form.Group as={Row} controlId="motorMax" className="mb-3">
-              <Form.Label as={Col}>Motor Max Command</Form.Label>
+              <Form.Label column>Motor Max Command</Form.Label>
               <Col sm={6}>
                 <Form.Control type='number' min={990} max={2000} defaultValue={2000} />
               </Col>
@@ -111,13 +101,11 @@ const OutputTab = () => {
               <Col>
                 <Form.Switch />
               </Col>
-              <Form.Label as={Col} sm={11}>
-                <strong>I Understand a Risk</strong>
-              </Form.Label>
+              <Form.Label column sm={11}><strong>I Understand a Risk</strong></Form.Label>
             </Form.Group>
             {[1, 2, 3, 4].map(motor => {
               return <Form.Group as={Row} controlId={`motor_${motor}`} key={motor} className="mb-3">
-                <Form.Label as={Col}>{`M${motor}`}</Form.Label>
+                <Form.Label column>{`M${motor}`}</Form.Label>
                 <Col sm={11}>
                   <Form.Range min={0} max={100} step={1} defaultValue={0} />
                 </Col>

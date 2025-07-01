@@ -11,6 +11,7 @@ import {
 // https://web.dev/serial/
 // https://reillyeon.github.io/serial/#onconnect-attribute-0
 // https://codelabs.developers.google.com/codelabs/web-serial
+// https://gist.github.com/joshpensky/426d758c5779ac641d1d09f9f5894153
 
 export type PortState = "closed" | "closing" | "open" | "opening";
 
