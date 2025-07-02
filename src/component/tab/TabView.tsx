@@ -1,25 +1,37 @@
 import { useSerial } from '@/api/serial/SerialProvider'
-import React, { PropsWithChildren } from 'react'
+import React, { FormEventHandler, PropsWithChildren } from 'react'
 import { Button, Col, Form, Row } from 'react-bootstrap'
 
 type TabViewProps = {
   title?: string
   nosave?: boolean
+  onSubmit?: FormEventHandler
+  onLoad?: () => void
 } & PropsWithChildren
 
-const TabView: React.FC<TabViewProps> = ({ title, children, nosave }) => {
+const TabView: React.FC<TabViewProps> = ({ title, children, nosave, onSubmit, onLoad }) => {
 
   const { connected } = useSerial()
 
-  return <Form className='mb-5'>
+  return <Form className='mb-5' onSubmit={onSubmit}>
 
     {title ? <Row className='mb-3 align-items-center'>
       <Col>
         <h3>{title}</h3>
       </Col>
       {!nosave ? <Col className="d-flex justify-content-end mt-3">
-        <Button variant='outline-primary' className='me-2' disabled={!connected}><i className='bi bi-box-arrow-in-up'></i> Load</Button>
-        <Button variant='primary' disabled={!connected}><i className='bi bi-floppy'></i> Save</Button>
+        <Button
+          variant="outline-primary"
+          className="me-2"
+          disabled={!connected}
+          onClick={(e) => {
+            e.preventDefault();
+            if (onLoad) onLoad()
+          }}
+        >
+          <i className='bi bi-box-arrow-in-up'></i> Load
+        </Button>
+        <Button variant='primary' disabled={!connected} type="submit"><i className='bi bi-floppy'></i> Save</Button>
       </Col> : null}
     </Row> : null}
 

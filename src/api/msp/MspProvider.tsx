@@ -1,7 +1,7 @@
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
 import { MspCommand, MspDirection, MspMessage, mspParse, MspState } from "@/api/msp/msp"
-import { EspVersionResponse, parseVersionResponse } from "../esp"
+import { createDisableArmRequest, createVersionRequest, EspVersionResponse, parseVersionResponse } from "../esp"
 
 type MspMessageCallback = (message: MspMessage) => void
 type TextMessageCallback = (message: string) => void
@@ -30,6 +30,58 @@ const MspContext = createContext<MspContextValue>({
   connected: false,
 });
 
+class Queue<T> {
+
+  private items: Array<T>
+
+  constructor() {
+    this.items = [];
+  }
+
+  enqueue(element: T) {
+    this.items.push(element);
+  }
+
+  dequeue(): T | undefined {
+    return this.items.shift();
+  }
+
+  peek(): T | undefined {
+    return this.items[0];
+  }
+
+  isEmpty(): boolean {
+    return this.items.length === 0;
+  }
+
+  size(): number {
+    return this.items.length;
+  }
+}
+
+class TimedLock {
+  private timer: ReturnType<typeof setTimeout> | null = null;
+
+  acquire(durationMs: number = 100): boolean {
+    if (this.timer !== null) return false
+    this.timer = setTimeout(() => {
+      this.timer = null;
+    }, durationMs);
+    return true
+  }
+
+  release(): void {
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+
+  isActive(): boolean {
+    return this.timer !== null;
+  }
+}
+
 type MspProviderProps = PropsWithChildren & {}
 
 const MspProvider = ({
@@ -41,6 +93,8 @@ const MspProvider = ({
   const currentSubscriberIdRef = useRef(0)
   const mspSubscribersRef = useRef(new Map<number, MspMessageCallback>())
   const textSubscribersRef = useRef(new Map<number, TextMessageCallback>())
+  const msgQueueRef = useRef(new Queue<MspMessage>())
+  const msgQueueLockRef = useRef(new TimedLock())
   const msgRef = useRef(new MspMessage())
   const [version, setVersion] = useState<EspVersionResponse | null>(null)
 
@@ -52,10 +106,12 @@ const MspProvider = ({
       if (consumed) {
         if (msgRef.current.state === MspState.RECEIVED && msgRef.current.dir === MspDirection.REPLY) {
           // notify msp subscribers
+          //console.log("msp.recv", msgRef.current)
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
           msgRef.current = new MspMessage()
+          msgQueueLockRef.current.release()
         }
       } else {
         text += String.fromCharCode(b)
@@ -78,8 +134,9 @@ const MspProvider = ({
     }
   }
   const writeMsp = useCallback(async (msg: MspMessage) => {
-    write(msg.toDataBuffer())
-  }, [write])
+    //console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg)
+    msgQueueRef.current.enqueue(msg)
+  }, [])
 
   const subscribeText = (callback: TextMessageCallback) => {
     const id = currentSubscriberIdRef.current
@@ -94,6 +151,21 @@ const MspProvider = ({
   }
 
   useEffect(() => {
+    if (!connected) return;
+    const interval = setInterval(() => {
+      if (!msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
+        msgQueueLockRef.current.acquire(100)
+        const msg = msgQueueRef.current.dequeue()!
+        //console.log("msp.send", msg)
+        write(msg.toDataBuffer())
+      }
+    }, 10);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [connected, write])
+
+  useEffect(() => {
     return subscribe((message: Uint8Array) => {
       receive(message)
     })
@@ -101,15 +173,16 @@ const MspProvider = ({
 
   useEffect(() => {
     return subscribeMsp((msg: MspMessage) => {
-      if (msg.isA(MspCommand.ESP_CMD_VERSION)) {
+      if (msg.isCmd(MspCommand.ESP_CMD_VERSION)) {
         setVersion(parseVersionResponse(msg))
+        writeMsp(createDisableArmRequest({ type: 1 }))
       }
     })
   })
 
   useEffect(() => {
     if (portState == "open" && version === null) {
-      writeMsp(new MspMessage(MspCommand.ESP_CMD_VERSION))
+      writeMsp(createVersionRequest())
     }
   }, [writeMsp, portState, version])
 

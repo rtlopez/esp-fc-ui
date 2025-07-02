@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { createInputRequest, EspInputResponse, parseInputResponse } from '@/api/esp'
+import { createInputConfigRequest, createInputRequest, createSaveRequest, EspInputResponse, parseInputConfigResponse, parseInputResponse } from '@/api/esp'
 import { Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
 import { RcControls } from '@/component/widget'
 import TabView from './TabView'
 import { MspCommand } from '@/api/msp/msp'
+import { SubmitHandler, useForm } from 'react-hook-form';
 
 const channelMaping: Record<number, string> = {
   0: "Roll",
@@ -14,37 +15,97 @@ const channelMaping: Record<number, string> = {
 }
 
 const inputTypes = [
-  {id: 1, name: 'Serial - IBUS'},
-  {id: 2, name: 'Serial - SBUS'},
-  {id: 3, name: 'Serial - CRSF/ELRS'},
-  {id: 10, name: 'Esp Now'},
-  {id: 11, name: 'PPM'},
+  { id: 0, name: 'Choose...' },
+  { id: 1, name: 'Serial - IBUS' },
+  { id: 2, name: 'Serial - SBUS' },
+  { id: 3, name: 'Serial - CRSF/ELRS' },
+  { id: 10, name: 'Esp Now' },
+  { id: 11, name: 'PPM' },
 ]
+
+type FormValues = {
+  inputType: number
+  inputDeadband: number
+  inputMin: number
+  inputMid: number
+  inputMax: number
+}
 
 const InputTab = () => {
 
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
   const { connected, writeMsp, subscribeMsp } = useMsp()
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    //formState: { errors }
+  } = useForm<FormValues>({
+    defaultValues: {
+      inputType: 0,
+      inputDeadband: 2,
+      inputMin: 1000,
+      inputMid: 1500,
+      inputMax: 2000,
+    }
+  });
+
   useEffect(() => {
     return subscribeMsp((msg) => {
-      if (msg.isA(MspCommand.ESP_CMD_INPUT)) {
+      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
+        console.log("saved")
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_INPUT)) {
         setInputs(parseInputResponse(msg))
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CONFIG)) {
+        const v = parseInputConfigResponse(msg)
+        const data = {
+          inputType: v.type,
+          inputDeadband: v.deadband,
+          inputMin: v.min,
+          inputMid: v.mid,
+          inputMax: v.max,
+        }
+        reset({ ...getValues(), ...data })
+        console.log("recv", v, data)
       }
     })
   })
 
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+    const v = {
+      type: data.inputType,
+      deadband: data.inputDeadband,
+      min: data.inputMin,
+      mid: data.inputMid,
+      max: data.inputMax,
+      dbg: 0
+    }
+    console.log("save", v, data)
+    writeMsp(createInputConfigRequest(v))
+    writeMsp(createSaveRequest())
+  }
+
+  const onLoad = useCallback(() => {
+    console.log("load")
+    writeMsp(createInputConfigRequest())
+  }, [writeMsp])
+
   useEffect(() => {
     if (!connected) return;
+    else onLoad();
     const interval = setInterval(() => {
       writeMsp(createInputRequest())
     }, 300);
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [connected, writeMsp]);
+  }, [connected, writeMsp, onLoad]);
 
-  return <TabView title='Input'>
+  return <TabView title='Input' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col lg={6}>
@@ -55,39 +116,40 @@ const InputTab = () => {
             <Form.Group as={Row} className="mb-3" controlId="inputType">
               <Form.Label column>Receiver Type</Form.Label>
               <Col sm={6}>
-                <Form.Select>
-                  {inputTypes.map(({id, name}) => <option key={id} value={id}>{name}</option>)}
+                <Form.Select {...register("inputType")}>
+                  {inputTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                 </Form.Select>
-              </Col>
-            </Form.Group>
-
-            <Form.Group as={Row} controlId="inputMin" className="mb-3">
-              <Form.Label column>Minimum</Form.Label>
-              <Col sm={6}>
-                <Form.Control type="number" defaultValue={885} />
               </Col>
             </Form.Group>
 
             <Form.Group as={Row} controlId="inputMid" className="mb-3">
               <Form.Label column>Center</Form.Label>
               <Col sm={6}>
-                <Form.Control type="number" defaultValue={1500} />
+                <Form.Control type="number" {...register("inputMid")} />
+              </Col>
+            </Form.Group>
+
+            <Form.Group as={Row} controlId="inputDeadband" className="mb-3">
+              <Form.Label column>Deadband</Form.Label>
+              <Col sm={6}>
+                <Form.Control type="number" {...register("inputDeadband")} />
+              </Col>
+            </Form.Group>
+
+            <Form.Group as={Row} controlId="inputMin" className="mb-3">
+              <Form.Label column>Valid Minimum</Form.Label>
+              <Col sm={6}>
+                <Form.Control type="number" {...register("inputMin")} />
               </Col>
             </Form.Group>
 
             <Form.Group as={Row} controlId="inputMax" className="mb-3">
-              <Form.Label column>Maximum</Form.Label>
+              <Form.Label column>Valid Maximum</Form.Label>
               <Col sm={6}>
-                <Form.Control type="number" defaultValue={2115} />
+                <Form.Control type="number" {...register("inputMax")} />
               </Col>
             </Form.Group>
 
-            <Form.Group as={Row} controlId="inputdeadband" className="mb-3">
-              <Form.Label column>Deadband</Form.Label>
-              <Col sm={6}>
-                <Form.Control type="number" defaultValue={2} />
-              </Col>
-            </Form.Group>
 
           </Card.Body>
         </Card>

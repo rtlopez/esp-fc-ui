@@ -20,6 +20,7 @@
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.4",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.59.0",
     "react-typescript-flight-indicators": "^1.0.4",
     "three": "^0.177.0"
   },

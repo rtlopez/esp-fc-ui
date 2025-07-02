@@ -189,3 +189,65 @@ export const parseDebugResponse = (msg: MspMessage): EspDebugResponse => {
   }
   return v
 }
+
+export interface EspInputConfigResponse {
+  type: number
+  deadband: number
+  min: number
+  mid: number
+  max: number
+  dbg: number
+}
+
+export const createInputConfigRequest = (data?: EspInputConfigResponse): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_INPUT_CONFIG)
+  if (data) {
+    msg.writeU8(data.type)
+    msg.writeU8(data.deadband)
+    msg.writeU16(data.min)
+    msg.writeU16(data.mid)
+    msg.writeU16(data.max)
+    msg.writeU16(0)
+  }
+  return msg
+}
+export const parseInputConfigResponse = (msg: MspMessage): EspInputConfigResponse => {
+  const reader = msg.getReader()
+  const v = {
+    type: reader.readU8(),
+    deadband: reader.readU8(),
+    min: reader.readU16(),
+    mid: reader.readU16(),
+    max: reader.readU16(),
+    dbg: reader.readU16(),
+  }
+  return v
+}
+
+export const createSaveRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)
+export const parseSaveResponse = (_msg: MspMessage) => {
+  return {}
+}
+
+export const createRebootRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_REBOOT)
+export const parseRebootResponse = (_msg: MspMessage) => {
+  return {}
+}
+
+export interface EspInputConfigRquest {
+  type: number
+}
+
+export const createDisableArmRequest = (data: EspInputConfigRquest): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_DISABLE_ARM)
+  msg.writeU8(data.type)
+  return msg;
+}
+export const parseDisableArmResponse = (_msg: MspMessage) => {
+  return {}
+}
+
+export const createDefaultsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)
+export const parseDefaultsResponse = (_msg: MspMessage) => {
+  return {}
+}

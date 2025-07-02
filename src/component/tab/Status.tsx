@@ -75,13 +75,13 @@ const StatusTab = () => {
       writeMsp(createAttitudeRequest())
     }, 100);
     return () => {
-      if(interval) clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, [connected, writeMsp]);
 
   useEffect(() => {
     return subscribeMsp((msg: MspMessage) => {
-      if (msg.isA(MspCommand.ESP_CMD_ATTITUDE)) {
+      if (msg.isCmd(MspCommand.ESP_CMD_ATTITUDE)) {
         const [q, e] = parseAttitudeResponse(msg)
         setAttitudeQ(q)
         setAttitudeE(e)

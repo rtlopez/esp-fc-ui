@@ -164,16 +164,14 @@ export class MspReader {
 
 export class MspMessage {
 
-  cmd = 0
-  variant = 'E'
-  state = MspState.IDLE
-  dir = MspDirection.REQUEST
-  size = 0
-  received = 0
-  read = 0
-  write = 0
-  checksum = 0
-  onReceive = null
+  cmd: number = 0
+  variant: MspVariant = 'E'
+  state: string = MspState.IDLE
+  dir: string = MspDirection.REQUEST
+  size: number = 0
+  received: number = 0
+  written: number = 0
+  checksum: number = 0
   data: ArrayBuffer
   view: DataView
 
@@ -195,71 +193,12 @@ export class MspMessage {
     return new MspReader(this.view, this.size)
   }
 
-  isA(cmd: MspCommandEntry): boolean {
+  isCmd(cmd: MspCommandEntry): boolean {
     return this.cmd === cmd.value && this.variant === cmd.variant
   }
 
-  /**
-   * @deprecated
-   */
-  remain(): number {
-    return this.size - this.read
-  }
-
-  /**
-   * @deprecated
-   */
-  advance(size: number) {
-    this.read += size
-  }
-
-  /**
-   * @deprecated
-   */
-  readU8(): number {
-    return this.view.getUint8(this.read++)
-  }
-  /**
-   * @deprecated
-   */
-  readU16(): number {
-    const v = this.view.getUint16(this.read, true)
-    this.read += 2
-    return v
-  }
-  /**
-   * @deprecated
-   */
-  readU32(): number {
-    const v = this.view.getUint32(this.read, true)
-    this.read += 4
-    return v
-  }
-  /**
-   * @deprecated
-   */
-  read8(): number {
-    return this.view.getInt8(this.read++)
-  }
-  /**
-   * @deprecated
-   */
-  read16(): number {
-    const v = this.view.getInt16(this.read, true)
-    this.read += 2
-    return v
-  }
-  /**
-   * @deprecated
-   */
-  read32(): number {
-    const v = this.view.getInt32(this.read, true)
-    this.read += 4
-    return v
-  }
-
   writeU8(num: number) {
-    this.view.setUint8(this.write++, num)
+    this.view.setUint8(this.written++, num)
   }
   writeU16(num: number) {
     this.writeU8(num & 0xff)
@@ -271,19 +210,20 @@ export class MspMessage {
   }
 
   toDataBuffer(): Uint8Array {
-    const size = this.write + 3 + 2 + 1 // data size + 3 bytes of header + 2 bytes for size and cmd + 1 byte for checksum
+    const size = this.written + 3 + 2 + 1 // data size + 3 bytes of header + 2 bytes for size and cmd + 1 byte for checksum
     const view = new Uint8Array(new ArrayBuffer(size));
     let i = 0
     view[i++] = '$'.charCodeAt(0)
     view[i++] = this.variant.charCodeAt(0)
     view[i++] = '<'.charCodeAt(0)
-    view[i++] = this.write
-    let checksum = this.write
+    view[i++] = this.written
+    let checksum = this.written
     view[i++] = this.cmd
     checksum ^= this.cmd
-    for (let k = 0; k < this.write; k++) {
-      view[i++] = this.view.getUint8(k)
-      checksum ^= view[k]
+    for (let k = 0; k < this.written; k++) {
+      const v = this.view.getUint8(k)
+      view[i++] = v
+      checksum ^= v
     }
     view[i++] = checksum
     return view
@@ -342,8 +282,7 @@ export const mspParse = (c: number, msg: MspMessage): boolean => {
       if (c <= 192) {
         msg.size = c
         msg.received = 0
-        msg.read = 0
-        msg.write = 0
+        msg.written = 0
         msg.checksum = c
         msg.state = MspState.SIZE
       } else {
@@ -367,7 +306,6 @@ export const mspParse = (c: number, msg: MspMessage): boolean => {
       } else if (msg.received >= msg.size) {
         // got data, check crc, return received or back to idle
         msg.state = msg.checksum === c ? MspState.RECEIVED : MspState.IDLE
-        msg.read = 0
       }
       break;
 
