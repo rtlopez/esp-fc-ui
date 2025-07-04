@@ -2,7 +2,7 @@ import {
   parseStatusResponse, parseVersionResponse, parseAttitudeResponse,
   parseSensorsResponse, parseStatisticsResponse, parseInputResponse,
   parseOutputResponse, parseVoltageResponse, parseCurrentResponse,
-  parseDebugResponse
+  parseDebugResponse, parseInputConfigResponse, parseInputChannelConfigResponse,
 } from "../esp"
 
 export const MspState = {
@@ -56,8 +56,8 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_PID_NAMES: { value: 0x14, label: 'ESP_CMD_PID_NAMES', ...E },
 
   // ESP configuration commands
-  ESP_CMD_INPUT_CONFIG: { value: 0x20, label: 'ESP_CMD_INPUT_CONFIG', ...E },
-  ESP_CMD_INPUT_CHANNEL_CONFIG: { value: 0x21, label: 'ESP_CMD_INPUT_CHANNEL_CONFIG', ...E },
+  ESP_CMD_INPUT_CONFIG: { value: 0x20, label: 'ESP_CMD_INPUT_CONFIG', ...E, parse: parseInputConfigResponse },
+  ESP_CMD_INPUT_CHANNEL_CONFIG: { value: 0x21, label: 'ESP_CMD_INPUT_CHANNEL_CONFIG', ...E, parse: parseInputChannelConfigResponse },
   ESP_CMD_OUTPUT_CONFIG: { value: 0x22, label: 'ESP_CMD_OUTPUT_CONFIG', ...E },
   ESP_CMD_OUTPUT_CHANNEL_CONFIG: { value: 0x23, label: 'ESP_CMD_OUTPUT_CHANNEL_CONFIG', ...E },
   ESP_CMD_GYRO_CONFIG: { value: 0x24, label: 'ESP_CMD_GYRO_CONFIG', ...E },

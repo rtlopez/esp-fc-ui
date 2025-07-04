@@ -106,7 +106,7 @@ const MspProvider = ({
       if (consumed) {
         if (msgRef.current.state === MspState.RECEIVED && msgRef.current.dir === MspDirection.REPLY) {
           // notify msp subscribers
-          //console.log("msp.recv", msgRef.current)
+          if(msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd)
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
@@ -134,7 +134,7 @@ const MspProvider = ({
     }
   }
   const writeMsp = useCallback(async (msg: MspMessage) => {
-    //console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg)
+    if(msg.cmd > 0xf) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.cmd)
     msgQueueRef.current.enqueue(msg)
   }, [])
 
@@ -156,10 +156,10 @@ const MspProvider = ({
       if (!msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
-        //console.log("msp.send", msg)
+        if(msg.cmd > 0xf) console.log("msp.send", msg.cmd)
         write(msg.toDataBuffer())
       }
-    }, 10);
+    }, 5);
     return () => {
       if (interval) clearInterval(interval);
     };

@@ -224,6 +224,58 @@ export const parseInputConfigResponse = (msg: MspMessage): EspInputConfigRespons
   return v
 }
 
+export interface EspInputChannelConfig {
+  map: number
+  min: number
+  max: number
+  fsMode: number
+  fsValue: number
+}
+
+export interface EspInputChannelConfigRequest {
+  count: number
+  channels: EspInputChannelConfig[]
+}
+
+export interface EspInputChannelConfigResponse {
+  count: number
+  channels: EspInputChannelConfig[]
+}
+
+
+export const createInputChannelConfigRequest = (data?: EspInputChannelConfigRequest): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_INPUT_CHANNEL_CONFIG)
+  if (data) {
+    msg.writeU8(data.count)
+    for(let i = 0; i < 16; i++) {
+      msg.writeU8(data.channels[i].map)
+      msg.writeU16(data.channels[i].min)
+      msg.writeU16(data.channels[i].max)
+      msg.writeU8(data.channels[i].fsMode)
+      msg.writeU16(data.channels[i].fsValue)
+    }
+  }
+  return msg
+}
+export const parseInputChannelConfigResponse = (msg: MspMessage): EspInputChannelConfigResponse => {
+  const reader = msg.getReader()
+  const v: EspInputChannelConfigResponse = {
+    count: reader.readU8(),
+    channels: [],
+  }
+  for(let i = 0; i < 16; i++) {
+    const c = {
+      map: reader.readU8(),
+      min: reader.readU16(),
+      max: reader.readU16(),
+      fsMode: reader.readU8(),
+      fsValue: reader.readU16(),
+    }
+    v.channels.push(c)
+  }
+  return v
+}
+
 export const createSaveRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)
 export const parseSaveResponse = (_msg: MspMessage) => {
   return {}

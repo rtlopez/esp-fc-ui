@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { PropsWithChildren, useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { createInputConfigRequest, createInputRequest, createSaveRequest, EspInputResponse, parseInputConfigResponse, parseInputResponse } from '@/api/esp'
+import {
+  createInputChannelConfigRequest, createInputConfigRequest,
+  createInputRequest, createSaveRequest, EspInputResponse,
+  parseInputChannelConfigResponse, parseInputConfigResponse,
+  parseInputResponse
+} from '@/api/esp'
 import { Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
 import { RcControls } from '@/component/widget'
 import TabView from './TabView'
 import { MspCommand } from '@/api/msp/msp'
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
 
 const channelMaping: Record<number, string> = {
   0: "Roll",
@@ -23,12 +28,35 @@ const inputTypes = [
   { id: 11, name: 'PPM' },
 ]
 
+type FormChannel = {
+  map: number
+  min: number
+  max: number
+  fsMode: number
+  fsValue: number
+}
+
 type FormValues = {
   inputType: number
   inputDeadband: number
   inputMin: number
   inputMid: number
   inputMax: number
+  channels: Array<FormChannel>
+}
+
+type FormItemProps = {
+  label: string
+  id: string
+} & PropsWithChildren
+
+const FormItem: React.FC<FormItemProps> = ({ label, id, children }) => {
+  return <Form.Group as={Row} className="mb-3" controlId={id}>
+    <Form.Label column>{label}</Form.Label>
+    <Col sm={6}>
+      {children}
+    </Col>
+  </Form.Group>
 }
 
 const InputTab = () => {
@@ -37,6 +65,7 @@ const InputTab = () => {
   const { connected, writeMsp, subscribeMsp } = useMsp()
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -46,10 +75,16 @@ const InputTab = () => {
     defaultValues: {
       inputType: 0,
       inputDeadband: 2,
-      inputMin: 1000,
+      inputMin: 880,
       inputMid: 1500,
-      inputMax: 2000,
+      inputMax: 2200,
+      channels: []
     }
+  });
+
+  const { fields: channels } = useFieldArray({
+    control,
+    name: "channels",
   });
 
   useEffect(() => {
@@ -72,10 +107,17 @@ const InputTab = () => {
         reset({ ...getValues(), ...data })
         console.log("recv", v, data)
       }
+      if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CHANNEL_CONFIG)) {
+        const v = parseInputChannelConfigResponse(msg)
+        const channels = v.channels
+        reset({ ...getValues(), channels })
+        console.log("recv", v, channels)
+      }
     })
   })
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
+    console.log("save", data)
     const v = {
       type: data.inputType,
       deadband: data.inputDeadband,
@@ -84,14 +126,19 @@ const InputTab = () => {
       max: data.inputMax,
       dbg: 0
     }
-    console.log("save", v, data)
+    const c = {
+      count: 0,
+      channels: data.channels
+    }
     writeMsp(createInputConfigRequest(v))
+    writeMsp(createInputChannelConfigRequest(c))
     writeMsp(createSaveRequest())
   }
 
   const onLoad = useCallback(() => {
     console.log("load")
     writeMsp(createInputConfigRequest())
+    writeMsp(createInputChannelConfigRequest())
   }, [writeMsp])
 
   useEffect(() => {
@@ -113,43 +160,69 @@ const InputTab = () => {
           <Card.Header>Options</Card.Header>
           <Card.Body>
 
-            <Form.Group as={Row} className="mb-3" controlId="inputType">
-              <Form.Label column>Receiver Type</Form.Label>
-              <Col sm={6}>
-                <Form.Select {...register("inputType")}>
-                  {inputTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-                </Form.Select>
-              </Col>
-            </Form.Group>
+            <FormItem id="inputType" label="Receiver Type">
+              <Form.Select {...register("inputType")}>
+                {inputTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
 
-            <Form.Group as={Row} controlId="inputMid" className="mb-3">
-              <Form.Label column>Center</Form.Label>
-              <Col sm={6}>
-                <Form.Control type="number" {...register("inputMid")} />
-              </Col>
-            </Form.Group>
+            <FormItem id="inputMid" label="Center">
+              <Form.Control type="number" {...register("inputMid")} />
+            </FormItem>
 
-            <Form.Group as={Row} controlId="inputDeadband" className="mb-3">
-              <Form.Label column>Deadband</Form.Label>
-              <Col sm={6}>
-                <Form.Control type="number" {...register("inputDeadband")} />
-              </Col>
-            </Form.Group>
+            <FormItem id="inputDeadband" label="Deadband">
+              <Form.Control type="number" {...register("inputDeadband")} />
+            </FormItem>
 
-            <Form.Group as={Row} controlId="inputMin" className="mb-3">
-              <Form.Label column>Valid Minimum</Form.Label>
-              <Col sm={6}>
-                <Form.Control type="number" {...register("inputMin")} />
-              </Col>
-            </Form.Group>
+            <FormItem id="inputMin" label="Valid Minimum">
+              <Form.Control type="number" {...register("inputMin")} />
+            </FormItem>
 
-            <Form.Group as={Row} controlId="inputMax" className="mb-3">
-              <Form.Label column>Valid Maximum</Form.Label>
-              <Col sm={6}>
-                <Form.Control type="number" {...register("inputMax")} />
-              </Col>
-            </Form.Group>
+            <FormItem id="inputMax" label="Valid Maximum">
+              <Form.Control type="number" {...register("inputMax")} />
+            </FormItem>
 
+          </Card.Body>
+        </Card>
+
+        <Card className="mb-2">
+          <Card.Header>Advanced</Card.Header>
+          <Card.Body>
+
+            <Row className='mb-3'>
+              <Col>Channel</Col>
+              <Col>Map</Col>
+              <Col>Min</Col>
+              <Col>Max</Col>
+              <Col>FsMode</Col>
+              <Col>FsValue</Col>
+            </Row>
+            {channels.map((_ch, i) => {
+              return <Row key={i}>
+                <Col>
+                  {`CH${i + 1}`}
+                </Col>
+                <Form.Group as={Col} controlId={`ch_map_${i}`} className="mb-3">
+                  <Form.Control type='number' min={0} max={15} {...register(`channels.${i}.map`, { valueAsNumber: true })} />
+                </Form.Group >
+                <Form.Group as={Col} controlId={`ch_min_${i}`} className="mb-3">
+                  <Form.Control type='number' min={1000} max={2000} {...register(`channels.${i}.min`, { valueAsNumber: true })} />
+                </Form.Group>
+                <Form.Group as={Col} controlId={`ch_max_${i}`} className="mb-3">
+                  <Form.Control type='number' min={1000} max={2000} {...register(`channels.${i}.max`, { valueAsNumber: true })} />
+                </Form.Group>
+                <Form.Group as={Col} controlId={`ch_fsm_${i}`} className="mb-3">
+                  <Form.Select {...register(`channels.${i}.fsMode`, { valueAsNumber: true })}>
+                    <option value="0">Auto</option>
+                    <option value="1">Hold</option>
+                    <option value="2">Set</option>
+                  </Form.Select>
+                </Form.Group>
+                <Form.Group as={Col} controlId={`ch_fsv_${i}`} className="mb-3">
+                  <Form.Control type='number' min={1000} max={2000} {...register(`channels.${i}.fsValue`, { valueAsNumber: true })} />
+                </Form.Group>
+              </Row>
+            })}
 
           </Card.Body>
         </Card>
