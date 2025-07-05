@@ -242,7 +242,6 @@ export interface EspInputChannelConfigResponse {
   channels: EspInputChannelConfig[]
 }
 
-
 export const createInputChannelConfigRequest = (data?: EspInputChannelConfigRequest): MspMessage => {
   const msg = new MspMessage(MspCommand.ESP_CMD_INPUT_CHANNEL_CONFIG)
   if (data) {
@@ -257,6 +256,7 @@ export const createInputChannelConfigRequest = (data?: EspInputChannelConfigRequ
   }
   return msg
 }
+
 export const parseInputChannelConfigResponse = (msg: MspMessage): EspInputChannelConfigResponse => {
   const reader = msg.getReader()
   const v: EspInputChannelConfigResponse = {
@@ -270,6 +270,117 @@ export const parseInputChannelConfigResponse = (msg: MspMessage): EspInputChanne
       max: reader.readU16(),
       fsMode: reader.readU8(),
       fsValue: reader.readU16(),
+    }
+    v.channels.push(c)
+  }
+  return v
+}
+
+export interface EspOutputConfigResponse {
+  protocol: number
+  async: boolean
+  rate: number
+  servoRate: number
+  minCommand: number
+  minThrottle: number
+  maxThrottle: number
+  digitalIdle: number
+  digitalTlm: boolean
+  motorPoles: number
+  motorLimit: number
+  throttleLimitType: number
+  throttleLimitPercent: number
+}
+
+export const createOutputConfigRequest = (data?: EspOutputConfigResponse): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_OUTPUT_CONFIG)
+  if (data) {
+    msg.writeU8(data.protocol)
+    msg.writeU8(+data.async)
+    msg.writeU16(data.rate)
+    msg.writeU16(data.servoRate)
+    msg.writeU16(data.minCommand)
+    msg.writeU16(data.minThrottle)
+    msg.writeU16(data.maxThrottle)
+    msg.writeU16(data.digitalIdle)
+    msg.writeU8(+data.digitalTlm)
+    msg.writeU8(data.motorPoles)
+    msg.writeU8(data.motorLimit)
+    msg.writeU8(data.throttleLimitType)
+    msg.writeU8(data.throttleLimitPercent)
+  }
+  return msg
+}
+
+export const parseOutputConfigResponse = (msg: MspMessage): EspOutputConfigResponse => {
+  const reader = msg.getReader()
+  const v = {
+    protocol: reader.readU8(),
+    async: !!reader.readU8(),
+    rate: reader.readU16(),
+    servoRate: reader.readU16(),
+    minCommand: reader.readU16(),
+    minThrottle: reader.readU16(),
+    maxThrottle: reader.readU16(),
+    digitalIdle: reader.readU16(),
+    digitalTlm: !!reader.readU8(),
+    motorPoles: reader.readU8(),
+    motorLimit: reader.readU8(),
+    throttleLimitType: reader.readU8(),
+    throttleLimitPercent: reader.readU8(),
+  }
+  return v
+}
+
+export interface EspOutputChannelConfig {
+  min: number
+  neutral: number
+  max: number
+  servo: boolean
+  reverse: boolean
+  pin: number
+}
+
+export interface EspOutputChannelConfigRequest {
+  count: number
+  channels: EspOutputChannelConfig[]
+}
+
+export interface EspOutputChannelConfigResponse {
+  count: number
+  channels: EspOutputChannelConfig[]
+}
+
+export const createOutputChannelConfigRequest = (data?: EspOutputChannelConfigRequest): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)
+  if (data) {
+    msg.writeU8(data.count)
+    for(let i = 0; i < data.count; i++) {
+      msg.writeU16(data.channels[i].min)
+      msg.writeU16(data.channels[i].neutral)
+      msg.writeU16(data.channels[i].max)
+      msg.writeU8(+data.channels[i].servo)
+      msg.writeU8(+data.channels[i].reverse)
+      msg.writeU8(data.channels[i].pin)
+    }
+  }
+  return msg
+}
+
+export const parseOutputChannelConfigResponse = (msg: MspMessage): EspOutputChannelConfigResponse => {
+  const reader = msg.getReader()
+  const v: EspOutputChannelConfigResponse = {
+    count: reader.readU8(),
+    channels: [],
+  }
+  for(let i = 0; i < v.count; i++) {
+    const c = {
+      min: reader.readU16(),
+      neutral: reader.readU16(),
+      max: reader.readU16(),
+      servo: !!reader.readU8(),
+      reverse: !!reader.readU8(),
+      pin: reader.read8(),
     }
     v.channels.push(c)
   }
