@@ -193,10 +193,10 @@ export const parseDebugResponse = (msg: MspMessage): EspDebugResponse => {
 export interface EspInputConfigResponse {
   type: number
   deadband: number
-  min: number
+  smoothing: number
   mid: number
+  min: number
   max: number
-  dbg: number
 }
 
 export const createInputConfigRequest = (data?: EspInputConfigResponse): MspMessage => {
@@ -204,10 +204,10 @@ export const createInputConfigRequest = (data?: EspInputConfigResponse): MspMess
   if (data) {
     msg.writeU8(data.type)
     msg.writeU8(data.deadband)
-    msg.writeU16(data.min)
+    msg.writeU8(data.smoothing)
     msg.writeU16(data.mid)
+    msg.writeU16(data.min)
     msg.writeU16(data.max)
-    msg.writeU16(0)
   }
   return msg
 }
@@ -216,10 +216,10 @@ export const parseInputConfigResponse = (msg: MspMessage): EspInputConfigRespons
   const v = {
     type: reader.readU8(),
     deadband: reader.readU8(),
-    min: reader.readU16(),
+    smoothing: reader.readU8(),
     mid: reader.readU16(),
+    min: reader.readU16(),
     max: reader.readU16(),
-    dbg: reader.readU16(),
   }
   return v
 }

@@ -20,12 +20,12 @@ const channelMaping: Record<number, string> = {
 }
 
 const inputTypes = [
-  { id: 0, name: 'Choose...' },
+  { id: 0, name: 'None' },
   { id: 1, name: 'Serial - IBUS' },
   { id: 2, name: 'Serial - SBUS' },
   { id: 3, name: 'Serial - CRSF/ELRS' },
-  { id: 10, name: 'Esp Now' },
-  { id: 11, name: 'PPM' },
+  { id: 0x10, name: 'Esp Now' },
+  { id: 0x11, name: 'PPM' },
 ]
 
 type FormChannel = {
@@ -39,8 +39,9 @@ type FormChannel = {
 type FormValues = {
   inputType: number
   inputDeadband: number
-  inputMin: number
+  inputSmoothing: number
   inputMid: number
+  inputMin: number
   inputMax: number
   channels: Array<FormChannel>
 }
@@ -75,8 +76,9 @@ const InputTab = () => {
     defaultValues: {
       inputType: 0,
       inputDeadband: 2,
-      inputMin: 880,
+      inputSmoothing: 50,
       inputMid: 1500,
+      inputMin: 880,
       inputMax: 2200,
       channels: []
     }
@@ -100,8 +102,9 @@ const InputTab = () => {
         const data = {
           inputType: v.type,
           inputDeadband: v.deadband,
-          inputMin: v.min,
+          inputSmoothing: v.smoothing,
           inputMid: v.mid,
+          inputMin: v.min,
           inputMax: v.max,
         }
         reset({ ...getValues(), ...data })
@@ -121,10 +124,10 @@ const InputTab = () => {
     const v = {
       type: data.inputType,
       deadband: data.inputDeadband,
-      min: data.inputMin,
+      smoothing: data.inputSmoothing,
       mid: data.inputMid,
+      min: data.inputMin,
       max: data.inputMax,
-      dbg: 0
     }
     const c = {
       count: 0,
@@ -157,7 +160,7 @@ const InputTab = () => {
 
       <Col lg={6}>
         <Card className="mb-2">
-          <Card.Header>Options</Card.Header>
+          <Card.Header>Basic Options</Card.Header>
           <Card.Body>
 
             <FormItem id="inputType" label="Receiver Type">
@@ -166,27 +169,31 @@ const InputTab = () => {
               </Form.Select>
             </FormItem>
 
-            <FormItem id="inputMid" label="Center">
-              <Form.Control type="number" {...register("inputMid")} />
+            <FormItem id="inputSmoothing" label="Smooting">
+              <Form.Control type="number" min={0} max={250} {...register("inputSmoothing")} />
             </FormItem>
 
             <FormItem id="inputDeadband" label="Deadband">
-              <Form.Control type="number" {...register("inputDeadband")} />
+              <Form.Control type="number" min={0} max={50} {...register("inputDeadband")} />
+            </FormItem>
+
+            <FormItem id="inputMid" label="Center">
+              <Form.Control type="number" min={1100} max={1900} {...register("inputMid")} />
             </FormItem>
 
             <FormItem id="inputMin" label="Valid Minimum">
-              <Form.Control type="number" {...register("inputMin")} />
+              <Form.Control type="number" min={800} max={1100} {...register("inputMin")} />
             </FormItem>
 
             <FormItem id="inputMax" label="Valid Maximum">
-              <Form.Control type="number" {...register("inputMax")} />
+              <Form.Control type="number" min={1900} max={2300} {...register("inputMax")} />
             </FormItem>
 
           </Card.Body>
         </Card>
 
         <Card className="mb-2">
-          <Card.Header>Advanced</Card.Header>
+          <Card.Header>Advanced Options</Card.Header>
           <Card.Body>
 
             <Row className='mb-3'>
