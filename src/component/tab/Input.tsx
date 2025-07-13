@@ -1,4 +1,4 @@
-import { PropsWithChildren, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
   createInputChannelConfigRequest, createInputConfigRequest,
@@ -7,7 +7,7 @@ import {
   parseInputResponse
 } from '@/api/esp'
 import { Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
-import { RcControls } from '@/component/widget'
+import { FormItem, RcControls } from '@/component/widget'
 import TabView from './TabView'
 import { MspCommand } from '@/api/msp/msp'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
@@ -46,18 +46,19 @@ type FormValues = {
   channels: Array<FormChannel>
 }
 
-type FormItemProps = {
-  label: string
-  id: string
-} & PropsWithChildren
-
-const FormItem: React.FC<FormItemProps> = ({ label, id, children }) => {
-  return <Form.Group as={Row} className="mb-3" controlId={id}>
-    <Form.Label column>{label}</Form.Label>
-    <Col sm={6}>
-      {children}
-    </Col>
-  </Form.Group>
+const INPUT_DEFAULTS = {
+  inputType: 0,
+  inputDeadband: 2,
+  inputSmoothing: 50,
+  inputMid: 1500,
+  inputMin: 880,
+  inputMax: 2200,
+  channels: [
+    {map: 1, min: 1000, max: 2000, fsMode: 0, fsValue: 1500},
+    {map: 2, min: 1000, max: 2000, fsMode: 0, fsValue: 1500},
+    {map: 4, min: 1000, max: 2000, fsMode: 0, fsValue: 1500},
+    {map: 3, min: 1000, max: 2000, fsMode: 0, fsValue: 1000},
+  ]
 }
 
 const InputTab = () => {
@@ -73,15 +74,7 @@ const InputTab = () => {
     getValues,
     //formState: { errors }
   } = useForm<FormValues>({
-    defaultValues: {
-      inputType: 0,
-      inputDeadband: 2,
-      inputSmoothing: 50,
-      inputMid: 1500,
-      inputMin: 880,
-      inputMax: 2200,
-      channels: []
-    }
+    defaultValues: INPUT_DEFAULTS
   });
 
   const { fields: channels } = useFieldArray({

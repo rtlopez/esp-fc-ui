@@ -247,7 +247,7 @@ export const createInputChannelConfigRequest = (data?: EspInputChannelConfigRequ
   if (data) {
     msg.writeU8(data.count)
     for(let i = 0; i < 16; i++) {
-      msg.writeU8(data.channels[i].map)
+      msg.writeU8(data.channels[i].map - 1)
       msg.writeU16(data.channels[i].min)
       msg.writeU16(data.channels[i].max)
       msg.writeU8(data.channels[i].fsMode)
@@ -265,7 +265,7 @@ export const parseInputChannelConfigResponse = (msg: MspMessage): EspInputChanne
   }
   for(let i = 0; i < 16; i++) {
     const c = {
-      map: reader.readU8(),
+      map: reader.readU8() + 1,
       min: reader.readU16(),
       max: reader.readU16(),
       fsMode: reader.readU8(),

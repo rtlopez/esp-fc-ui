@@ -1,94 +1,274 @@
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import TabView from './TabView'
+import { useMsp } from '@/api/msp/MspProvider';
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import { createOutputChannelConfigRequest, createOutputConfigRequest, parseOutputChannelConfigResponse, parseOutputConfigResponse } from '@/api/esp';
+import { useCallback, useEffect } from 'react';
+import { MspCommand } from '@/api/msp/msp';
+import { FormItem } from '../widget';
+
+type FormOutputChannel = {
+  min: number
+  neutral: number
+  max: number
+  servo: boolean
+  reverse: boolean
+  pin: number
+}
+
+type FormValues = {
+  protocol: number
+  async: boolean
+  rate: number
+  servoRate: number
+  minCommand: number
+  minThrottle: number
+  maxThrottle: number
+  digitalIdle: number
+  digitalTlm: boolean
+  motorPoles: number
+  motorLimit: number
+  throttleLimitType: number
+  throttleLimitPercent: number
+  outputCount: number
+  outputChannels: Array<FormOutputChannel>
+}
+
+const OUTPUT_DFAULTS: FormValues = {
+  protocol: 0,
+  async: false,
+  rate: 480,
+  servoRate: 50,
+  minCommand: 1000,
+  minThrottle: 1070,
+  maxThrottle: 2000,
+  digitalIdle: 5,
+  digitalTlm: false,
+  motorPoles: 14,
+  motorLimit: 100,
+  throttleLimitType: 0,
+  throttleLimitPercent: 100,
+  outputCount: 4,
+  outputChannels: [
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
+  ]
+}
+
+const motorProtocols = [
+  { id: 0, name: 'PWM' },
+  { id: 1, name: 'OneShot 125' },
+  { id: 2, name: 'OneShot 42' },
+  { id: 3, name: 'MultiShot' },
+  { id: 4, name: 'Brushed' },
+  { id: 5, name: 'Dshot 150' },
+  { id: 6, name: 'Dshot 300' },
+  { id: 7, name: 'Dshot 600' },
+  { id: 9, name: 'Disabled' },
+]
 
 const OutputTab = () => {
 
-  return <TabView title='Output'>
+  const { connected, writeMsp, subscribeMsp } = useMsp()
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    //formState: { errors }
+  } = useForm<FormValues>({
+    defaultValues: OUTPUT_DFAULTS
+  });
+
+  const { fields: outputChannels } = useFieldArray({
+    control,
+    name: "outputChannels",
+  });
+
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+    console.log("save", data)
+    const c = {
+      protocol: data.protocol,
+      async: data.async,
+      rate: data.rate,
+      servoRate: data.servoRate,
+      minCommand: data.minCommand,
+      minThrottle: data.minThrottle,
+      maxThrottle: data.maxThrottle,
+      digitalIdle: data.digitalIdle,
+      digitalTlm: data.digitalTlm,
+      motorPoles: data.motorPoles,
+      motorLimit: data.motorLimit,
+      throttleLimitType: data.throttleLimitType,
+      throttleLimitPercent: data.throttleLimitPercent,
+    }
+    const v = {
+      count: 0,
+      channels: data.outputChannels.map(f => ({
+        min: f.min,
+        neutral: f.neutral,
+        max: f.max,
+        servo: f.servo,
+        reverse: f.reverse,
+        pin: f.pin
+      }))
+    }
+    writeMsp(createOutputConfigRequest(c))
+    writeMsp(createOutputChannelConfigRequest(v))
+  }
+
+  useEffect(() => {
+    return subscribeMsp((msg) => {
+      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
+        console.log("saved")
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CONFIG)) {
+        const v = parseOutputConfigResponse(msg)
+        const d = {
+          protocol: v.protocol,
+          async: v.async,
+          rate: v.rate,
+          servoRate: v.servoRate,
+          minCommand: v.minCommand,
+          minThrottle: v.minThrottle,
+          maxThrottle: v.maxThrottle,
+          digitalIdle: v.digitalIdle,
+          digitalTlm: v.digitalTlm,
+          motorPoles: v.motorPoles,
+          motorLimit: v.motorLimit,
+          throttleLimitType: v.throttleLimitType,
+          throttleLimitPercent: v.throttleLimitPercent,
+        }
+        reset({ ...getValues(), ...d })
+        console.log("recv", v, d)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)) {
+        const v = parseOutputChannelConfigResponse(msg)
+        const outputChannels = v.channels
+        reset({ ...getValues(), outputChannels })
+        console.log("recv", v, outputChannels)
+      }
+    })
+  })
+
+  const onLoad = useCallback(() => {
+    console.log("load")
+    writeMsp(createOutputConfigRequest())
+    writeMsp(createOutputChannelConfigRequest())
+  }, [writeMsp])
+
+  useEffect(() => {
+    if (!connected) return;
+    else onLoad();
+  }, [connected, onLoad])
+
+  return <TabView title='Output' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col md={6}>
-        <Card>
-          <Card.Header>Mixer</Card.Header>
+
+        <Card className='mb-3'>
+          <Card.Header>Output Configuration</Card.Header>
           <Card.Body>
-
-            <Form.Group as={Row} controlId="mixerType" className="mb-3">
-              <Form.Label column>Mixer Type</Form.Label>
-              <Col sm={6}>
-                <Form.Select>
-                  <option value="1">Quad X</option>
-                  <option value="2">Tricopter</option>
-                  <option value="3">Custom</option>
-                </Form.Select>
-              </Col>
-            </Form.Group>
-
-            <Form.Group as={Row} controlId="motorReversed" className="mb-3">
-              <Form.Label column>Motor Reversed</Form.Label>
-              <Col sm={6}>
-                <Form.Switch />
-              </Col>
-            </Form.Group>
-
+            <Row className='mb-3'>
+              <Col>Output</Col>
+              <Col>Servo</Col>
+              <Col>Reverse</Col>
+              <Col>Minimum</Col>
+              <Col>Neutral</Col>
+              <Col>Maximum</Col>
+              <Col>Pin</Col>
+            </Row>
+            {outputChannels.map((_out, i) => {
+              return <Row key={i}>
+                <Col>
+                  {`${i + 1}`}
+                </Col>
+                <Form.Group as={Col} controlId={`out_servo_${i}`} className="mb-3">
+                  <Form.Switch {...register(`outputChannels.${i}.servo`)} />
+                </Form.Group >
+                <Form.Group as={Col} controlId={`out_rev_${i}`} className="mb-3">
+                  <Form.Switch {...register(`outputChannels.${i}.reverse`)} />
+                </Form.Group>
+                <Form.Group as={Col} controlId={`out_min_${i}`} className="mb-3">
+                  <Form.Control type='number' min={1000} max={2000} {...register(`outputChannels.${i}.min`, { valueAsNumber: true })} />
+                </Form.Group>
+                <Form.Group as={Col} controlId={`out_neutral_${i}`} className="mb-3">
+                  <Form.Control type='number' min={1000} max={2000} {...register(`outputChannels.${i}.neutral`, { valueAsNumber: true })} />
+                </Form.Group>
+                <Form.Group as={Col} controlId={`out_max_${i}`} className="mb-3">
+                  <Form.Control type='number' min={1000} max={2000} {...register(`outputChannels.${i}.max`, { valueAsNumber: true })} />
+                </Form.Group>
+                <Form.Group as={Col} controlId={`out_pin_${i}`} className="mb-3">
+                  <Form.Control type='number' min={-1} max={48} {...register(`outputChannels.${i}.pin`, { valueAsNumber: true })} />
+                </Form.Group>
+              </Row>
+            })}
           </Card.Body>
         </Card>
       </Col>
 
       <Col md={6}>
-        <Card>
-          <Card.Header>Motors</Card.Header>
+        <Card className='mb-3'>
+          <Card.Header>Motor Configuration</Card.Header>
           <Card.Body>
 
-            <Form.Group as={Row} controlId="motorProtocol" className="mb-3">
-              <Form.Label column>Motor Protocol</Form.Label>
-              <Col sm={6}>
-                <Form.Select>
-                  <option value="1">PWM</option>
-                  <option value="2">DSHOT 300</option>
-                </Form.Select>
-              </Col>
-            </Form.Group>
+            <FormItem id="motorProtocol" label="Motor Protocol">
+              <Form.Select {...register("protocol")}>
+                {motorProtocols.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
 
-            <Form.Group as={Row} controlId="dshotTelementry" className="mb-3">
-              <Form.Label column>Dshot Telemetry</Form.Label>
-              <Col sm={6}>
-                <Form.Switch />
-              </Col>
-            </Form.Group>
+            <FormItem id="dshotTelementry" label="Dshot Telemetry">
+              <Form.Switch  {...register("digitalTlm")} />
+            </FormItem>
 
-            <Form.Group as={Row} controlId="motorAsync" className="mb-3">
-              <Form.Label column>Async Motor Output</Form.Label>
-              <Col sm={6}>
-                <Form.Switch />
-              </Col>
-            </Form.Group>
-            <Form.Group as={Row} controlId="motorOff" className="mb-3">
-              <Form.Label column>Async Motor Update Rate</Form.Label>
-              <Col sm={6}>
-                <Form.Control type='number' min={50} max={8000} defaultValue={480} />
-              </Col>
-            </Form.Group>
+            <FormItem id="motorAsync" label="Async Motor Output">
+              <Form.Switch  {...register("async")} />
+            </FormItem>
 
-            <Form.Group as={Row} controlId="motorOff" className="mb-3">
-              <Form.Label column>Motor Disarmed Command</Form.Label>
-              <Col sm={6}>
-                <Form.Control type='number' min={990} max={2000} defaultValue={1000} />
-              </Col>
-            </Form.Group>
-            <Form.Group as={Row} controlId="motorMin" className="mb-3">
-              <Form.Label column>Motor Min Command</Form.Label>
-              <Col sm={6}>
-                <Form.Control type='number' min={990} max={2000} defaultValue={1050} />
-              </Col>
-            </Form.Group>
-            <Form.Group as={Row} controlId="motorMax" className="mb-3">
-              <Form.Label column>Motor Max Command</Form.Label>
-              <Col sm={6}>
-                <Form.Control type='number' min={990} max={2000} defaultValue={2000} />
-              </Col>
-            </Form.Group>
+            <FormItem id="motorAsyncRate" label="Async Motor Refresh Rate">
+              <Form.Control type='number' min={50} max={8000} {...register("rate")} />
+            </FormItem>
+
+            <FormItem id="motorOffCommand" label="Motor Disarmed Command">
+              <Form.Control type='number' min={990} max={2000} {...register("minCommand")} />
+            </FormItem>
+
+            <FormItem id="motorMinCommand" label="Motor Minimum Command">
+              <Form.Control type='number' min={990} max={2000}  {...register("minThrottle")} />
+            </FormItem>
+
+            <FormItem id="motorMaxCommand" label="Motor Maximum Command">
+              <Form.Control type='number' min={990} max={2000}  {...register("maxThrottle")} />
+            </FormItem>
 
           </Card.Body>
         </Card>
+
+        <Card className='mb-3'>
+          <Card.Header>Mixer</Card.Header>
+          <Card.Body>
+
+            <FormItem id="mixerType" label="Mixer Type">
+              <Form.Select>
+                <option value="1">Quad X</option>
+                <option value="2">Tricopter</option>
+                <option value="3">Custom</option>
+              </Form.Select>
+            </FormItem>
+
+            <FormItem id="mixerYawReverse" label="Motor Reversed">
+              <Form.Switch />
+            </FormItem>
+
+          </Card.Body>
+        </Card>
+
       </Col>
 
     </Row>
@@ -104,12 +284,15 @@ const OutputTab = () => {
               <Form.Label column sm={11}><strong>I Understand a Risk</strong></Form.Label>
             </Form.Group>
             {[1, 2, 3, 4].map(motor => {
-              return <Form.Group as={Row} controlId={`motor_${motor}`} key={motor} className="mb-3">
-                <Form.Label column>{`M${motor}`}</Form.Label>
-                <Col sm={11}>
-                  <Form.Range min={0} max={100} step={1} defaultValue={0} />
-                </Col>
-              </Form.Group>
+
+              return <Row key={motor}>
+                <Form.Group as={Row} controlId={`motor_${motor}`} className="mb-3">
+                  <Form.Label column>{`M${motor}`}</Form.Label>
+                  <Col sm={11}>
+                    <Form.Range min={0} max={100} step={1} defaultValue={0} />
+                  </Col>
+                </Form.Group>
+              </Row>
             })}
           </Card.Body>
         </Card>

@@ -1,26 +1,50 @@
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import TabView from './TabView'
+import { SubmitHandler, useForm } from 'react-hook-form'
+import { useMsp } from '@/api/msp/MspProvider'
+import { useCallback, useEffect } from 'react'
+import { MspCommand } from '@/api/msp/msp'
+
+type FormValues = {
+}
 
 const HardwareTab = () => {
 
-  return <TabView title='Hardware'>
-    <Row>
+  const { connected, writeMsp, subscribeMsp } = useMsp()
 
-      <Col lg={6}>
-        <Card className='mb-3'>
-          <Card.Header>Servos/Motors</Card.Header>
-          <Card.Body>
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((output) => {
-              return <Form.Group key={output} as={Row} controlId={`output_${output}`} className="mb-3">
-                <Form.Label column sm={3} className='text-right'>Output {output + 1}</Form.Label>
-                <Col sm={9}>
-                  <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
-                </Col>
-              </Form.Group>
-            })}
-          </Card.Body>
-        </Card>
-      </Col>
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    //formState: { errors }
+  } = useForm<FormValues>({
+    defaultValues: {}
+  });
+
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+  }
+
+  useEffect(() => {
+    return subscribeMsp((msg) => {
+      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
+        console.log("saved")
+      }
+    })
+  })
+
+  const onLoad = useCallback(() => {
+    console.log("load")
+  }, [writeMsp])
+
+  useEffect(() => {
+    if (!connected) return;
+    else onLoad();
+  }, [connected, onLoad])
+
+  return <TabView title='Hardware' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+    <Row>
 
       <Col lg={6}>
         <Card className='mb-3'>
@@ -73,6 +97,11 @@ const HardwareTab = () => {
           </Card.Body>
         </Card>
       </Col>
+
+      <Col lg={6}>
+
+      </Col>
+
 
     </Row>
   </TabView>
