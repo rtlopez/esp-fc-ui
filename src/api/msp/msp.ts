@@ -4,6 +4,7 @@ import {
   parseOutputResponse, parseVoltageResponse, parseCurrentResponse,
   parseDebugResponse, parseInputConfigResponse, parseInputChannelConfigResponse,
   parseOutputConfigResponse, parseOutputChannelConfigResponse,
+  parsePinConfigResponse,
 } from "../esp"
 
 export const MspState = {
@@ -83,6 +84,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_CALIBRATE: { value: 0x37, label: 'ESP_CMD_CALIBRATE', ...E },
   ESP_CMD_ESC_PASSTHROUGH: { value: 0x38, label: 'ESP_CMD_ESC_PASSTHROUGH', ...E },
   ESP_CMD_ALIGNMENT_CONFIG: { value: 0x39, label: 'ESP_CMD_ALIGNMENT_CONFIG', ...E },
+  ESP_CMD_PIN_CONFIG: { value: 0x3a, label: 'ESP_CMD_PIN_CONFIG', ...E, parse: parsePinConfigResponse },
 
   // ESP flash commands
   ESP_CMD_FLASH_STATUS: { value: 0x40, label: 'ESP_CMD_FLASH_STATUS', ...E },
@@ -228,6 +230,10 @@ export class MspMessage {
     }
     view[i++] = checksum
     return view
+  }
+
+  toArray(): number[] {
+    return Array.from(new Uint8Array(this.data)).slice(0, this.received || this.written)
   }
 
   toString(): string {

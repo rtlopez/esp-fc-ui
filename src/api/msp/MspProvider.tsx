@@ -106,7 +106,7 @@ const MspProvider = ({
       if (consumed) {
         if (msgRef.current.state === MspState.RECEIVED && msgRef.current.dir === MspDirection.REPLY) {
           // notify msp subscribers
-          if(msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd)
+          if(msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd, msgRef.current.toArray())
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
@@ -156,7 +156,7 @@ const MspProvider = ({
       if (!msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
-        if(msg.cmd > 0xf) console.log("msp.send", msg.cmd)
+        if(msg.cmd > 0xf) console.log("msp.send", msg.cmd, msg.toArray())
         write(msg.toDataBuffer())
       }
     }, 5);

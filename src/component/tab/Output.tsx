@@ -2,7 +2,12 @@ import { Card, Col, Form, Row } from 'react-bootstrap'
 import TabView from './TabView'
 import { useMsp } from '@/api/msp/MspProvider';
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import { createOutputChannelConfigRequest, createOutputConfigRequest, parseOutputChannelConfigResponse, parseOutputConfigResponse } from '@/api/esp';
+import {
+  createOutputChannelConfigRequest, createOutputConfigRequest,
+  createSaveRequest, EspOutputChannelConfigRequest,
+  EspOutputChannelConfigResponse, EspOutputConfigResponse,
+  parseOutputChannelConfigResponse, parseOutputConfigResponse
+} from '@/api/esp';
 import { useCallback, useEffect } from 'react';
 import { MspCommand } from '@/api/msp/msp';
 import { FormItem } from '../widget';
@@ -69,6 +74,63 @@ const motorProtocols = [
   { id: 9, name: 'Disabled' },
 ]
 
+const configFormToApi = (f: FormValues): EspOutputConfigResponse => {
+  return {
+    protocol: f.protocol,
+    async: f.async,
+    rate: f.rate,
+    servoRate: f.servoRate,
+    minCommand: f.minCommand,
+    minThrottle: f.minThrottle,
+    maxThrottle: f.maxThrottle,
+    digitalIdle: f.digitalIdle,
+    digitalTlm: f.digitalTlm,
+    motorPoles: f.motorPoles,
+    motorLimit: f.motorLimit,
+    throttleLimitType: f.throttleLimitType,
+    throttleLimitPercent: f.throttleLimitPercent,
+  }
+}
+
+const configApiToForm = (v: EspOutputConfigResponse) => {
+  return {
+    protocol: v.protocol,
+    async: v.async,
+    rate: v.rate,
+    servoRate: v.servoRate,
+    minCommand: v.minCommand,
+    minThrottle: v.minThrottle,
+    maxThrottle: v.maxThrottle,
+    digitalIdle: v.digitalIdle,
+    digitalTlm: v.digitalTlm,
+    motorPoles: v.motorPoles,
+    motorLimit: v.motorLimit,
+    throttleLimitType: v.throttleLimitType,
+    throttleLimitPercent: v.throttleLimitPercent,
+  }
+}
+
+const configChannelsFormToApi = (fv: FormValues): EspOutputChannelConfigRequest => {
+  return {
+    count: fv.outputChannels.length,
+    channels: fv.outputChannels.map(f => ({
+      min: f.min,
+      neutral: f.neutral,
+      max: f.max,
+      servo: f.servo,
+      reverse: f.reverse,
+      pin: f.pin
+    }))
+  }
+}
+
+const configChannelsApiToForm = (v: EspOutputChannelConfigResponse) => {
+  return {
+    outputCount: v.count,
+    outputChannels: v.channels,
+  }
+}
+
 const OutputTab = () => {
 
   const { connected, writeMsp, subscribeMsp } = useMsp()
@@ -91,34 +153,11 @@ const OutputTab = () => {
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
-    const c = {
-      protocol: data.protocol,
-      async: data.async,
-      rate: data.rate,
-      servoRate: data.servoRate,
-      minCommand: data.minCommand,
-      minThrottle: data.minThrottle,
-      maxThrottle: data.maxThrottle,
-      digitalIdle: data.digitalIdle,
-      digitalTlm: data.digitalTlm,
-      motorPoles: data.motorPoles,
-      motorLimit: data.motorLimit,
-      throttleLimitType: data.throttleLimitType,
-      throttleLimitPercent: data.throttleLimitPercent,
-    }
-    const v = {
-      count: 0,
-      channels: data.outputChannels.map(f => ({
-        min: f.min,
-        neutral: f.neutral,
-        max: f.max,
-        servo: f.servo,
-        reverse: f.reverse,
-        pin: f.pin
-      }))
-    }
+    const c = configFormToApi(data)
+    const v = configChannelsFormToApi(data)
     writeMsp(createOutputConfigRequest(c))
     writeMsp(createOutputChannelConfigRequest(v))
+    writeMsp(createSaveRequest())
   }
 
   useEffect(() => {
@@ -128,29 +167,15 @@ const OutputTab = () => {
       }
       if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CONFIG)) {
         const v = parseOutputConfigResponse(msg)
-        const d = {
-          protocol: v.protocol,
-          async: v.async,
-          rate: v.rate,
-          servoRate: v.servoRate,
-          minCommand: v.minCommand,
-          minThrottle: v.minThrottle,
-          maxThrottle: v.maxThrottle,
-          digitalIdle: v.digitalIdle,
-          digitalTlm: v.digitalTlm,
-          motorPoles: v.motorPoles,
-          motorLimit: v.motorLimit,
-          throttleLimitType: v.throttleLimitType,
-          throttleLimitPercent: v.throttleLimitPercent,
-        }
+        const d = configApiToForm(v)
         reset({ ...getValues(), ...d })
         console.log("recv", v, d)
       }
       if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)) {
         const v = parseOutputChannelConfigResponse(msg)
-        const outputChannels = v.channels
-        reset({ ...getValues(), outputChannels })
-        console.log("recv", v, outputChannels)
+        const d = configChannelsApiToForm(v)
+        reset({ ...getValues(), ...d })
+        console.log("recv", v, d)
       }
     })
   })
@@ -162,9 +187,9 @@ const OutputTab = () => {
   }, [writeMsp])
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected) reset(OUTPUT_DFAULTS)
     else onLoad();
-  }, [connected, onLoad])
+  }, [connected, onLoad, reset])
 
   return <TabView title='Output' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
@@ -224,11 +249,11 @@ const OutputTab = () => {
             </FormItem>
 
             <FormItem id="dshotTelementry" label="Dshot Telemetry">
-              <Form.Switch  {...register("digitalTlm")} />
+              <Form.Switch {...register("digitalTlm")} />
             </FormItem>
 
             <FormItem id="motorAsync" label="Async Motor Output">
-              <Form.Switch  {...register("async")} />
+              <Form.Switch {...register("async")} />
             </FormItem>
 
             <FormItem id="motorAsyncRate" label="Async Motor Refresh Rate">
@@ -240,11 +265,11 @@ const OutputTab = () => {
             </FormItem>
 
             <FormItem id="motorMinCommand" label="Motor Minimum Command">
-              <Form.Control type='number' min={990} max={2000}  {...register("minThrottle")} />
+              <Form.Control type='number' min={990} max={2000} {...register("minThrottle")} />
             </FormItem>
 
             <FormItem id="motorMaxCommand" label="Motor Maximum Command">
-              <Form.Control type='number' min={990} max={2000}  {...register("maxThrottle")} />
+              <Form.Control type='number' min={990} max={2000} {...register("maxThrottle")} />
             </FormItem>
 
           </Card.Body>
@@ -277,22 +302,19 @@ const OutputTab = () => {
         <Card className='mt-3'>
           <Card.Header>Motor Test (DANGER ZONE)</Card.Header>
           <Card.Body>
-            <Form.Group as={Row} controlId="motorAsync" className="mb-3">
+            <Form.Group as={Row} controlId="motorTest" className="mb-3">
               <Col>
                 <Form.Switch />
               </Col>
               <Form.Label column sm={11}><strong>I Understand a Risk</strong></Form.Label>
             </Form.Group>
             {[1, 2, 3, 4].map(motor => {
-
-              return <Row key={motor}>
-                <Form.Group as={Row} controlId={`motor_${motor}`} className="mb-3">
-                  <Form.Label column>{`M${motor}`}</Form.Label>
-                  <Col sm={11}>
-                    <Form.Range min={0} max={100} step={1} defaultValue={0} />
-                  </Col>
-                </Form.Group>
-              </Row>
+              return <Form.Group key={motor} as={Row} controlId={`motor_${motor}`} className="mb-3">
+                <Form.Label column>{`M${motor}`}</Form.Label>
+                <Col sm={11}>
+                  <Form.Range min={0} max={100} step={1} defaultValue={0} />
+                </Col>
+              </Form.Group>
             })}
           </Card.Body>
         </Card>

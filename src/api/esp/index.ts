@@ -387,6 +387,41 @@ export const parseOutputChannelConfigResponse = (msg: MspMessage): EspOutputChan
   return v
 }
 
+export interface EspPinFunction {
+  type: number
+  index: number
+  pin: number
+}
+
+export interface EspPinConfigResponse {
+  pins: EspPinFunction[]
+}
+
+export const createPinConfigRequest = (data?: EspPinConfigResponse): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_PIN_CONFIG)
+  if (data) {
+    data.pins.map(f => {
+      msg.writeU8(f.type << 4 | f.index)
+      msg.writeU8(f.pin)
+    })
+  }
+  return msg
+}
+
+export const parsePinConfigResponse = (msg: MspMessage): EspPinConfigResponse => {
+  const reader = msg.getReader()
+  const count = reader.size / 2
+  const v: EspPinConfigResponse = { pins: [] }
+  for(let i = 0; i < count; i++) {
+    const id = reader.readU8()
+    const pin = reader.read8()
+    const type = id >> 4
+    const index = id & 0x0f
+    v.pins.push({type, index, pin})
+  }
+  return v
+}
+
 export const createSaveRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)
 export const parseSaveResponse = (_msg: MspMessage) => {
   return {}
