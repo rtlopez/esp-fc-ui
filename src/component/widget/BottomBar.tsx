@@ -7,7 +7,7 @@ const BottomBar = () => {
   const { portState } = useSerial()
   const { version } = useMsp()
 
-  return <Navbar expand="lg" bg="dark" data-bs-theme="dark" fixed="bottom">
+  return <Navbar expand="lg" bg="secondary" fixed="bottom">
     <Container fluid>
       <Nav>
         <Nav.Item>

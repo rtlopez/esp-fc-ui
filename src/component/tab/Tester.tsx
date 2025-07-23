@@ -53,7 +53,13 @@ const TesterTab = () => {
     setCmd('version')
   }
 
-  const preStyle = { border: '1px solid #ccc', padding: '2px', margin: '2px', minHeight: '400px', maxHeight: '400px' }
+  const preStyle = { 
+    border: '1px solid var(--bs-border-color)',
+    borderRadius: 'var(--bs-border-radius)', 
+    background: 'var(--bs-tertiary-bg)',
+    color: 'var(--bs-tertiary-color)',
+    padding: '2px', margin: '2px', minHeight: '400px', maxHeight: '400px'
+  }
   const preRef = useRef<HTMLPreElement>(null);
   useEffect(() => {
     if (preRef.current) {
@@ -93,7 +99,7 @@ const TesterTab = () => {
           {(Object
             .values(MspCommand)
             .filter((c) => c.variant! === mspVariant))
-            .map(({ value, label, variant }) => <option key={variant + value} value={value}>{`${label}(${value})`}</option>)
+            .map(({ value, label, variant }) => <option key={variant + value} value={value}>{`${label} (${value})`}</option>)
           }
         </Form.Select>
       </Col>
