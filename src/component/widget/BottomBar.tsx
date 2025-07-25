@@ -1,7 +1,6 @@
 import { useMsp } from "@/api/msp/MspProvider"
 import { useSerial } from "@/api/serial/SerialProvider"
-import { Container, Nav, Navbar } from "react-bootstrap"
-
+import { Container, Navbar } from "react-bootstrap"
 
 const BottomBar = () => {
   const { portState } = useSerial()
@@ -9,14 +8,15 @@ const BottomBar = () => {
 
   return <Navbar expand="lg" bg="secondary" fixed="bottom">
     <Container fluid>
-      <Nav>
-        <Nav.Item>
-          <Nav.Link as="span">Connection: {portState}</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link as="span">Version: {version?.fwVersion ?? ''}</Nav.Link>
-        </Nav.Item>
-      </Nav>
+      <Navbar.Text>
+        Connection: {portState}
+      </Navbar.Text>
+      <Navbar.Text>
+        &copy; 2025 @rtlopez
+      </Navbar.Text>
+      <Navbar.Text>
+        Version: {version?.fwVersion ?? ''}
+      </Navbar.Text>
     </Container>
   </Navbar>
 }
