@@ -20,6 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Sidebar (visible on lg+) */}
           <Col lg={2} className="d-none d-lg-block min-vh-100 p-3">
             <h5>Menu</h5>
+            <hr/>
             <MainMenu />
           </Col>
 
@@ -29,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Offcanvas.Title>Menu</Offcanvas.Title>
             </Offcanvas.Header>
             <Offcanvas.Body>
+              <hr/>
               <MainMenu />
             </Offcanvas.Body>
           </Offcanvas>

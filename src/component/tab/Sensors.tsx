@@ -15,7 +15,7 @@ const INPUT_DEFAULTS = {
   val: 0,
 }
 
-const TemplateTab = () => {
+const SensorsTab = () => {
 
   const { connected, writeMsp, subscribeMsp } = useMsp()
 
@@ -68,14 +68,14 @@ const TemplateTab = () => {
     };
   }, [connected, writeMsp, onLoad]);
 
-  return <TabView title='Status' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Sensors' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col md={6}>
         <Card>
-          <Card.Header>Header</Card.Header>
+          <Card.Header>Gyroscope</Card.Header>
           <Card.Body>
-            <FormItem id="val" label="Smooting">
+            <FormItem id="val" label="LPF cutoff">
               <Form.Control type="number" min={0} max={250} {...register("val")} />
             </FormItem>
           </Card.Body>
@@ -84,7 +84,7 @@ const TemplateTab = () => {
 
       <Col md={6}>
         <Card>
-          <Card.Header>Header</Card.Header>
+          <Card.Header>Accelerometer</Card.Header>
           <Card.Body>
             Body
           </Card.Body>
@@ -95,4 +95,4 @@ const TemplateTab = () => {
   </TabView>
 }
 
-export default TemplateTab
+export default SensorsTab

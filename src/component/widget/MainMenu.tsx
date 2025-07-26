@@ -20,13 +20,18 @@ const MainMenu = () => {
         </Nav.Link>
       </Nav.Item>
       <Nav.Item as="li">
+        <Nav.Link as={Link} to="/sensors" active={location === '/sensors'}>
+          <i className="bi bi-phone-flip fs-5"></i> <span className="ms-2">Sensors</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
         <Nav.Link as={Link} to="/input" active={location === '/input'}>
-          <i className="bi bi-joystick fs-5"></i> <span className="ms-2">Input</span>
+          <i className="bi bi-controller fs-5"></i> <span className="ms-2">Input</span>
         </Nav.Link>
       </Nav.Item>
       <Nav.Item as="li">
         <Nav.Link as={Link} to="/output" active={location === '/output'}>
-          <i className="bi bi-box-arrow-up-right fs-5"></i> <span className="ms-2">Output</span>
+          <i className="bi bi-ui-radios-grid fs-5"></i> <span className="ms-2">Output</span>
         </Nav.Link>
       </Nav.Item>
       <Nav.Item as="li">

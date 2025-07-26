@@ -4,6 +4,7 @@ import InputTab from "./Input"
 import HardwareTab from "./Hardware"
 import OutputTab from "./Output"
 import TesterTab from "./Tester"
+import SensorsTab from "./Sensors"
 
 export {
   StatusTab,
@@ -12,4 +13,5 @@ export {
   HardwareTab,
   OutputTab,
   TesterTab,
+  SensorsTab,
 }
