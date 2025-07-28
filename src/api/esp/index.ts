@@ -338,7 +338,6 @@ export interface EspOutputChannelConfig {
   max: number
   servo: boolean
   reverse: boolean
-  pin: number
 }
 
 export interface EspOutputChannelConfigRequest {
@@ -361,7 +360,7 @@ export const createOutputChannelConfigRequest = (data?: EspOutputChannelConfigRe
       msg.writeU16(data.channels[i].max)
       msg.writeU8(+data.channels[i].servo)
       msg.writeU8(+data.channels[i].reverse)
-      msg.writeU8(data.channels[i].pin)
+      msg.writeU8(0) // TODO: pin to remove
     }
   }
   return msg
@@ -380,8 +379,8 @@ export const parseOutputChannelConfigResponse = (msg: MspMessage): EspOutputChan
       max: reader.readU16(),
       servo: !!reader.readU8(),
       reverse: !!reader.readU8(),
-      pin: reader.read8(),
     }
+    reader.read8() // TODO: pin to remove
     v.channels.push(c)
   }
   return v

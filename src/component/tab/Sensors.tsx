@@ -71,7 +71,7 @@ const SensorsTab = () => {
   return <TabView title='Sensors' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
-      <Col md={6}>
+      <Col md={6} className="mb-3">
         <Card>
           <Card.Header>Gyroscope</Card.Header>
           <Card.Body>
@@ -82,11 +82,29 @@ const SensorsTab = () => {
         </Card>
       </Col>
 
-      <Col md={6}>
+      <Col md={6} className="mb-3">
         <Card>
           <Card.Header>Accelerometer</Card.Header>
           <Card.Body>
-            Body
+            Accelerometer
+          </Card.Body>
+        </Card>
+      </Col>
+
+      <Col md={6} className="mb-3">
+        <Card>
+          <Card.Header>Barometer</Card.Header>
+          <Card.Body>
+            Barometer
+          </Card.Body>
+        </Card>
+      </Col>
+
+      <Col md={6} className="mb-3">
+        <Card>
+          <Card.Header>Magnetometer</Card.Header>
+          <Card.Body>
+            Magnetometer
           </Card.Body>
         </Card>
       </Col>

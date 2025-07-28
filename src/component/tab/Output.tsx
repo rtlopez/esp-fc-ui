@@ -18,7 +18,6 @@ type FormOutputChannel = {
   max: number
   servo: boolean
   reverse: boolean
-  pin: number
 }
 
 type FormValues = {
@@ -55,10 +54,10 @@ const OUTPUT_DFAULTS: FormValues = {
   throttleLimitPercent: 100,
   outputCount: 4,
   outputChannels: [
-    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
-    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
-    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
-    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false, pin: -1 },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
+    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
   ]
 }
 
@@ -119,7 +118,6 @@ const configChannelsFormToApi = (fv: FormValues): EspOutputChannelConfigRequest 
       max: f.max,
       servo: f.servo,
       reverse: f.reverse,
-      pin: f.pin
     }))
   }
 }
@@ -206,7 +204,6 @@ const OutputTab = () => {
               <Col>Minimum</Col>
               <Col>Neutral</Col>
               <Col>Maximum</Col>
-              <Col>Pin</Col>
             </Row>
             {outputChannels.map((_out, i) => {
               return <Row key={i}>
@@ -227,9 +224,6 @@ const OutputTab = () => {
                 </Form.Group>
                 <Form.Group as={Col} controlId={`out_max_${i}`} className="mb-3">
                   <Form.Control type='number' min={1000} max={2000} {...register(`outputChannels.${i}.max`, { valueAsNumber: true })} />
-                </Form.Group>
-                <Form.Group as={Col} controlId={`out_pin_${i}`} className="mb-3">
-                  <Form.Control type='number' min={-1} max={48} {...register(`outputChannels.${i}.pin`, { valueAsNumber: true })} />
                 </Form.Group>
               </Row>
             })}
