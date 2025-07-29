@@ -172,14 +172,12 @@ const HardwareTab = () => {
             <Card.Header>{getFunctionTitle(parseInt(func, 10))}</Card.Header>
             <Card.Body>
               {funcPins.map((pin, i) => {
-                return <Row key={i}>
-                  <Col>
-                    {`${getFunctionName(pin.type, pin.index)}`}
-                  </Col>
-                  <Form.Group as={Col} controlId={`pin_${pin.key!}`} className="mb-3">
+                return <Form.Group key={i} as={Row} controlId={`pin_${pin.key!}`} className="mb-3">
+                  <Form.Label column>{`${getFunctionName(pin.type, pin.index)}`}</Form.Label>
+                  <Col sm={6}>
                     <Form.Control type="number" min={-1} max={48} {...register(`pins.${pin.key!}.pin`)} />
-                  </Form.Group >
-                </Row>
+                  </Col>
+                </Form.Group >
               })}
             </Card.Body>
           </Card>

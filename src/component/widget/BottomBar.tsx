@@ -15,7 +15,7 @@ const BottomBar = () => {
         &copy; 2025 @rtlopez
       </Navbar.Text>
       <Navbar.Text>
-        Version: {version?.fwVersion ?? ''}
+        {version ? `Version: ${version.fwVersion ?? ''} (${version.fwRevision ?? ''})` : 'No version'}
       </Navbar.Text>
     </Container>
   </Navbar>

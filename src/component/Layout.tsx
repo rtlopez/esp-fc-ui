@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Offcanvas>
 
           {/* Main content area */}
-          <Col md={10} className="my-3">
+          <Col lg={10} className="my-3">
             {children}
           </Col>
 
