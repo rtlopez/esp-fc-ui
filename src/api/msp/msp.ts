@@ -4,7 +4,7 @@ import {
   parseOutputResponse, parseVoltageResponse, parseCurrentResponse,
   parseDebugResponse, parseInputConfigResponse, parseInputChannelConfigResponse,
   parseOutputConfigResponse, parseOutputChannelConfigResponse,
-  parsePinConfigResponse,
+  parsePinConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse,
 } from "../esp"
 
 export const MspState = {
@@ -54,7 +54,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_MODE_NAMES: { value: 0x10, label: 'ESP_CMD_MODE_NAMES', ...E },
   ESP_CMD_FEATURE_NAMES: { value: 0x11, label: 'ESP_CMD_FEATURE_NAMES', ...E },
   ESP_CMD_DEBUG_NAMES: { value: 0x12, label: 'ESP_CMD_DEBUG_NAMES', ...E },
-  ESP_CMD_SERIAL_NAMES: { value: 0x13, label: 'ESP_CMD_SERIAL_NAMES', ...E },
+  ESP_CMD_SERIAL_NAMES: { value: 0x13, label: 'ESP_CMD_SERIAL_NAMES', ...E, parse: parseSerialNamesResponse },
   ESP_CMD_PID_NAMES: { value: 0x14, label: 'ESP_CMD_PID_NAMES', ...E },
 
   // ESP configuration commands
@@ -64,7 +64,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_OUTPUT_CHANNEL_CONFIG: { value: 0x23, label: 'ESP_CMD_OUTPUT_CHANNEL_CONFIG', ...E, parse: parseOutputChannelConfigResponse },
   ESP_CMD_GYRO_CONFIG: { value: 0x24, label: 'ESP_CMD_GYRO_CONFIG', ...E },
   ESP_CMD_ACCEL_CONFIG: { value: 0x25, label: 'ESP_CMD_ACCEL_CONFIG', ...E },
-  ESP_CMD_SERIAL_CONFIG: { value: 0x26, label: 'ESP_CMD_SERIAL_CONFIG', ...E },
+  ESP_CMD_SERIAL_CONFIG: { value: 0x26, label: 'ESP_CMD_SERIAL_CONFIG', ...E, parse: parseSerialConfigResponse },
   ESP_CMD_VOLTAGE_CONFIG: { value: 0x27, label: 'ESP_CMD_VOLTAGE_CONFIG', ...E },
   ESP_CMD_CURRENT_CONFIG: { value: 0x28, label: 'ESP_CMD_CURRENT_CONFIG', ...E },
   ESP_CMD_PID_CONFIG: { value: 0x29, label: 'ESP_CMD_PID_CONFIG', ...E },

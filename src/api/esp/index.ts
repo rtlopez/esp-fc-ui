@@ -360,7 +360,6 @@ export const createOutputChannelConfigRequest = (data?: EspOutputChannelConfigRe
       msg.writeU16(data.channels[i].max)
       msg.writeU8(+data.channels[i].servo)
       msg.writeU8(+data.channels[i].reverse)
-      msg.writeU8(0) // TODO: pin to remove
     }
   }
   return msg
@@ -373,15 +372,79 @@ export const parseOutputChannelConfigResponse = (msg: MspMessage): EspOutputChan
     channels: [],
   }
   for(let i = 0; i < v.count; i++) {
-    const c = {
+    v.channels.push({
       min: reader.readU16(),
       neutral: reader.readU16(),
       max: reader.readU16(),
       servo: !!reader.readU8(),
       reverse: !!reader.readU8(),
+    })
+  }
+  return v
+}
+
+export interface EspSerialConfig {
+  baud: number
+  func: number
+}
+
+export interface EspSerialConfigRequest {
+  count: number
+  configs: EspSerialConfig[]
+}
+
+export interface EspSerialConfigResponse {
+  count: number
+  configs: EspSerialConfig[]
+}
+
+export const createSerialConfigRequest = (data?: EspSerialConfigRequest): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
+  if (data) {
+    msg.writeU8(data.count)
+    for(let i = 0; i < data.count; i++) {
+      msg.writeU32(data.configs[i].baud)
+      msg.writeU32(data.configs[i].func)
     }
-    reader.read8() // TODO: pin to remove
-    v.channels.push(c)
+  }
+  return msg
+}
+
+export const parseSerialConfigResponse = (msg: MspMessage): EspSerialConfigResponse => {
+  const reader = msg.getReader()
+  const v: EspSerialConfigResponse = {
+    count: reader.readU8(),
+    configs: [],
+  }
+  for(let i = 0; i < v.count; i++) {
+    v.configs.push({
+      baud: reader.readU32(),
+      func: reader.readU32(),
+    })
+  }
+  return v
+}
+
+export interface EspSerialNames {
+  names: string[]
+}
+
+export const createSerialNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_SERIAL_NAMES)
+}
+
+export const parseSerialNamesResponse = (msg: MspMessage): EspSerialNames => {
+  const reader = msg.getReader()
+  let name = ''
+  const v: EspSerialNames = { names: [] }
+  while (reader.remain() > 0) {
+    const c = reader.readU8()
+    if (c != 0) {
+      name += String.fromCharCode(c)
+    } else {
+      v.names.push(name)
+      name = ''
+    }
   }
   return v
 }

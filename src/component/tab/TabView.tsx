@@ -31,7 +31,9 @@ const TabView: React.FC<TabViewProps> = ({ title, children, nosave, onSubmit, on
         >
           <i className='bi bi-box-arrow-in-up'></i> Load
         </Button>
-        <Button variant='primary' disabled={!connected} type="submit"><i className='bi bi-floppy'></i> Save</Button>
+        <Button variant='primary' disabled={!connected} type="submit">
+          <i className='bi bi-floppy'></i> Save
+        </Button>
       </Col> : null}
     </Row> : null}
 
