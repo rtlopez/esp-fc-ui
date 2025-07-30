@@ -3,7 +3,10 @@ import SerialProvider from '@/api/serial/SerialProvider'
 import MspProvider from '@/api/msp/MspProvider'
 import Layout from '@/component/Layout'
 import { Route, Switch } from 'wouter'
-import { HardwareTab, InputTab, OutputTab, StatusTab, TesterTab, TuningTab, SensorsTab } from './component/tab'
+import {
+  HardwareTab, InputTab, OutputTab, StatusTab,
+  TesterTab, TuningTab, SensorsTab, ConfigurationTab
+} from './component/tab'
 
 const App = () => {
   return (
@@ -16,6 +19,7 @@ const App = () => {
             <Route path="/sensors"><SensorsTab /></Route>
             <Route path="/input"><InputTab /></Route>
             <Route path="/output"><OutputTab /></Route>
+            <Route path="/Configuration"><ConfigurationTab /></Route>
             <Route path="/tuning"><TuningTab /></Route>
             <Route path="/cli"><TesterTab /></Route>
             <Route><h1>Tab Not Found!</h1></Route>

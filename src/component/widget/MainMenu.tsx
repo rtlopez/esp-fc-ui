@@ -35,6 +35,11 @@ const MainMenu = () => {
         </Nav.Link>
       </Nav.Item>
       <Nav.Item as="li">
+        <Nav.Link as={Link} to="/configuration" active={location === '/configuration'}>
+          <i className="bi bi-sliders fs-5"></i> <span className="ms-2">Configuration</span>
+        </Nav.Link>
+      </Nav.Item>
+      <Nav.Item as="li">
         <Nav.Link as={Link} to="/tuning" active={location === '/tuning'}>
           <i className="bi bi-sliders fs-5"></i> <span className="ms-2">Tuning</span>
         </Nav.Link>
