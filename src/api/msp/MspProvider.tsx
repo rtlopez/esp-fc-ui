@@ -15,6 +15,8 @@ export interface MspContextValue {
   writeText: (message: string) => Promise<void>
   connect(): Promise<boolean>
   disconnect(): void
+  cliActive: boolean,
+  setCliActive: (value: boolean) => void,
   version: EspVersionResponse | null
   connected: boolean
 }
@@ -26,6 +28,8 @@ const MspContext = createContext<MspContextValue>({
   writeText: () => Promise.resolve(),
   connect: () => Promise.resolve(false),
   disconnect: () => { },
+  cliActive: false,
+  setCliActive: (_value: boolean) => { },
   version: null,
   connected: false,
 });
@@ -97,6 +101,7 @@ const MspProvider = ({
   const msgQueueLockRef = useRef(new TimedLock())
   const msgRef = useRef(new MspMessage())
   const [version, setVersion] = useState<EspVersionResponse | null>(null)
+  const [cliActive, setCliActive] = useState(false)
 
   const receive = (data: Uint8Array) => {
     let text = '';
@@ -151,9 +156,8 @@ const MspProvider = ({
   }
 
   useEffect(() => {
-    if (!connected) return;
     const interval = setInterval(() => {
-      if (!msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
+      if (connected && !msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
         if(msg.cmd > 0xf) console.log("msp.send", msg.cmd, msg.toArray())
@@ -204,6 +208,8 @@ const MspProvider = ({
         writeText,
         connect,
         disconnect,
+        cliActive,
+        setCliActive,
         version,
         connected,
       }}

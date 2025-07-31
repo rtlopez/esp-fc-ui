@@ -13,7 +13,7 @@ const TesterTab = () => {
   const [mspVariant, setMspVariant] = useState<MspVariant>('E')
 
   const { connected } = useSerial()
-  const { subscribeMsp, writeMsp, subscribeText, writeText } = useMsp()
+  const { subscribeMsp, writeMsp, subscribeText, writeText, setCliActive } = useMsp()
 
   useEffect(() => {
     return subscribeText((message) => {
@@ -21,6 +21,13 @@ const TesterTab = () => {
       setCmdResponse((old) => old + message)
     })
   })
+
+  useEffect(() => {
+    setCliActive(true)
+    return () => {
+      setCliActive(false)
+    }
+  }, [setCliActive])
 
   useEffect(() => {
     return subscribeMsp((msg: MspMessage) => {
@@ -53,9 +60,9 @@ const TesterTab = () => {
     setCmd('version')
   }
 
-  const preStyle = { 
+  const preStyle = {
     border: '1px solid var(--bs-border-color)',
-    borderRadius: 'var(--bs-border-radius)', 
+    borderRadius: 'var(--bs-border-radius)',
     background: 'var(--bs-tertiary-bg)',
     color: 'var(--bs-tertiary-color)',
     padding: '2px', margin: '2px', minHeight: '400px', maxHeight: '400px'
