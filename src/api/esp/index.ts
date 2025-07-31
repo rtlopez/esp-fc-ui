@@ -449,6 +449,80 @@ export const parseSerialNamesResponse = (msg: MspMessage): EspSerialNames => {
   return v
 }
 
+export interface EspFeaturesNames {
+  names: Record<number, string>
+}
+
+export const createFeaturesNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_FEATURE_NAMES)
+}
+
+export const parseFeaturesNamesResponse = (msg: MspMessage): EspFeaturesNames => {
+  const reader = msg.getReader()
+  let name = ''
+  let id = -1
+  const v: EspFeaturesNames = { names: {} }
+  while (reader.remain() > 0) {
+    const c = reader.readU8()
+    if (id == -1 && name.length == 0) {
+      id = c
+    } else if (c != 0) {
+      name += String.fromCharCode(c)
+    } else {
+      v.names[id] = name
+      name = ''
+      id = -1
+    }
+  }
+  return v
+}
+
+export interface EspFeaturesConfig {
+  features: number
+}
+
+export const createFeaturesConfigRequest = (data?: EspFeaturesConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_FEATURE_CONFIG)
+  if(data) {
+    msg.writeU32(data.features)
+  }
+  return msg
+}
+
+export const parseFeaturesConfigResponse = (msg: MspMessage): EspFeaturesConfig => {
+  const reader = msg.getReader()
+  const v: EspFeaturesConfig = { features: reader.readU32() }
+  return v
+}
+
+export interface EspModeNames {
+  names: Record<number, string>
+}
+
+export const createModeNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_MODE_NAMES)
+}
+
+export const parseModeNamesResponse = (msg: MspMessage): EspModeNames => {
+  const reader = msg.getReader()
+  let name = ''
+  let id = -1
+  const v: EspModeNames = { names: {} }
+  while (reader.remain() > 0) {
+    const c = reader.readU8()
+    if (id == -1 && name.length == 0) {
+      id = c
+    } else if (c != 0) {
+      name += String.fromCharCode(c)
+    } else {
+      v.names[id] = name
+      name = ''
+      id = -1
+    }
+  }
+  return v
+}
+
 export interface EspPinFunction {
   type: number
   index: number

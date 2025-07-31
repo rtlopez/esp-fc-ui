@@ -5,18 +5,21 @@ import { useMsp } from '@/api/msp/MspProvider'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
 import {
+  createFeaturesConfigRequest, createFeaturesNamesRequest,
   createSaveRequest, createSerialConfigRequest, createSerialNamesRequest,
+  parseFeaturesConfigResponse, parseFeaturesNamesResponse,
   parseSerialConfigResponse, parseSerialNamesResponse
 } from '@/api/esp'
 
-type SerialConfig = {
+type FormSerialConfig = {
   baud: number
   func: number
 }
 
 type FormValues = {
   serialCount: number
-  serialPorts: SerialConfig[]
+  serialPorts: FormSerialConfig[],
+  features: boolean[]
 }
 
 const CONFIG_DEFAULTS = {
@@ -26,7 +29,8 @@ const CONFIG_DEFAULTS = {
     { baud: 115200, func: 0 }, // UART1
     { baud: 115200, func: 0 }, // UART2
     { baud: 115200, func: 0 }, // WIFI
-  ]
+  ],
+  features: Array(32).fill(false)
 }
 
 const serialBauds = [9600, 19200, 57600, 115200, 230400, 250000, 460800, 500000, 921600, 1000000]
@@ -42,7 +46,8 @@ const serialFunctions = [
 const ConfigurationTab = () => {
 
   const { connected, writeMsp, subscribeMsp } = useMsp()
-  const [serialNames, setSerialNames] = useState(['USB', 'UART1', 'UART2', 'WIFI'])
+  const [serialNames, setSerialNames] = useState(["USB", "UART1", "UART2"])
+  const [featureNames, setFeatureNames] = useState<Record<number, string>>({ 6: "SOFTSERIAL", 7: "GPS", 10: "TELEMETRY" })
 
   const {
     control,
@@ -60,6 +65,11 @@ const ConfigurationTab = () => {
     name: "serialPorts",
   });
 
+  const { fields: features } = useFieldArray({
+    control,
+    name: "features",
+  });
+
   useEffect(() => {
     return subscribeMsp((msg) => {
       if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
@@ -69,6 +79,20 @@ const ConfigurationTab = () => {
         const v = parseSerialNamesResponse(msg)
         setSerialNames(v.names)
         console.log("recv", v)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_FEATURE_NAMES)) {
+        const v = parseFeaturesNamesResponse(msg)
+        setFeatureNames(v.names)
+        console.log("recv", v)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_FEATURE_CONFIG)) {
+        const v = parseFeaturesConfigResponse(msg)
+        let features = []
+        for (let i = 0; i < 32; i++) {
+          features[i] = !!(v.features & (1 << i))
+        }
+        reset({ ...getValues(), features })
+        console.log("recv", features)
       }
       if (msg.isCmd(MspCommand.ESP_CMD_SERIAL_CONFIG)) {
         const v = parseSerialConfigResponse(msg)
@@ -94,13 +118,18 @@ const ConfigurationTab = () => {
         func: port.func
       }))
     }))
+    writeMsp(createFeaturesConfigRequest({
+      features: data.features.reduce((acc, v, i) => acc | (v ? (1 << i) : 0), 0)
+    }))
     writeMsp(createSaveRequest())
   }
 
   const onLoad = useCallback(() => {
     console.log("load")
     writeMsp(createSerialNamesRequest())
+    writeMsp(createFeaturesNamesRequest())
     writeMsp(createSerialConfigRequest())
+    writeMsp(createFeaturesConfigRequest())
   }, [writeMsp])
 
   useEffect(() => {
@@ -125,12 +154,12 @@ const ConfigurationTab = () => {
                 <Col>
                   {serialNames[i] || `Port ${i}`}
                 </Col>
-                <Form.Group as={Col} controlId={`port_fn_${i}`} className="mb-3">
+                <Form.Group as={Col} controlId={`serial_func_${i}`} className="mb-3">
                   <Form.Select {...register(`serialPorts.${i}.func`)}>
                     {serialFunctions.map(f => <option value={f.id} key={f.id}>{f.name}</option>)}
                   </Form.Select>
                 </Form.Group>
-                <Form.Group as={Col} controlId={`port_speed_${i}`} className="mb-3">
+                <Form.Group as={Col} controlId={`serial_baud_${i}`} className="mb-3">
                   <Form.Select {...register(`serialPorts.${i}.baud`)}>
                     {serialBauds.map(baud => <option key={baud} value={baud}>{baud.toLocaleString()}</option>)}
                   </Form.Select>
@@ -143,9 +172,13 @@ const ConfigurationTab = () => {
 
       <Col md={6}>
         <Card>
-          <Card.Header>Header</Card.Header>
+          <Card.Header>Features</Card.Header>
           <Card.Body>
-            Body
+            {features.map((_feature, id) => {
+              return featureNames[id] ? <Form.Group key={id} as={Col} controlId={`feature_${id}`} className="mb-3">
+                <Form.Switch {...register(`features.${id}`)} label={featureNames[id]} />
+              </Form.Group> : null
+            })}
           </Card.Body>
         </Card>
       </Col>

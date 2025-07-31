@@ -5,6 +5,7 @@ import {
   parseDebugResponse, parseInputConfigResponse, parseInputChannelConfigResponse,
   parseOutputConfigResponse, parseOutputChannelConfigResponse,
   parsePinConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse,
+  parseFeaturesNamesResponse, parseModeNamesResponse, parseFeaturesConfigResponse,
 } from "../esp"
 
 export const MspState = {
@@ -51,8 +52,8 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_DEBUG: { value: 0x0f, label: 'ESP_CMD_DEBUG', ...E, parse: parseDebugResponse },
 
   // ESP feature names commands
-  ESP_CMD_MODE_NAMES: { value: 0x10, label: 'ESP_CMD_MODE_NAMES', ...E },
-  ESP_CMD_FEATURE_NAMES: { value: 0x11, label: 'ESP_CMD_FEATURE_NAMES', ...E },
+  ESP_CMD_MODE_NAMES: { value: 0x10, label: 'ESP_CMD_MODE_NAMES', ...E, parse: parseModeNamesResponse },
+  ESP_CMD_FEATURE_NAMES: { value: 0x11, label: 'ESP_CMD_FEATURE_NAMES', ...E, parse: parseFeaturesNamesResponse },
   ESP_CMD_DEBUG_NAMES: { value: 0x12, label: 'ESP_CMD_DEBUG_NAMES', ...E },
   ESP_CMD_SERIAL_NAMES: { value: 0x13, label: 'ESP_CMD_SERIAL_NAMES', ...E, parse: parseSerialNamesResponse },
   ESP_CMD_PID_NAMES: { value: 0x14, label: 'ESP_CMD_PID_NAMES', ...E },
@@ -79,7 +80,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_GPS_CONFIG: { value: 0x32, label: 'ESP_CMD_GPS_CONFIG', ...E },
   ESP_CMD_BARO_CONFIG: { value: 0x33, label: 'ESP_CMD_BARO_CONFIG', ...E },
   ESP_CMD_MAG_CONFIG: { value: 0x34, label: 'ESP_CMD_MAG_CONFIG', ...E },
-  ESP_CMD_FEATURE_CONFIG: { value: 0x35, label: 'ESP_CMD_FEATURE_CONFIG', ...E },
+  ESP_CMD_FEATURE_CONFIG: { value: 0x35, label: 'ESP_CMD_FEATURE_CONFIG', ...E, parse: parseFeaturesConfigResponse },
   ESP_CMD_MODEL_CONFIG: { value: 0x36, label: 'ESP_CMD_MODEL_CONFIG', ...E },
   ESP_CMD_CALIBRATE: { value: 0x37, label: 'ESP_CMD_CALIBRATE', ...E },
   ESP_CMD_ESC_PASSTHROUGH: { value: 0x38, label: 'ESP_CMD_ESC_PASSTHROUGH', ...E },

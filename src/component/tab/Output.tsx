@@ -212,7 +212,7 @@ const OutputTab = () => {
                 </Col>
                 <Form.Group as={Col} controlId={`out_servo_${i}`} className="mb-3">
                   <Form.Switch {...register(`outputChannels.${i}.servo`)} />
-                </Form.Group >
+                </Form.Group>
                 <Form.Group as={Col} controlId={`out_rev_${i}`} className="mb-3">
                   <Form.Switch {...register(`outputChannels.${i}.reverse`)} />
                 </Form.Group>
