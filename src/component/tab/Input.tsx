@@ -203,7 +203,7 @@ const InputTab = () => {
                   {`CH${i + 1}`}
                 </Col>
                 <Form.Group as={Col} controlId={`ch_map_${i}`} className="mb-3">
-                  <Form.Control type='number' min={0} max={15} {...register(`channels.${i}.map`, { valueAsNumber: true })} />
+                  <Form.Control type='number' min={1} max={16} {...register(`channels.${i}.map`, { valueAsNumber: true })} />
                 </Form.Group >
                 <Form.Group as={Col} controlId={`ch_min_${i}`} className="mb-3">
                   <Form.Control type='number' min={1000} max={2000} {...register(`channels.${i}.min`, { valueAsNumber: true })} />

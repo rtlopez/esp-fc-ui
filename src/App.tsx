@@ -19,7 +19,7 @@ const App = () => {
             <Route path="/sensors"><SensorsTab /></Route>
             <Route path="/input"><InputTab /></Route>
             <Route path="/output"><OutputTab /></Route>
-            <Route path="/Configuration"><ConfigurationTab /></Route>
+            <Route path="/configuration"><ConfigurationTab /></Route>
             <Route path="/tuning"><TuningTab /></Route>
             <Route path="/cli"><TesterTab /></Route>
             <Route><h1>Tab Not Found!</h1></Route>

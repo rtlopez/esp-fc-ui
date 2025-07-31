@@ -28,8 +28,8 @@ const PIN_DFAULTS: FormValues = {
 
     { type: 1, index: 0, pin: 7 }, // output
     { type: 1, index: 1, pin: 8 },
-    { type: 1, index: 0, pin: 9 },
-    { type: 1, index: 1, pin: 10 },
+    { type: 1, index: 2, pin: 9 },
+    { type: 1, index: 3, pin: 10 },
 
     { type: 2, index: 0, pin: 11 }, // input
     { type: 5, index: 0, pin: 12 },
@@ -167,8 +167,8 @@ const HardwareTab = () => {
   return <TabView title='Hardware' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
       {Object.entries(grouped).map(([func, funcPins], k) => {
-        return <Col lg={6}>
-          <Card key={k} className='mb-3'>
+        return <Col lg={6} key={k}>
+          <Card className='mb-3'>
             <Card.Header>{getFunctionTitle(parseInt(func, 10))}</Card.Header>
             <Card.Body>
               {funcPins.map((pin, i) => {
@@ -183,59 +183,6 @@ const HardwareTab = () => {
           </Card>
         </Col>
       })}
-
-      {/* <Col lg={6}>
-        <Card className='mb-3'>
-          <Card.Header>Serial Ports</Card.Header>
-          <Card.Body>
-            <Row className='mb-3'>
-              <Col>Port</Col>
-              <Col>Function</Col>
-              <Col>Speed</Col>
-              <Col>Rx Pin</Col>
-              <Col>Tx Pin</Col>
-            </Row>
-            {[0, 1, 2, 3].map((port) => {
-              return <Row key={port}>
-                <Col>
-                  UART{port + 1}
-                </Col>
-                <Form.Group as={Col} controlId={`port_fn_${port}`} className="mb-3">
-                  <Form.Select>
-                    <option value="0">Disabled</option>
-                    <option value="1">Serial RX</option>
-                    <option value="2">Msp</option>
-                    <option value="3">GPS</option>
-                    <option value="4">Telemetry</option>
-                    <option value="5">Blackbox</option>
-                  </Form.Select>
-                </Form.Group>
-                <Form.Group as={Col} controlId={`port_speed_${port}`} className="mb-3">
-                  <Form.Select>
-                    <option value="0">9 600</option>
-                    <option value="1">19 200</option>
-                    <option value="2">57 600</option>
-                    <option value="3">115 200</option>
-                    <option value="4">230 400</option>
-                    <option value="5">250 000</option>
-                    <option value="6">460 800</option>
-                    <option value="7">500 000</option>
-                    <option value="8">921 600</option>
-                    <option value="9">1 000 000</option>
-                  </Form.Select>
-                </Form.Group>
-                <Form.Group as={Col} controlId={`port_rx_${port}`} className="mb-3">
-                  <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
-                </Form.Group>
-                <Form.Group as={Col} controlId={`port_tx_${port}`} className="mb-3">
-                  <Form.Control type='number' min={-1} max={48} value={-1} readOnly />
-                </Form.Group>
-              </Row>
-            })}
-          </Card.Body>
-        </Card>
-      </Col> */}
-
     </Row>
   </TabView>
 }

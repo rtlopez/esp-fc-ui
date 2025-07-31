@@ -4,8 +4,10 @@ import TabView from './TabView'
 import { useMsp } from '@/api/msp/MspProvider'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
-import { createInputConfigRequest, createSaveRequest, createSerialConfigRequest, parseSerialConfigResponse, parseSerialNamesResponse } from '@/api/esp'
-import { FormItem } from '../widget'
+import {
+  createSaveRequest, createSerialConfigRequest, createSerialNamesRequest,
+  parseSerialConfigResponse, parseSerialNamesResponse
+} from '@/api/esp'
 
 type SerialConfig = {
   baud: number
@@ -17,8 +19,8 @@ type FormValues = {
   serialPorts: SerialConfig[]
 }
 
-const SERIAL_DEFAULTS = {
-  count: 0,
+const CONFIG_DEFAULTS = {
+  serialCount: 0,
   serialPorts: [
     { baud: 115200, func: 0 }, // USB
     { baud: 115200, func: 0 }, // UART1
@@ -27,12 +29,20 @@ const SERIAL_DEFAULTS = {
   ]
 }
 
-const serialBauds = [ 9600, 19200, 57600, 115200, 230400, 250000, 460800, 500000, 921600, 1000000 ]
-
+const serialBauds = [9600, 19200, 57600, 115200, 230400, 250000, 460800, 500000, 921600, 1000000]
+const serialFunctions = [
+  { id: 0, name: "None" },
+  { id: 1 << 0, name: "Msp" },
+  { id: 1 << 1, name: "Gps" },
+  { id: 1 << 6, name: "Serial RX" },
+  { id: 1 << 7, name: "Blackbox" },
+  { id: 1 << 11, name: "VTX SmartAudio" },
+  { id: 1 << 13, name: "VTX Tramp" },
+]
 const ConfigurationTab = () => {
 
   const { connected, writeMsp, subscribeMsp } = useMsp()
-  const [ serialNames, setSerialNames ] = useState(['USB', 'UART1', 'UART2', 'WIFI'])
+  const [serialNames, setSerialNames] = useState(['USB', 'UART1', 'UART2', 'WIFI'])
 
   const {
     control,
@@ -42,7 +52,7 @@ const ConfigurationTab = () => {
     getValues,
     //formState: { errors }
   } = useForm<FormValues>({
-    defaultValues: SERIAL_DEFAULTS
+    defaultValues: CONFIG_DEFAULTS
   });
 
   const { fields: serialPorts } = useFieldArray({
@@ -62,7 +72,14 @@ const ConfigurationTab = () => {
       }
       if (msg.isCmd(MspCommand.ESP_CMD_SERIAL_CONFIG)) {
         const v = parseSerialConfigResponse(msg)
-        reset({ ...getValues(), ...v })
+        const f = {
+          serialCount: v.count,
+          serialPorts: v.configs.map((c) => ({
+            baud: c.baud,
+            func: c.func
+          }))
+        }
+        reset({ ...getValues(), ...f })
         console.log("recv", v)
       }
     })
@@ -82,10 +99,16 @@ const ConfigurationTab = () => {
 
   const onLoad = useCallback(() => {
     console.log("load")
+    writeMsp(createSerialNamesRequest())
     writeMsp(createSerialConfigRequest())
   }, [writeMsp])
 
-  return <TabView title='Configuration' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  useEffect(() => {
+    if (!connected) reset(CONFIG_DEFAULTS);
+    else onLoad();
+  }, [connected, onLoad, reset])
+
+  return <TabView title='Configuration' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col md={6}>
@@ -104,19 +127,12 @@ const ConfigurationTab = () => {
                 </Col>
                 <Form.Group as={Col} controlId={`port_fn_${i}`} className="mb-3">
                   <Form.Select {...register(`serialPorts.${i}.func`)}>
-                    <option value="0">Disabled</option>
-                    <option value="1">Serial RX</option>
-                    <option value="2">Msp</option>
-                    <option value="3">GPS</option>
-                    <option value="4">Telemetry</option>
-                    <option value="5">Blackbox</option>
+                    {serialFunctions.map(f => <option value={f.id} key={f.id}>{f.name}</option>)}
                   </Form.Select>
                 </Form.Group>
                 <Form.Group as={Col} controlId={`port_speed_${i}`} className="mb-3">
                   <Form.Select {...register(`serialPorts.${i}.baud`)}>
-                    { serialBauds.map((baud, j) => {
-                      return <option key={j} value={baud}>{baud.toLocaleString()}</option>
-                    }) }
+                    {serialBauds.map(baud => <option key={baud} value={baud}>{baud.toLocaleString()}</option>)}
                   </Form.Select>
                 </Form.Group>
               </Row>
