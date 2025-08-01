@@ -6,10 +6,11 @@ import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
 import {
   createFeaturesConfigRequest, createFeaturesNamesRequest,
-  createSaveRequest, createSerialConfigRequest, createSerialNamesRequest,
-  parseFeaturesConfigResponse, parseFeaturesNamesResponse,
-  parseSerialConfigResponse, parseSerialNamesResponse
+  createSaveRequest, createSensorConfigRequest, createSerialConfigRequest,
+  createSerialNamesRequest, parseFeaturesConfigResponse, parseFeaturesNamesResponse,
+  parseSensorConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse
 } from '@/api/esp'
+import { FormItem } from '../widget'
 
 type FormSerialConfig = {
   baud: number
@@ -20,6 +21,10 @@ type FormValues = {
   serialCount: number
   serialPorts: FormSerialConfig[],
   features: boolean[]
+  loopSync: number
+  accelDev: number
+  magDev: number
+  baroDev: number
 }
 
 const CONFIG_DEFAULTS = {
@@ -30,7 +35,11 @@ const CONFIG_DEFAULTS = {
     { baud: 115200, func: 0 }, // UART2
     { baud: 115200, func: 0 }, // WIFI
   ],
-  features: Array(32).fill(false)
+  features: Array(32).fill(false),
+  loopSync: 1,
+  accelDev: 1,
+  magDev: 1,
+  baroDev: 1,
 }
 
 const serialBauds = [9600, 19200, 57600, 115200, 230400, 250000, 460800, 500000, 921600, 1000000]
@@ -43,6 +52,12 @@ const serialFunctions = [
   { id: 1 << 11, name: "VTX SmartAudio" },
   { id: 1 << 13, name: "VTX Tramp" },
 ]
+
+const deviceMode = [
+  { id: 0, name: "Autodetect" },
+  { id: 1, name: "None" }
+]
+
 const ConfigurationTab = () => {
 
   const { connected, writeMsp, subscribeMsp } = useMsp()
@@ -85,6 +100,11 @@ const ConfigurationTab = () => {
         setFeatureNames(v.names)
         console.log("recv", v)
       }
+      if (msg.isCmd(MspCommand.ESP_CMD_SENSOR_CONFIG)) {
+        const v = parseSensorConfigResponse(msg)
+        reset({ ...getValues(), ...v })
+        console.log("recv", v)
+      }
       if (msg.isCmd(MspCommand.ESP_CMD_FEATURE_CONFIG)) {
         const v = parseFeaturesConfigResponse(msg)
         let features = []
@@ -111,6 +131,12 @@ const ConfigurationTab = () => {
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
+    writeMsp(createSensorConfigRequest({
+      loopSync: data.loopSync,
+      accelDev: data.accelDev,
+      baroDev: data.baroDev,
+      magDev: data.magDev,
+    }))
     writeMsp(createSerialConfigRequest({
       count: data.serialCount,
       configs: data.serialPorts.map((port) => ({
@@ -126,6 +152,7 @@ const ConfigurationTab = () => {
 
   const onLoad = useCallback(() => {
     console.log("load")
+    writeMsp(createSensorConfigRequest())
     writeMsp(createSerialNamesRequest())
     writeMsp(createFeaturesNamesRequest())
     writeMsp(createSerialConfigRequest())
@@ -137,8 +164,58 @@ const ConfigurationTab = () => {
     else onLoad();
   }, [connected, onLoad, reset])
 
+  const loopSyncItems = [
+    { id: 1, name: '2000 Hz (/1)' },
+    { id: 2, name: '1000 Hz (/2)' },
+  ]
+
   return <TabView title='Configuration' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
+
+      <Col md={6}>
+
+        <Card className='mb-3'>
+          <Card.Header>Sensors</Card.Header>
+          <Card.Body>
+
+            <FormItem id="loopSync" label="Loop Sync">
+              <Form.Select {...register("loopSync", { valueAsNumber: true })}>
+                {loopSyncItems.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+
+            <FormItem id="accelDev" label="Accelerometer">
+              <Form.Select {...register("accelDev", { valueAsNumber: true })}>
+                {deviceMode.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+
+            <FormItem id="magDev" label="Magnetometer">
+              <Form.Select {...register("magDev", { valueAsNumber: true })}>
+                {deviceMode.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+
+            <FormItem id="baroDev" label="Barometer">
+              <Form.Select {...register("baroDev", { valueAsNumber: true })}>
+                {deviceMode.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+
+          </Card.Body>
+        </Card>
+
+        <Card className='mb-3'>
+          <Card.Header>Features</Card.Header>
+          <Card.Body>
+            {features.map((_feature, id) => {
+              return featureNames[id] ? <Form.Group key={id} as={Col} controlId={`feature_${id}`} className="mb-3">
+                <Form.Switch {...register(`features.${id}`)} label={featureNames[id]} />
+              </Form.Group> : null
+            })}
+          </Card.Body>
+        </Card>
+      </Col>
 
       <Col md={6}>
         <Card>
@@ -165,19 +242,6 @@ const ConfigurationTab = () => {
                   </Form.Select>
                 </Form.Group>
               </Row>
-            })}
-          </Card.Body>
-        </Card>
-      </Col>
-
-      <Col md={6}>
-        <Card>
-          <Card.Header>Features</Card.Header>
-          <Card.Body>
-            {features.map((_feature, id) => {
-              return featureNames[id] ? <Form.Group key={id} as={Col} controlId={`feature_${id}`} className="mb-3">
-                <Form.Switch {...register(`features.${id}`)} label={featureNames[id]} />
-              </Form.Group> : null
             })}
           </Card.Body>
         </Card>

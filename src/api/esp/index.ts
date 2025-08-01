@@ -56,6 +56,7 @@ export const parseStatusResponse = (msg: MspMessage): EspStatusResponse => {
 
 export interface EspStatisticsResponse {
   uptimeMs: number
+  loopTimeUs: number
   cpuLoad: number
   cpu0Load: number
   cpu1Load: number
@@ -70,6 +71,7 @@ export const parseStatisticsResponse = (msg: MspMessage): EspStatisticsResponse 
   const reader = msg.getReader()
   const v = {
     uptimeMs: reader.readU32(),
+    loopTimeUs: reader.readU16(),
     cpuLoad: reader.readU8(),
     cpu0Load: reader.readU8(),
     cpu1Load: reader.readU8(),
@@ -556,6 +558,34 @@ export const parsePinConfigResponse = (msg: MspMessage): EspPinConfigResponse =>
     v.pins.push({type, index, pin})
   }
   return v
+}
+
+export interface EspSensorConfigResponse {
+  loopSync: number
+  accelDev: number
+  baroDev: number
+  magDev: number
+}
+
+export const createSensorConfigRequest = (data?: EspSensorConfigResponse): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_SENSOR_CONFIG)
+  if (data) {
+    msg.writeU8(data.loopSync)
+    msg.writeU8(data.accelDev)
+    msg.writeU8(data.baroDev)
+    msg.writeU8(data.magDev)
+  }
+  return msg
+}
+
+export const parseSensorConfigResponse = (msg: MspMessage): EspSensorConfigResponse => {
+  const reader = msg.getReader()
+  return {
+    loopSync: reader.readU8(),
+    accelDev: reader.readU8(),
+    baroDev: reader.readU8(),
+    magDev: reader.readU8(),
+  }
 }
 
 export const createSaveRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)

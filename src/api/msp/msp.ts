@@ -6,6 +6,7 @@ import {
   parseOutputConfigResponse, parseOutputChannelConfigResponse,
   parsePinConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse,
   parseFeaturesNamesResponse, parseModeNamesResponse, parseFeaturesConfigResponse,
+  parseSensorConfigResponse,
 } from "../esp"
 
 export const MspState = {
@@ -86,6 +87,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_ESC_PASSTHROUGH: { value: 0x38, label: 'ESP_CMD_ESC_PASSTHROUGH', ...E },
   ESP_CMD_ALIGNMENT_CONFIG: { value: 0x39, label: 'ESP_CMD_ALIGNMENT_CONFIG', ...E },
   ESP_CMD_PIN_CONFIG: { value: 0x3a, label: 'ESP_CMD_PIN_CONFIG', ...E, parse: parsePinConfigResponse },
+  ESP_CMD_SENSOR_CONFIG: { value: 0x3b, label: 'ESP_CMD_SENSOR_CONFIG', ...E, parse: parseSensorConfigResponse },
 
   // ESP flash commands
   ESP_CMD_FLASH_STATUS: { value: 0x40, label: 'ESP_CMD_FLASH_STATUS', ...E },
