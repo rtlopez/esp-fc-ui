@@ -1,7 +1,6 @@
-import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
-import { MspCommand, MspDirection, MspMessage, mspParse, MspState } from "@/api/msp/msp"
-import { createDisableArmRequest, createVersionRequest, EspVersionResponse, parseVersionResponse } from "../esp"
+import { MspMessage, mspParse } from "@/api/msp/msp"
 
 type MspMessageCallback = (message: MspMessage) => void
 type TextMessageCallback = (message: string) => void
@@ -14,10 +13,9 @@ export interface MspContextValue {
   subscribeText(callback: TextMessageCallback): () => void
   writeText: (message: string) => Promise<void>
   connect(): Promise<boolean>
-  disconnect(): void
+  disconnect(): Promise<void>
   cliActive: boolean,
   setCliActive: (value: boolean) => void,
-  version: EspVersionResponse | null
   connected: boolean
 }
 
@@ -27,10 +25,9 @@ const MspContext = createContext<MspContextValue>({
   subscribeText: () => () => { },
   writeText: () => Promise.resolve(),
   connect: () => Promise.resolve(false),
-  disconnect: () => { },
+  disconnect: () => Promise.resolve(),
   cliActive: false,
   setCliActive: (_value: boolean) => { },
-  version: null,
   connected: false,
 });
 
@@ -92,7 +89,7 @@ const MspProvider = ({
   children,
 }: MspProviderProps) => {
 
-  const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, portState, connected } = useSerial()
+  const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, connected } = useSerial()
 
   const currentSubscriberIdRef = useRef(0)
   const mspSubscribersRef = useRef(new Map<number, MspMessageCallback>())
@@ -100,7 +97,6 @@ const MspProvider = ({
   const msgQueueRef = useRef(new Queue<MspMessage>())
   const msgQueueLockRef = useRef(new TimedLock())
   const msgRef = useRef(new MspMessage())
-  const [version, setVersion] = useState<EspVersionResponse | null>(null)
   const [cliActive, setCliActive] = useState(false)
 
   const receive = (data: Uint8Array) => {
@@ -109,7 +105,7 @@ const MspProvider = ({
       const consumed = mspParse(b, msgRef.current)
       //console.log([consumed, b, msg.state, msg.dir, msg.received, msg.size, msg.checksum])
       if (consumed) {
-        if (msgRef.current.state === MspState.RECEIVED && msgRef.current.dir === MspDirection.REPLY) {
+        if (msgRef.current.isReplyReceived()) {
           // notify msp subscribers
           if(msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd, msgRef.current.toArray())
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
@@ -138,10 +134,11 @@ const MspProvider = ({
       mspSubscribersRef.current.delete(id)
     }
   }
-  const writeMsp = useCallback(async (msg: MspMessage) => {
+
+  const writeMsp = async (msg: MspMessage) => {
     if(msg.cmd > 0xf) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.cmd)
     msgQueueRef.current.enqueue(msg)
-  }, [])
+  }
 
   const subscribeText = (callback: TextMessageCallback) => {
     const id = currentSubscriberIdRef.current
@@ -152,21 +149,19 @@ const MspProvider = ({
     }
   }
   const writeText = async (message: string) => {
-    write(textEncoder.encode(message + "\n"))
+    await write(textEncoder.encode(message + "\n"))
   }
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (connected && !msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
         if(msg.cmd > 0xf) console.log("msp.send", msg.cmd, msg.toArray())
-        write(msg.toDataBuffer())
+        await write(msg.toDataBuffer())
       }
     }, 5);
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [connected, write])
 
   useEffect(() => {
@@ -175,28 +170,12 @@ const MspProvider = ({
     })
   })
 
-  useEffect(() => {
-    return subscribeMsp((msg: MspMessage) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_VERSION)) {
-        setVersion(parseVersionResponse(msg))
-        writeMsp(createDisableArmRequest({ type: 1 }))
-      }
-    })
-  })
-
-  useEffect(() => {
-    if (portState == "open" && version === null) {
-      writeMsp(createVersionRequest())
-    }
-  }, [writeMsp, portState, version])
-
   const connect = async () => {
     return await serialConnect()
   }
 
   const disconnect = async () => {
-    setVersion(null)
-    serialDisconnect()
+    await serialDisconnect()
   }
 
   return (
@@ -210,7 +189,6 @@ const MspProvider = ({
         disconnect,
         cliActive,
         setCliActive,
-        version,
         connected,
       }}
     >

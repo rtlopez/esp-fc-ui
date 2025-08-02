@@ -1,11 +1,5 @@
-import { useEffect, useState } from "react"
-import { MspCommand } from "@/api/msp/msp"
-import { useMsp } from "@/api/msp/MspProvider"
 import { Container, Navbar } from "react-bootstrap"
-import {
-  createStatisticsRequest, createStatusRequest, EspStatisticsResponse,
-  EspStatusResponse, parseStatisticsResponse, parseStatusResponse
-} from "@/api/esp"
+import { useBoardinfo } from "@/api/BoardInfoProvider"
 
 const parseSensors = (sensors: number) => {
   let flags = '';
@@ -16,6 +10,7 @@ const parseSensors = (sensors: number) => {
   if (sensors & 0x10) flags += 'N'
   return flags || '-'
 }
+
 const armingDisableFlags: Record<number, string> = {
   0: 'NO_GYRO',
   1: 'FAILSAFE',
@@ -54,56 +49,18 @@ const parseArmingDisableFlags = (flags: number): string => {
 }
 
 const BottomBar = () => {
-  const { version, connected, writeMsp, subscribeMsp, cliActive } = useMsp()
-  const [statistics, setStatistics] = useState<EspStatisticsResponse>({
-    uptimeMs: 0,
-    loopTimeUs: 0,
-    cpuLoad: 0,
-    cpu0Load: 0,
-    cpu1Load: 0,
-    heapFree: 0,
-    heapTotal: 0,
-    flashTotal: 0,
-    flashUsed: 0,
-  })
-  const [status, setStatus] = useState<EspStatusResponse>({
-    sensors: 0,
-    gyroTimeUs: 0,
-    modeSwitchMask: 0,
-    modeActiveMask: 0,
-    armingDisableFlags: 0,
-  })
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_STATISTICS)) {
-        setStatistics(parseStatisticsResponse(msg))
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_STATUS)) {
-        setStatus(parseStatusResponse(msg))
-      }
-    })
-  }, [subscribeMsp])
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (connected && !cliActive) {
-        writeMsp(createStatusRequest())
-        writeMsp(createStatisticsRequest())
-      }
-    }, 300);
-    return () => clearInterval(interval)
-  }, [connected, cliActive, writeMsp]);
+  const {status, statistics, version, connected} = useBoardinfo()
 
   return <Navbar expand="lg" bg="secondary" fixed="bottom">
     <Container fluid>
       <Navbar.Text>
         {connected ? 'Connected' : 'Disconnected'} |
-        Sampling[us]: {status.gyroTimeUs || '-'} |
-        Loop[us]: {statistics.loopTimeUs || '-'} |
-        Cpu[%]: {statistics.cpuLoad || '-'} |
-        Sensors: {parseSensors(status.sensors)} |
-        Arming prevention: {parseArmingDisableFlags(status.armingDisableFlags)}
+        Sampling[us]: {status?.gyroTimeUs || '-'} |
+        Loop[us]: {statistics?.loopTimeUs || '-'} |
+        Cpu[%]: {statistics?.cpuLoad || '-'} |
+        Sensors: {parseSensors(status?.sensors || 0)} |
+        Arming prevention: {parseArmingDisableFlags(status?.armingDisableFlags || 0)}
       </Navbar.Text>
       <Navbar.Text>
         &copy; 2025 @rtlopez

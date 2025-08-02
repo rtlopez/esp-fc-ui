@@ -1,16 +1,16 @@
+import { useCallback, useEffect } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
-import TabView from './TabView'
-import { useMsp } from '@/api/msp/MspProvider';
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import { useMsp } from '@/api/msp/MspProvider'
+import { MspCommand } from '@/api/msp/msp'
 import {
   createOutputChannelConfigRequest, createOutputConfigRequest,
-  createSaveRequest, EspOutputChannelConfigRequest,
+  createRebootRequest, createSaveRequest, EspOutputChannelConfigRequest,
   EspOutputChannelConfigResponse, EspOutputConfigResponse,
   parseOutputChannelConfigResponse, parseOutputConfigResponse
-} from '@/api/esp';
-import { useCallback, useEffect } from 'react';
-import { MspCommand } from '@/api/msp/msp';
-import { FormItem } from '../widget';
+} from '@/api/esp'
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
+import TabView from './TabView'
+import { FormItem } from '../widget'
 
 type FormOutputChannel = {
   min: number
@@ -156,6 +156,7 @@ const OutputTab = () => {
     writeMsp(createOutputConfigRequest(c))
     writeMsp(createOutputChannelConfigRequest(v))
     writeMsp(createSaveRequest())
+    writeMsp(createRebootRequest())
   }
 
   useEffect(() => {
@@ -187,9 +188,9 @@ const OutputTab = () => {
   useEffect(() => {
     if (!connected) reset(OUTPUT_DFAULTS)
     else onLoad();
-  }, [connected, onLoad, reset])
+  }, [connected, reset, onLoad])
 
-  return <TabView title='Output' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Output' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col md={6}>

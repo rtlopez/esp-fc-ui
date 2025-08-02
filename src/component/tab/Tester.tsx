@@ -24,9 +24,7 @@ const TesterTab = () => {
 
   useEffect(() => {
     setCliActive(true)
-    return () => {
-      setCliActive(false)
-    }
+    return () => setCliActive(false)
   }, [setCliActive])
 
   useEffect(() => {

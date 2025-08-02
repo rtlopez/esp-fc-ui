@@ -5,11 +5,12 @@ import { Button, Col, Form, Row } from 'react-bootstrap'
 type TabViewProps = {
   title?: string
   nosave?: boolean
+  reboot?: boolean
   onSubmit?: FormEventHandler
   onLoad?: () => void
 } & PropsWithChildren
 
-const TabView: React.FC<TabViewProps> = ({ title, children, nosave, onSubmit, onLoad }) => {
+const TabView: React.FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad }) => {
 
   const { connected } = useSerial()
 
@@ -32,7 +33,7 @@ const TabView: React.FC<TabViewProps> = ({ title, children, nosave, onSubmit, on
           <i className='bi bi-box-arrow-in-up'></i> Load
         </Button>
         <Button variant='primary' disabled={!connected} type="submit">
-          <i className='bi bi-floppy'></i> Save
+          <i className='bi bi-floppy'></i> {reboot ? 'Save And Reboot' : 'Save'}
         </Button>
       </Col> : null}
     </Row> : null}

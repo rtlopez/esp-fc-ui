@@ -18,21 +18,21 @@ export type PortState = "closed" | "closing" | "open" | "opening";
 type SerialMessageCallback = (message: Uint8Array) => void;
 
 export interface SerialContextValue {
-  supports: boolean
+  supported: boolean
   connected: boolean
   portState: PortState
   connect(): Promise<boolean>
-  disconnect(): void
+  disconnect(): Promise<void>
   subscribe(callback: SerialMessageCallback): () => void
   write: (message: Uint8Array) => Promise<void>
 }
 
 const SerialContext = createContext<SerialContextValue>({
-  supports: false,
+  supported: false,
   connected: false,
   portState: "closed",
   connect: () => Promise.resolve(false),
-  disconnect: () => { },
+  disconnect: () => Promise.resolve(),
   subscribe: () => () => { },
   write: () => Promise.resolve(),
 });
@@ -42,7 +42,7 @@ type SerialProviderProps = PropsWithChildren & {}
 const SerialProvider = ({
   children,
 }: SerialProviderProps) => {
-  const [supports] = useState(() => "serial" in navigator);
+  const [supported] = useState(() => "serial" in navigator);
   const [portState, setPortState] = useState<PortState>("closed");
   const portRef = useRef<SerialPort | null>(null);
 
@@ -55,7 +55,6 @@ const SerialProvider = ({
 
   /**
    * Subscribes a callback function to the message event.
-   *
    * @param callback the callback function to subscribe
    * @returns an unsubscribe function
    */
@@ -70,7 +69,6 @@ const SerialProvider = ({
 
   /**
    * Reads from the given port until it's been closed.
-   *
    * @param port the port to read from
    */
   const readUntilClosed = async (port: SerialPort) => {
@@ -93,7 +91,7 @@ const SerialProvider = ({
   };
 
   const write = async (data: Uint8Array) => {
-    if (supports && portState === "open") {
+    if (supported && portState === "open") {
       const port = portRef.current;
       if (port && port.writable) {
         writerRef.current = port.writable.getWriter();
@@ -109,7 +107,7 @@ const SerialProvider = ({
   }
 
   const connect = async () => {
-    if (supports && portState === "closed") {
+    if (supported && portState === "closed") {
       setPortState("opening");
       const filters = [
         // Can identify the vendor and product IDs by plugging in the device and visiting: chrome://device-log/
@@ -136,7 +134,7 @@ const SerialProvider = ({
   };
 
   const disconnect = async () => {
-    if (supports && portState === "open") {
+    if (supported && portState === "open") {
       const port = portRef.current;
       if (port) {
         setPortState("closing");
@@ -205,7 +203,7 @@ const SerialProvider = ({
   return (
     <SerialContext.Provider
       value={{
-        supports,
+        supported,
         connected,
         portState,
         connect,

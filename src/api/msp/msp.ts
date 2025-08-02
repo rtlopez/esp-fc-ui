@@ -203,6 +203,10 @@ export class MspMessage {
     return this.cmd === cmd.value && this.variant === cmd.variant
   }
 
+  isReplyReceived(): boolean {
+    return this.state === MspState.RECEIVED && this.dir === MspDirection.REPLY
+  }
+
   writeU8(num: number) {
     this.view.setUint8(this.written++, num)
   }

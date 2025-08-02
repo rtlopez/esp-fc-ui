@@ -1,10 +1,10 @@
-import { Card, Col, Form, Row } from 'react-bootstrap'
-import TabView from './TabView'
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
-import { useMsp } from '@/api/msp/MspProvider'
 import { useCallback, useEffect } from 'react'
+import { Card, Col, Form, Row } from 'react-bootstrap'
+import { useMsp } from '@/api/msp/MspProvider'
 import { MspCommand } from '@/api/msp/msp'
 import { createPinConfigRequest, parsePinConfigResponse } from '@/api/esp'
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
+import TabView from './TabView'
 
 type PinFunction = {
   type: number
@@ -149,7 +149,7 @@ const HardwareTab = () => {
   useEffect(() => {
     if (!connected) reset(PIN_DFAULTS);
     else onLoad();
-  }, [connected, onLoad, reset])
+  }, [connected, reset, onLoad])
 
   const grouped = pins.reduce((acc, curr, i) => {
     curr.key = i

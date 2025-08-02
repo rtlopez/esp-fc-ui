@@ -1,10 +1,10 @@
 import { useCallback, useEffect } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
-import TabView from './TabView'
 import { useMsp } from '@/api/msp/MspProvider'
-import { SubmitHandler, useForm } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
 import { createSaveRequest } from '@/api/esp'
+import { SubmitHandler, useForm } from 'react-hook-form'
+import TabView from './TabView'
 import { FormItem } from '../widget'
 
 type FormValues = {
@@ -20,11 +20,11 @@ const TemplateTab = () => {
   const { connected, writeMsp, subscribeMsp } = useMsp()
 
   const {
-    control,
+    //control,
     register,
     handleSubmit,
     reset,
-    getValues,
+    //getValues,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: INPUT_DEFAULTS
@@ -55,18 +55,12 @@ const TemplateTab = () => {
   const onLoad = useCallback(() => {
     console.log("load")
     //writeMsp(createInputConfigRequest())
-  }, [writeMsp])
+  }, [])
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected) reset(INPUT_DEFAULTS);
     else onLoad();
-    const interval = setInterval(() => {
-      // writeMsp(createInputRequest())
-    }, 300);
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [connected, writeMsp, onLoad]);
+  }, [connected, reset, onLoad]);
 
   return <TabView title='Status' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>

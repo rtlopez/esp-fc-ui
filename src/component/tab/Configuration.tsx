@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
-import TabView from './TabView'
 import { useMsp } from '@/api/msp/MspProvider'
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
 import {
   createFeaturesConfigRequest, createFeaturesNamesRequest,
@@ -10,6 +8,8 @@ import {
   createSerialNamesRequest, parseFeaturesConfigResponse, parseFeaturesNamesResponse,
   parseSensorConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse
 } from '@/api/esp'
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
+import TabView from './TabView'
 import { FormItem } from '../widget'
 
 type FormSerialConfig = {
@@ -75,15 +75,8 @@ const ConfigurationTab = () => {
     defaultValues: CONFIG_DEFAULTS
   });
 
-  const { fields: serialPorts } = useFieldArray({
-    control,
-    name: "serialPorts",
-  });
-
-  const { fields: features } = useFieldArray({
-    control,
-    name: "features",
-  });
+  const { fields: serialPorts } = useFieldArray({ control, name: "serialPorts" });
+  const { fields: features } = useFieldArray({ control, name: "features" });
 
   useEffect(() => {
     return subscribeMsp((msg) => {
@@ -107,7 +100,7 @@ const ConfigurationTab = () => {
       }
       if (msg.isCmd(MspCommand.ESP_CMD_FEATURE_CONFIG)) {
         const v = parseFeaturesConfigResponse(msg)
-        let features = []
+        const features = []
         for (let i = 0; i < 32; i++) {
           features[i] = !!(v.features & (1 << i))
         }
@@ -162,7 +155,7 @@ const ConfigurationTab = () => {
   useEffect(() => {
     if (!connected) reset(CONFIG_DEFAULTS);
     else onLoad();
-  }, [connected, onLoad, reset])
+  }, [connected, reset, onLoad])
 
   const loopSyncItems = [
     { id: 1, name: '2000 Hz (/1)' },
