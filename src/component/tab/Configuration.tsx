@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
+import { useBoardinfo } from '@/api/BoardInfoProvider'
 import { MspCommand } from '@/api/msp/msp'
 import {
-  createFeaturesConfigRequest, createFeaturesNamesRequest,
+  createFeaturesConfigRequest, createFeaturesNamesRequest, createRebootRequest,
   createSaveRequest, createSensorConfigRequest, createSerialConfigRequest,
   createSerialNamesRequest, parseFeaturesConfigResponse, parseFeaturesNamesResponse,
   parseSensorConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse
@@ -60,9 +61,10 @@ const deviceMode = [
 
 const ConfigurationTab = () => {
 
-  const { connected, writeMsp, subscribeMsp } = useMsp()
   const [serialNames, setSerialNames] = useState(["USB", "UART1", "UART2"])
   const [featureNames, setFeatureNames] = useState<Record<number, string>>({ 6: "SOFTSERIAL", 7: "GPS", 10: "TELEMETRY" })
+  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { status } = useBoardinfo()
 
   const {
     control,
@@ -119,6 +121,10 @@ const ConfigurationTab = () => {
         reset({ ...getValues(), ...f })
         console.log("recv", v)
       }
+      if (msg.isCmd(MspCommand.ESP_CMD_REBOOT)) {
+        console.log("rebooted")
+        setTimeout(onLoad, 500)
+      }
     })
   })
 
@@ -141,6 +147,7 @@ const ConfigurationTab = () => {
       features: data.features.reduce((acc, v, i) => acc | (v ? (1 << i) : 0), 0)
     }))
     writeMsp(createSaveRequest())
+    writeMsp(createRebootRequest())
   }
 
   const onLoad = useCallback(() => {
@@ -157,12 +164,18 @@ const ConfigurationTab = () => {
     else onLoad();
   }, [connected, reset, onLoad])
 
-  const loopSyncItems = [
-    { id: 1, name: '2000 Hz (/1)' },
-    { id: 2, name: '1000 Hz (/2)' },
-  ]
+  const loopSyncItems = useMemo(() => {
+    const gyroFreq = 1000000 / (status?.gyroTimeUs || 500)
+    const result = []
+    for (let i = 1; i <= 8; i++) {
+      const freq = Math.round(gyroFreq / i)
+      if(freq < 500) break
+      result.push({ id: i, name: `[${i}] ${freq} Hz` })
+    }
+    return result
+  }, [status?.gyroTimeUs])
 
-  return <TabView title='Configuration' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Configuration' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col md={6}>
@@ -171,7 +184,7 @@ const ConfigurationTab = () => {
           <Card.Header>Sensors</Card.Header>
           <Card.Body>
 
-            <FormItem id="loopSync" label="Loop Sync">
+            <FormItem id="loopSync" label="PID Loop Rate">
               <Form.Select {...register("loopSync", { valueAsNumber: true })}>
                 {loopSyncItems.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
