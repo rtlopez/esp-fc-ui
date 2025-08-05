@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
   createInputChannelConfigRequest, createInputConfigRequest,
-  createInputRequest, createSaveRequest, EspInputResponse,
+  createInputRequest, createRebootRequest, createSaveRequest, EspInputResponse,
   parseInputChannelConfigResponse, parseInputConfigResponse,
   parseInputResponse
 } from '@/api/esp'
@@ -54,10 +54,10 @@ const INPUT_DEFAULTS = {
   inputMin: 880,
   inputMax: 2200,
   channels: [
-    {map: 1, min: 1000, max: 2000, fsMode: 0, fsValue: 1500},
-    {map: 2, min: 1000, max: 2000, fsMode: 0, fsValue: 1500},
-    {map: 4, min: 1000, max: 2000, fsMode: 0, fsValue: 1500},
-    {map: 3, min: 1000, max: 2000, fsMode: 0, fsValue: 1000},
+    { map: 1, min: 1000, max: 2000, fsMode: 0, fsValue: 1500 },
+    { map: 2, min: 1000, max: 2000, fsMode: 0, fsValue: 1500 },
+    { map: 4, min: 1000, max: 2000, fsMode: 0, fsValue: 1500 },
+    { map: 3, min: 1000, max: 2000, fsMode: 0, fsValue: 1000 },
   ]
 }
 
@@ -129,6 +129,7 @@ const InputTab = () => {
     writeMsp(createInputConfigRequest(v))
     writeMsp(createInputChannelConfigRequest(c))
     writeMsp(createSaveRequest())
+    writeMsp(createRebootRequest())
   }
 
   const onLoad = useCallback(() => {
@@ -148,7 +149,7 @@ const InputTab = () => {
     };
   }, [connected, writeMsp, onLoad]);
 
-  return <TabView title='Input' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Input' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
       <Col lg={6}>

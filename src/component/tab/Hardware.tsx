@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import { MspCommand } from '@/api/msp/msp'
-import { createPinConfigRequest, parsePinConfigResponse } from '@/api/esp'
+import { createPinConfigRequest, createRebootRequest, createSaveRequest, parsePinConfigResponse } from '@/api/esp'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
 
@@ -126,6 +126,8 @@ const HardwareTab = () => {
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     writeMsp(createPinConfigRequest(data))
+    writeMsp(createSaveRequest())
+    writeMsp(createRebootRequest())
   }
 
   useEffect(() => {
@@ -164,7 +166,7 @@ const HardwareTab = () => {
     return acc
   }, {} as Record<number, PinFunction[]>)
 
-  return <TabView title='Hardware' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Hardware' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
       {Object.entries(grouped).map(([func, funcPins], k) => {
         return <Col lg={6} key={k}>

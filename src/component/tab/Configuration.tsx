@@ -62,7 +62,7 @@ const deviceMode = [
 const ConfigurationTab = () => {
 
   const [serialNames, setSerialNames] = useState(["USB", "UART1", "UART2"])
-  const [featureNames, setFeatureNames] = useState<Record<number, string>>({ 6: "SOFTSERIAL", 7: "GPS", 10: "TELEMETRY" })
+  const [featureNames, setFeatureNames] = useState<Record<number, string>>({ 6: "WIFI", 7: "GPS", 10: "TELEMETRY" })
   const { connected, writeMsp, subscribeMsp } = useMsp()
   const { status } = useBoardinfo()
 
@@ -120,10 +120,6 @@ const ConfigurationTab = () => {
         }
         reset({ ...getValues(), ...f })
         console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_REBOOT)) {
-        console.log("rebooted")
-        setTimeout(onLoad, 500)
       }
     })
   })

@@ -1,5 +1,6 @@
-import { useSerial } from '@/api/serial/SerialProvider'
-import React, { FormEventHandler, PropsWithChildren } from 'react'
+import { FormEventHandler, PropsWithChildren, useEffect, FC } from 'react'
+import { MspCommand } from '@/api/msp/msp'
+import { useMsp } from '@/api/msp/MspProvider'
 import { Button, Col, Form, Row } from 'react-bootstrap'
 
 type TabViewProps = {
@@ -10,9 +11,18 @@ type TabViewProps = {
   onLoad?: () => void
 } & PropsWithChildren
 
-const TabView: React.FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad }) => {
+const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad }) => {
 
-  const { connected } = useSerial()
+  const { connected, subscribeMsp } = useMsp()
+
+  useEffect(() => {
+    return subscribeMsp((msg) => {
+      if (msg.isCmd(MspCommand.ESP_CMD_REBOOT)) {
+        console.log("reboot")
+        if (onLoad) setTimeout(onLoad, 500)
+      }
+    })
+  }, [subscribeMsp, onLoad])
 
   return <Form className='mb-5' onSubmit={onSubmit}>
 
