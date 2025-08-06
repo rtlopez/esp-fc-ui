@@ -54,14 +54,9 @@ const serialFunctions = [
   { id: 1 << 13, name: "VTX Tramp" },
 ]
 
-const deviceMode = [
-  { id: 0, name: "Autodetect" },
-  { id: 1, name: "None" }
-]
-
 const ConfigurationTab = () => {
 
-  const [serialNames, setSerialNames] = useState(["USB", "UART1", "UART2"])
+  const [serialNames, setSerialNames] = useState(["USB", "UART1", "UART2", "WIFI"])
   const [featureNames, setFeatureNames] = useState<Record<number, string>>({ 6: "WIFI", 7: "GPS", 10: "TELEMETRY" })
   const { connected, writeMsp, subscribeMsp } = useMsp()
   const { status } = useBoardinfo()
@@ -136,7 +131,7 @@ const ConfigurationTab = () => {
       count: data.serialCount,
       configs: data.serialPorts.map((port) => ({
         baud: port.baud,
-        func: port.func
+        func: port.func,
       }))
     }))
     writeMsp(createFeaturesConfigRequest({
@@ -177,30 +172,12 @@ const ConfigurationTab = () => {
       <Col md={6}>
 
         <Card className='mb-3'>
-          <Card.Header>Sensors</Card.Header>
+          <Card.Header>System</Card.Header>
           <Card.Body>
 
             <FormItem id="loopSync" label="PID Loop Rate">
               <Form.Select {...register("loopSync", { valueAsNumber: true })}>
                 {loopSyncItems.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-              </Form.Select>
-            </FormItem>
-
-            <FormItem id="accelDev" label="Accelerometer">
-              <Form.Select {...register("accelDev", { valueAsNumber: true })}>
-                {deviceMode.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-              </Form.Select>
-            </FormItem>
-
-            <FormItem id="magDev" label="Magnetometer">
-              <Form.Select {...register("magDev", { valueAsNumber: true })}>
-                {deviceMode.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-              </Form.Select>
-            </FormItem>
-
-            <FormItem id="baroDev" label="Barometer">
-              <Form.Select {...register("baroDev", { valueAsNumber: true })}>
-                {deviceMode.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
             </FormItem>
 

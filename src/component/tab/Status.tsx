@@ -95,7 +95,7 @@ const StatusTab = () => {
   return <TabView title='Status' nosave>
     <Row>
       <Col>
-        <Canvas style={{ height: 240, width: '100%' }} className="mb-3">
+        <Canvas style={{ height: 240, width: '100%' }} className="mb-3 border">
           <ambientLight intensity={0.6} />
           <directionalLight position={[5, 10, 7]} intensity={0.6} />
           <Grid

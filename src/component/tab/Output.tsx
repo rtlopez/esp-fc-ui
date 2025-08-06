@@ -62,6 +62,7 @@ const OUTPUT_DFAULTS: FormValues = {
 }
 
 const motorProtocols = [
+  { id: 9, name: 'Disabled' },
   { id: 0, name: 'PWM' },
   { id: 1, name: 'OneShot 125' },
   { id: 2, name: 'OneShot 42' },
@@ -70,7 +71,6 @@ const motorProtocols = [
   { id: 5, name: 'Dshot 150' },
   { id: 6, name: 'Dshot 300' },
   { id: 7, name: 'Dshot 600' },
-  { id: 9, name: 'Disabled' },
 ]
 
 const configFormToApi = (f: FormValues): EspOutputConfigResponse => {
