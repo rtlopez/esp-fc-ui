@@ -248,7 +248,7 @@ export const createInputChannelConfigRequest = (data?: EspInputChannelConfigRequ
   const msg = new MspMessage(MspCommand.ESP_CMD_INPUT_CHANNEL_CONFIG)
   if (data) {
     msg.writeU8(data.count)
-    for(let i = 0; i < 16; i++) {
+    for (let i = 0; i < 16; i++) {
       msg.writeU8(data.channels[i].map - 1)
       msg.writeU16(data.channels[i].min)
       msg.writeU16(data.channels[i].max)
@@ -265,7 +265,7 @@ export const parseInputChannelConfigResponse = (msg: MspMessage): EspInputChanne
     count: reader.readU8(),
     channels: [],
   }
-  for(let i = 0; i < 16; i++) {
+  for (let i = 0; i < 16; i++) {
     const c = {
       map: reader.readU8() + 1,
       min: reader.readU16(),
@@ -356,7 +356,7 @@ export const createOutputChannelConfigRequest = (data?: EspOutputChannelConfigRe
   const msg = new MspMessage(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)
   if (data) {
     msg.writeU8(data.count)
-    for(let i = 0; i < data.count; i++) {
+    for (let i = 0; i < data.count; i++) {
       msg.writeU16(data.channels[i].min)
       msg.writeU16(data.channels[i].neutral)
       msg.writeU16(data.channels[i].max)
@@ -373,7 +373,7 @@ export const parseOutputChannelConfigResponse = (msg: MspMessage): EspOutputChan
     count: reader.readU8(),
     channels: [],
   }
-  for(let i = 0; i < v.count; i++) {
+  for (let i = 0; i < v.count; i++) {
     v.channels.push({
       min: reader.readU16(),
       neutral: reader.readU16(),
@@ -404,7 +404,7 @@ export const createSerialConfigRequest = (data?: EspSerialConfigRequest): MspMes
   const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
   if (data) {
     msg.writeU8(data.count)
-    for(let i = 0; i < data.count; i++) {
+    for (let i = 0; i < data.count; i++) {
       msg.writeU32(data.configs[i].baud)
       msg.writeU32(data.configs[i].func)
     }
@@ -418,7 +418,7 @@ export const parseSerialConfigResponse = (msg: MspMessage): EspSerialConfigRespo
     count: reader.readU8(),
     configs: [],
   }
-  for(let i = 0; i < v.count; i++) {
+  for (let i = 0; i < v.count; i++) {
     v.configs.push({
       baud: reader.readU32(),
       func: reader.readU32(),
@@ -485,7 +485,7 @@ export interface EspFeaturesConfig {
 
 export const createFeaturesConfigRequest = (data?: EspFeaturesConfig): MspMessage => {
   const msg = new MspMessage(MspCommand.ESP_CMD_FEATURE_CONFIG)
-  if(data) {
+  if (data) {
     msg.writeU32(data.features)
   }
   return msg
@@ -550,12 +550,12 @@ export const parsePinConfigResponse = (msg: MspMessage): EspPinConfigResponse =>
   const reader = msg.getReader()
   const count = reader.size / 2
   const v: EspPinConfigResponse = { pins: [] }
-  for(let i = 0; i < count; i++) {
+  for (let i = 0; i < count; i++) {
     const id = reader.readU8()
     const pin = reader.read8()
     const type = id >> 4
     const index = id & 0x0f
-    v.pins.push({type, index, pin})
+    v.pins.push({ type, index, pin })
   }
   return v
 }
@@ -585,6 +585,62 @@ export const parseSensorConfigResponse = (msg: MspMessage): EspSensorConfigRespo
     accelDev: reader.readU8(),
     baroDev: reader.readU8(),
     magDev: reader.readU8(),
+  }
+}
+
+export interface EspPidConfig {
+  p: number
+  i: number
+  d: number
+  f: number
+}
+
+export interface EspPidTuning {
+  mode: number
+  rpGain: number
+  rpStability: number
+  rpAgility: number
+  rpBalance: number
+  yawGain: number
+  yawStability: number
+  pids: EspPidConfig[]
+}
+
+export const createPidTuningRequest = (data?: EspPidTuning): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_PID_TUNING)
+  if (data) {
+    msg.writeU8(data.mode)
+    msg.writeU8(data.rpGain)
+    msg.writeU8(data.rpStability)
+    msg.writeU8(data.rpAgility)
+    msg.writeU8(data.rpBalance)
+    msg.writeU8(data.yawGain)
+    msg.writeU8(data.yawStability)
+    data.pids.map(p => {
+      msg.writeU8(p.p)
+      msg.writeU8(p.i)
+      msg.writeU8(p.d)
+      msg.writeU16(p.f)
+    })
+  }
+  return msg
+}
+
+export const parsePidTuningResponse = (msg: MspMessage): EspPidTuning => {
+  const reader = msg.getReader()
+  return {
+    mode: reader.readU8(),
+    rpGain: reader.readU8(),
+    rpStability: reader.readU8(),
+    rpAgility: reader.readU8(),
+    rpBalance: reader.readU8(),
+    yawGain: reader.readU8(),
+    yawStability: reader.readU8(),
+    pids: [
+      { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
+      { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
+      { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
+    ]
   }
 }
 
