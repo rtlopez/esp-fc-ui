@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
@@ -50,8 +50,8 @@ const TuningTab = () => {
   const [rollRate, setRollRate] = useState(240)
   const [pitchRate, setPitchRate] = useState(240)
   const [yawRate, setYawRate] = useState(320)
-
   const { connected, writeMsp, subscribeMsp } = useMsp()
+  const cmdPendingRef = useRef(false)
 
   const {
     control,
@@ -76,14 +76,16 @@ const TuningTab = () => {
         const v = parsePidTuningResponse(msg)
         reset({ ...getValues(), ...v })
         console.log("recv", v)
+        cmdPendingRef.current = false
       }
     })
   })
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
+    cmdPendingRef.current = true
     writeMsp(createPidTuningRequest({
-      mode: data.mode,
+      mode: data.mode | 0x80, // change config
       rpGain: data.rpGain,
       rpStability: data.rpStability,
       rpAgility: data.rpAgility,
@@ -106,12 +108,27 @@ const TuningTab = () => {
     else onLoad();
   }, [connected, reset, onLoad]);
 
-  const rpGain = watch("rpGain")
-  const rpStability = watch("rpStability")
-  const rpAgility = watch("rpAgility")
-  const rpBalance = watch("rpBalance")
-  const yawGain = watch("yawGain")
-  const yawStability = watch("yawStability")
+  const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = watch(
+    ["mode", "rpGain", "rpStability", "rpAgility", "rpBalance", "yawGain", "yawStability"]
+  )
+
+  // Watch only relevant parameters and send update on change
+  useEffect(() => {
+    if (!connected) return;
+    if (!mode) return; // only in slider mode
+    if (cmdPendingRef.current) return; // do not send next until we recive previous command response
+    cmdPendingRef.current = true
+    writeMsp(createPidTuningRequest({
+      mode: mode,
+      rpGain: rpGain,
+      rpStability: rpStability,
+      rpAgility: rpAgility,
+      rpBalance: rpBalance,
+      yawGain: yawGain,
+      yawStability: yawStability,
+      pids: getValues("pids"), // do not change pids
+    }));
+  }, [connected, mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability, getValues, writeMsp]);
 
   return <TabView title='Tuning' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
@@ -120,16 +137,16 @@ const TuningTab = () => {
         <Card className='mb-3'>
           <Card.Header className="d-flex justify-content-between align-items-center">
             <span>Tuning</span>
-            <Form.Switch label="Manual" {...register("mode")} />
+            <Form.Switch label="Use Slider" {...register("mode")} />
           </Card.Header>
           <Card.Body>
             <Row>
               <Form.Group as={Col} controlId="rpGain" className="mb-3">
                 <Form.Label className='d-flex justify-content-between align-items-start'>
-                  Roll/Pitch Gain
+                  Roll/Pitch Master Gain
                   <span>{rpGain}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} {...register("rpGain")} />
+                <Form.Range min={40} max={160} step={10} {...register("rpGain")} readOnly={!mode} />
               </Form.Group>
             </Row>
 
@@ -139,7 +156,7 @@ const TuningTab = () => {
                   Roll/Pitch Stability
                   <span>{rpStability}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} {...register("rpStability")} />
+                <Form.Range min={40} max={160} step={10} {...register("rpStability")} readOnly={!mode} />
               </Form.Group>
             </Row>
 
@@ -149,27 +166,27 @@ const TuningTab = () => {
                   Roll/Pitch Agility
                   <span>{rpAgility}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} {...register("rpAgility")} />
+                <Form.Range min={40} max={160} step={10} {...register("rpAgility")} readOnly={!mode} />
               </Form.Group>
             </Row>
 
             <Row>
               <Form.Group as={Col} controlId="rpBalance" className="mb-3">
                 <Form.Label className='d-flex justify-content-between align-items-start'>
-                  Roll/Pitch Balance
+                  Roll to Pitch Balance
                   <span>{rpBalance}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} {...register("rpBalance")} />
+                <Form.Range min={40} max={160} step={10} {...register("rpBalance")} readOnly={!mode} />
               </Form.Group>
             </Row>
 
             <Row>
               <Form.Group as={Col} controlId="yawGain" className="mb-3">
                 <Form.Label className='d-flex justify-content-between align-items-start'>
-                  Yaw Gain
+                  Yaw Master Gain
                   <span>{yawGain}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} {...register("yawGain")} />
+                <Form.Range min={40} max={160} step={10} {...register("yawGain")} readOnly={!mode} />
               </Form.Group>
             </Row>
 
@@ -179,7 +196,7 @@ const TuningTab = () => {
                   Yaw Stability
                   <span>{yawStability}%</span>
                 </Form.Label>
-                <Form.Range min={0} max={200} step={10} {...register("yawStability")} />
+                <Form.Range min={40} max={160} step={10} {...register("yawStability")} readOnly={!mode} />
               </Form.Group>
             </Row>
 
@@ -243,11 +260,11 @@ const TuningTab = () => {
             {pidValues.map((_out, i) => {
               return <Row key={_out.id} className="mb-2">
                 <Col key={'label'}>
-                  {AxisNames[i]}
+                  {AxisNames[i][0].toUpperCase() + AxisNames[i].slice(1)}
                 </Col>
                 {PidNames.map(col => (
                   <Col key={col}>
-                    <Form.Control type="number" {...register(`pids.${i}.${col}`)} />
+                    <Form.Control type="number" {...register(`pids.${i}.${col}`)} readOnly={!!mode} />
                   </Col>
                 ))}
               </Row>
