@@ -76,11 +76,11 @@ const getSPIId = (index: number): string => {
 
 const getFunctionTitle = (type: number) => {
   switch (type) {
-    case 0: return `Serial Ports`
-    case 1: return `Outpts`
-    case 2: return `Inputs`
+    case 0: return `Serial Port Pins`
+    case 1: return `Outpt Pins`
+    case 2: return `Input Pins`
     case 3: return `I2C`
-    case 4: return `SPI & I2C`
+    case 4: return `SPI & I2C Pins`
     case 5: return `ADC`
     case 6: return `BUTTON`
     case 7: return `BUZZER`
@@ -92,7 +92,7 @@ const getFunctionTitle = (type: number) => {
 const getFunctionName = (type: number, index: number): string => {
   switch (type) {
     case 0: return `${getSerialId(index)}`
-    case 1: return `OUTPUT ${index}`
+    case 1: return `OUTPUT ${index + 1}`
     case 2: return `PPM`
     case 3: return `${getI2CId(index)}`
     case 4: return `${getSPIId(index)}`
@@ -173,14 +173,18 @@ const HardwareTab = () => {
           <Card className='mb-3'>
             <Card.Header>{getFunctionTitle(parseInt(func, 10))}</Card.Header>
             <Card.Body>
-              {funcPins.map((pin, i) => {
-                return <Form.Group key={i} as={Row} controlId={`pin_${pin.key!}`} className="mb-3">
-                  <Form.Label column>{`${getFunctionName(pin.type, pin.index)}`}</Form.Label>
-                  <Col sm={6}>
-                    <Form.Control type="number" min={-1} max={48} {...register(`pins.${pin.key!}.pin`)} />
+              <Row>
+                {funcPins.map((pin, i) => {
+                  return <Col key={i} md={6}>
+                    <Form.Group as={Row} controlId={`pin_${pin.key!}`} className="mb-3">
+                      <Form.Label column>{`${getFunctionName(pin.type, pin.index)}`}</Form.Label>
+                      <Col sm={6}>
+                        <Form.Control type="number" min={-1} max={48} {...register(`pins.${pin.key!}.pin`)} />
+                      </Col>
+                    </Form.Group >
                   </Col>
-                </Form.Group >
-              })}
+                })}
+              </Row>
             </Card.Body>
           </Card>
         </Col>
