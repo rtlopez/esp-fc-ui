@@ -269,26 +269,6 @@ const OutputTab = () => {
 
           </Card.Body>
         </Card>
-
-        <Card className='mb-3'>
-          <Card.Header>Mixer</Card.Header>
-          <Card.Body>
-
-            <FormItem id="mixerType" label="Mixer Type">
-              <Form.Select>
-                <option value="1">Quad X</option>
-                <option value="2">Tricopter</option>
-                <option value="3">Custom</option>
-              </Form.Select>
-            </FormItem>
-
-            <FormItem id="mixerYawReverse" label="Motor Reversed">
-              <Form.Switch />
-            </FormItem>
-
-          </Card.Body>
-        </Card>
-
       </Col>
 
     </Row>

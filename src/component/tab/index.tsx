@@ -6,6 +6,7 @@ import OutputTab from "./Output"
 import TesterTab from "./Tester"
 import SensorsTab from "./Sensors"
 import ConfigurationTab from "./Configuration"
+import MixerTab from "./Mixer"
 
 export {
   StatusTab,
@@ -16,4 +17,5 @@ export {
   TesterTab,
   SensorsTab,
   ConfigurationTab,
+  MixerTab,
 }

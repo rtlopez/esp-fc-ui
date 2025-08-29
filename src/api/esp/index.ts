@@ -459,11 +459,11 @@ export const createFeaturesNamesRequest = (): MspMessage => {
   return new MspMessage(MspCommand.ESP_CMD_FEATURE_NAMES)
 }
 
-export const parseFeaturesNamesResponse = (msg: MspMessage): EspFeaturesNames => {
+const parseNames = (msg: MspMessage): Record<number, string> => {
   const reader = msg.getReader()
   let name = ''
   let id = -1
-  const v: EspFeaturesNames = { names: {} }
+  const names: Record<number, string> = {}
   while (reader.remain() > 0) {
     const c = reader.readU8()
     if (id == -1 && name.length == 0) {
@@ -471,12 +471,16 @@ export const parseFeaturesNamesResponse = (msg: MspMessage): EspFeaturesNames =>
     } else if (c != 0) {
       name += String.fromCharCode(c)
     } else {
-      v.names[id] = name
+      names[id] = name
       name = ''
       id = -1
     }
   }
-  return v
+  return names
+}
+
+export const parseFeaturesNamesResponse = (msg: MspMessage): EspFeaturesNames => {
+  return { names: parseNames(msg) }
 }
 
 export interface EspFeaturesConfig {
@@ -641,6 +645,43 @@ export const parsePidTuningResponse = (msg: MspMessage): EspPidTuning => {
       { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
       { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
     ]
+  }
+}
+
+export interface EspMixerNames {
+  names: Record<number, string>
+}
+
+export const createMixerNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_MIXER_NAMES)
+}
+
+export const parseMixerNamesResponse = (msg: MspMessage): EspMixerNames => {
+  return { names: parseNames(msg) }
+}
+
+export interface EspMixerConfig {
+  mixerType: number
+  yawReverse: boolean
+  sync: number
+}
+
+export const createMixerConfigRequest = (data?: EspMixerConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_MIXER_CONFIG)
+  if (data) {
+    msg.writeU8(data.mixerType)
+    msg.writeU8(+data.yawReverse)
+    msg.writeU8(+data.sync)
+  }
+  return msg
+}
+
+export const parseMixerConfigResponse = (msg: MspMessage): EspMixerConfig => {
+  const reader = msg.getReader()
+  return {
+    mixerType: reader.readU8(),
+    yawReverse: !!reader.readU8(),
+    sync: reader.readU8(),
   }
 }
 

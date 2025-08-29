@@ -6,7 +6,8 @@ import Layout from '@/component/Layout'
 import { Route, Switch } from 'wouter'
 import {
   HardwareTab, InputTab, OutputTab, StatusTab,
-  TesterTab, TuningTab, SensorsTab, ConfigurationTab
+  TesterTab, TuningTab, SensorsTab, ConfigurationTab,
+  MixerTab
 } from './component/tab'
 
 const App = () => {
@@ -21,6 +22,7 @@ const App = () => {
               <Route path="/sensors"><SensorsTab /></Route>
               <Route path="/input"><InputTab /></Route>
               <Route path="/output"><OutputTab /></Route>
+              <Route path="/mixer"><MixerTab /></Route>
               <Route path="/configuration"><ConfigurationTab /></Route>
               <Route path="/tuning"><TuningTab /></Route>
               <Route path="/cli"><TesterTab /></Route>
