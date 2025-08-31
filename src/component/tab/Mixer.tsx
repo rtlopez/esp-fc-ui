@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import { MspCommand } from '@/api/msp/msp'
-import { createMixerConfigRequest, createMixerNamesRequest, createSaveRequest, parseMixerConfigResponse, parseMixerNamesResponse } from '@/api/esp'
+import {
+  createMixerConfigRequest, createMixerNamesRequest, createSaveRequest,
+  EspNameElement, parseMixerConfigResponse, parseMixerNamesResponse
+} from '@/api/esp'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
@@ -14,16 +17,16 @@ type FormValues = {
 }
 
 const MIXER_DEFAULTS = {
-  mixerType: 1,
+  mixerType: 3,
   yawReverse: false,
   sync: 1
 }
 
-const MIXER_NAMES: Record<number, string> = {
-  3: "Quad X",
-  1: "Tricopter",
-  23: "Custom",
-}
+const MIXER_NAMES: EspNameElement[] = [
+  { id: 3, name: "Quad X" },
+  { id: 1, name: "Tricopter" },
+  { id: 23, name: "Custom" },
+]
 
 const MixerTab = () => {
 
@@ -86,8 +89,8 @@ const MixerTab = () => {
 
             <FormItem id="mixerType" label="Mixer Type">
               <Form.Select {...register("mixerType")}>
-                {Object.entries(mixerNames).map(([value, name]) => (
-                  <option key={value} value={value}>{name}</option>
+                {mixerNames.map(({ id, name }) => (
+                  <option key={id} value={id}>{name}</option>
                 ))}
               </Form.Select>
             </FormItem>

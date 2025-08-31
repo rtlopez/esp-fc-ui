@@ -427,43 +427,16 @@ export const parseSerialConfigResponse = (msg: MspMessage): EspSerialConfigRespo
   return v
 }
 
-export interface EspSerialNames {
-  names: string[]
+export interface EspNameElement {
+  id: number
+  name: string
 }
 
-export const createSerialNamesRequest = (): MspMessage => {
-  return new MspMessage(MspCommand.ESP_CMD_SERIAL_NAMES)
-}
-
-export const parseSerialNamesResponse = (msg: MspMessage): EspSerialNames => {
+const parseNames = (msg: MspMessage): EspNameElement[] => {
   const reader = msg.getReader()
-  let name = ''
-  const v: EspSerialNames = { names: [] }
-  while (reader.remain() > 0) {
-    const c = reader.readU8()
-    if (c != 0) {
-      name += String.fromCharCode(c)
-    } else {
-      v.names.push(name)
-      name = ''
-    }
-  }
-  return v
-}
-
-export interface EspFeaturesNames {
-  names: Record<number, string>
-}
-
-export const createFeaturesNamesRequest = (): MspMessage => {
-  return new MspMessage(MspCommand.ESP_CMD_FEATURE_NAMES)
-}
-
-const parseNames = (msg: MspMessage): Record<number, string> => {
-  const reader = msg.getReader()
+  const names: EspNameElement[] = []
   let name = ''
   let id = -1
-  const names: Record<number, string> = {}
   while (reader.remain() > 0) {
     const c = reader.readU8()
     if (id == -1 && name.length == 0) {
@@ -471,12 +444,32 @@ const parseNames = (msg: MspMessage): Record<number, string> => {
     } else if (c != 0) {
       name += String.fromCharCode(c)
     } else {
-      names[id] = name
+      names.push({ id, name })
       name = ''
       id = -1
     }
   }
   return names
+}
+
+export interface EspSerialNames {
+  names: EspNameElement[]
+}
+
+export const createSerialNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_SERIAL_NAMES)
+}
+
+export const parseSerialNamesResponse = (msg: MspMessage): EspSerialNames => {
+  return { names: parseNames(msg) }
+}
+
+export interface EspFeaturesNames {
+  names: EspNameElement[]
+}
+
+export const createFeaturesNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_FEATURE_NAMES)
 }
 
 export const parseFeaturesNamesResponse = (msg: MspMessage): EspFeaturesNames => {
@@ -502,7 +495,7 @@ export const parseFeaturesConfigResponse = (msg: MspMessage): EspFeaturesConfig 
 }
 
 export interface EspModeNames {
-  names: Record<number, string>
+  names: EspNameElement[]
 }
 
 export const createModeNamesRequest = (): MspMessage => {
@@ -510,23 +503,7 @@ export const createModeNamesRequest = (): MspMessage => {
 }
 
 export const parseModeNamesResponse = (msg: MspMessage): EspModeNames => {
-  const reader = msg.getReader()
-  let name = ''
-  let id = -1
-  const v: EspModeNames = { names: {} }
-  while (reader.remain() > 0) {
-    const c = reader.readU8()
-    if (id == -1 && name.length == 0) {
-      id = c
-    } else if (c != 0) {
-      name += String.fromCharCode(c)
-    } else {
-      v.names[id] = name
-      name = ''
-      id = -1
-    }
-  }
-  return v
+  return { names: parseNames(msg) }
 }
 
 export interface EspPinFunction {
@@ -649,7 +626,7 @@ export const parsePidTuningResponse = (msg: MspMessage): EspPidTuning => {
 }
 
 export interface EspMixerNames {
-  names: Record<number, string>
+  names: EspNameElement[]
 }
 
 export const createMixerNamesRequest = (): MspMessage => {

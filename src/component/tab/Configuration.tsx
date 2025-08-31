@@ -43,6 +43,19 @@ const CONFIG_DEFAULTS = {
   baroDev: 1,
 }
 
+const CONFIG_DEFAULT_SERIAL_NAMES = [
+  { id: 0, name: "USB" },
+  { id: 1, name: "UART1" },
+  { id: 2, name: "UART2" },
+  { id: 3, name: "WIFI" },
+]
+
+const CONFIG_DEFAULT_FEATURE_NAMES = [
+  { id: 6, name: "WIFI" },
+  { id: 7, name: "GPS" },
+  { id: 10, name: "TELEMETRY" },
+]
+
 const serialBauds = [9600, 19200, 57600, 115200, 230400, 250000, 460800, 500000, 921600, 1000000]
 const serialFunctions = [
   { id: 0, name: "None" },
@@ -56,8 +69,8 @@ const serialFunctions = [
 
 const ConfigurationTab = () => {
 
-  const [serialNames, setSerialNames] = useState(["USB", "UART1", "UART2", "WIFI"])
-  const [featureNames, setFeatureNames] = useState<Record<number, string>>({ 6: "WIFI", 7: "GPS", 10: "TELEMETRY" })
+  const [serialNames, setSerialNames] = useState(CONFIG_DEFAULT_SERIAL_NAMES)
+  const [featureNames, setFeatureNames] = useState(CONFIG_DEFAULT_FEATURE_NAMES)
   const { connected, writeMsp, subscribeMsp } = useMsp()
   const { status } = useBoardinfo()
 
@@ -188,8 +201,9 @@ const ConfigurationTab = () => {
           <Card.Header>Features</Card.Header>
           <Card.Body>
             {features.map((_feature, id) => {
-              return featureNames[id] ? <Form.Group key={id} as={Col} controlId={`feature_${id}`} className="mb-3">
-                <Form.Switch {...register(`features.${id}`)} label={featureNames[id]} />
+              const featureName = featureNames.find(f => f.id == id)?.name
+              return featureName ? <Form.Group key={id} as={Col} controlId={`feature_${id}`} className="mb-3">
+                <Form.Switch {...register(`features.${id}`)} label={featureName} />
               </Form.Group> : null
             })}
           </Card.Body>
@@ -208,7 +222,7 @@ const ConfigurationTab = () => {
             {serialPorts.map((_port, i) => {
               return <Row key={i}>
                 <Col>
-                  {serialNames[i] || `Port ${i}`}
+                  {serialNames.find(s => s.id == i)?.name || `Port ${i}`}
                 </Col>
                 <Form.Group as={Col} controlId={`serial_func_${i}`} className="mb-3">
                   <Form.Select {...register(`serialPorts.${i}.func`)}>
