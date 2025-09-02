@@ -1,4 +1,4 @@
-import { FormEventHandler, PropsWithChildren, useEffect, FC } from 'react'
+import { FormEventHandler, PropsWithChildren, useEffect, FC, useState, useCallback, FormEvent } from 'react'
 import { MspCommand } from '@/api/msp/msp'
 import { useMsp } from '@/api/msp/MspProvider'
 import { Button, Col, Form, Row } from 'react-bootstrap'
@@ -14,6 +14,7 @@ type TabViewProps = {
 const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad }) => {
 
   const { connected, subscribeMsp } = useMsp()
+  const [ saving, setSaving ] = useState(false)
 
   useEffect(() => {
     return subscribeMsp((msg) => {
@@ -21,10 +22,22 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
         console.log("reboot")
         if (onLoad) setTimeout(onLoad, 500)
       }
+      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
+        console.log("saved")
+        setSaving(false)
+      }
     })
-  }, [subscribeMsp, onLoad])
+  }, [subscribeMsp, onLoad, setSaving])
 
-  return <Form className='mb-5' onSubmit={onSubmit}>
+  const submitHandler = useCallback(((e: FormEvent<Element>) => {
+    if(onSubmit) {
+      setSaving(true)
+      setTimeout(() => setSaving(false), 1000)
+      onSubmit(e)
+    }
+  }), [onSubmit])
+
+  return <Form className='mb-5' onSubmit={submitHandler}>
 
     {title ? <Row className='mb-3 align-items-center'>
       <Col>
@@ -42,7 +55,7 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
         >
           <i className='bi bi-box-arrow-in-up'></i> Load
         </Button>
-        <Button variant='primary' disabled={!connected} type="submit">
+        <Button variant='primary' disabled={!connected || saving} type="submit">
           <i className='bi bi-floppy'></i> {reboot ? 'Save And Reboot' : 'Save'}
         </Button>
       </Col> : null}

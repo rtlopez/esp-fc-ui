@@ -84,9 +84,6 @@ const InputTab = () => {
 
   useEffect(() => {
     return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-      }
       if (msg.isCmd(MspCommand.ESP_CMD_INPUT)) {
         setInputs(parseInputResponse(msg))
       }

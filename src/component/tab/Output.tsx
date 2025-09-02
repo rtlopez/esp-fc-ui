@@ -46,7 +46,7 @@ const OUTPUT_DFAULTS: FormValues = {
   minCommand: 1000,
   minThrottle: 1070,
   maxThrottle: 2000,
-  digitalIdle: 5,
+  digitalIdle: 5.5,
   digitalTlm: false,
   motorPoles: 14,
   motorLimit: 100,
@@ -161,9 +161,6 @@ const OutputTab = () => {
 
   useEffect(() => {
     return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-      }
       if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CONFIG)) {
         const v = parseOutputConfigResponse(msg)
         const d = configApiToForm(v)
@@ -192,6 +189,76 @@ const OutputTab = () => {
 
   return <TabView title='Output' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
+
+      <Col md={6}>
+        <Card className='mb-3'>
+          <Card.Header>Motor Configuration</Card.Header>
+          <Card.Body>
+
+            <FormItem id="motorProtocol" label="Motor Protocol">
+              <Form.Select {...register("protocol")}>
+                {motorProtocols.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+
+            <FormItem id="dshotTelementry" label="Dshot Telemetry">
+              <Form.Switch {...register("digitalTlm")} />
+            </FormItem>
+
+            <FormItem id="motorAsync" label="Async Output">
+              <Form.Switch {...register("async")} />
+            </FormItem>
+
+            <FormItem id="motorAsyncRate" label="Async Refresh Rate">
+              <Form.Control type='number' min={50} max={8000} {...register("rate")} />
+            </FormItem>
+
+            <FormItem id="motorOffCommand" label="Disarmed Command">
+              <Form.Control type='number' min={990} max={2000} {...register("minCommand")} />
+            </FormItem>
+
+            <FormItem id="motorMinCommand" label="Minimum Command">
+              <Form.Control type='number' min={990} max={2000} {...register("minThrottle")} />
+            </FormItem>
+
+            <FormItem id="motorMaxCommand" label="Maximum Command">
+              <Form.Control type='number' min={990} max={2000} {...register("maxThrottle")} />
+            </FormItem>
+
+            <FormItem id="motorPoles" label="Motor Poles">
+              <Form.Control type='number' min={0} max={64} step={2} {...register("motorPoles")} />
+            </FormItem>
+
+            <FormItem id="dshotIdle" label="Dshot Idle [%]">
+              <Form.Control type='number' min={0} max={20} step={0.05} {...register("digitalIdle")} />
+            </FormItem>
+
+            <FormItem id="motorLimit" label="Motor Limit [%]">
+              <Form.Control type='number' min={0} max={100} {...register("motorLimit")} />
+            </FormItem>
+
+          </Card.Body>
+        </Card>
+
+        <Card className='mb-3'>
+          <Card.Header>Throttle Configuration</Card.Header>
+          <Card.Body>
+
+            <FormItem id="throttleLimitType" label="Throttle Limit Type">
+              <Form.Select {...register("throttleLimitType")} >
+                <option value={0}>None</option>
+                <option value={1}>Scale</option>
+                <option value={2}>Clip</option>
+              </Form.Select>
+            </FormItem>
+
+            <FormItem id="throttleLimitPercent" label="Throttle Limit [%]">
+              <Form.Control type='number' min={0} max={100} {...register("throttleLimitPercent")} />
+            </FormItem>
+
+          </Card.Body>
+        </Card>
+      </Col>
 
       <Col md={6}>
 
@@ -230,41 +297,13 @@ const OutputTab = () => {
             })}
           </Card.Body>
         </Card>
-      </Col>
 
-      <Col md={6}>
         <Card className='mb-3'>
-          <Card.Header>Motor Configuration</Card.Header>
+          <Card.Header>Servo Configuration</Card.Header>
           <Card.Body>
 
-            <FormItem id="motorProtocol" label="Motor Protocol">
-              <Form.Select {...register("protocol")}>
-                {motorProtocols.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-              </Form.Select>
-            </FormItem>
-
-            <FormItem id="dshotTelementry" label="Dshot Telemetry">
-              <Form.Switch {...register("digitalTlm")} />
-            </FormItem>
-
-            <FormItem id="motorAsync" label="Async Motor Output">
-              <Form.Switch {...register("async")} />
-            </FormItem>
-
-            <FormItem id="motorAsyncRate" label="Async Motor Refresh Rate">
-              <Form.Control type='number' min={50} max={8000} {...register("rate")} />
-            </FormItem>
-
-            <FormItem id="motorOffCommand" label="Motor Disarmed Command">
-              <Form.Control type='number' min={990} max={2000} {...register("minCommand")} />
-            </FormItem>
-
-            <FormItem id="motorMinCommand" label="Motor Minimum Command">
-              <Form.Control type='number' min={990} max={2000} {...register("minThrottle")} />
-            </FormItem>
-
-            <FormItem id="motorMaxCommand" label="Motor Maximum Command">
-              <Form.Control type='number' min={990} max={2000} {...register("maxThrottle")} />
+            <FormItem id="servoRate" label="Servo Refresh Rate">
+              <Form.Control type='number' min={0} max={333} {...register("servoRate")} />
             </FormItem>
 
           </Card.Body>

@@ -35,11 +35,11 @@ const TemplateTab = () => {
       if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
         console.log("saved")
       }
-      //   if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CONFIG)) {
-      //     const v = parseInputConfigResponse(msg)
-      //     reset({ ...getValues(), ...v })
-      //     console.log("recv", v)
-      //   }
+      // if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CONFIG)) {
+      //   const v = parseInputConfigResponse(msg)
+      //   reset({ ...getValues(), ...v })
+      //   console.log("recv", v)
+      // }
     })
   })
 

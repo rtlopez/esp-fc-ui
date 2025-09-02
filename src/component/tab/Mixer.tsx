@@ -46,9 +46,6 @@ const MixerTab = () => {
 
   useEffect(() => {
     return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-      }
       if (msg.isCmd(MspCommand.ESP_CMD_MIXER_NAMES)) {
         const v = parseMixerNamesResponse(msg)
         setMixerNames(v.names)

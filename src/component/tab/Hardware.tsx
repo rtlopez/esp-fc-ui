@@ -132,9 +132,6 @@ const HardwareTab = () => {
 
   useEffect(() => {
     return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-      }
       if (msg.isCmd(MspCommand.ESP_CMD_PIN_CONFIG)) {
         const v = parsePinConfigResponse(msg)
         reset({ ...getValues(), ...v })

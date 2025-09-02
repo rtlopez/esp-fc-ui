@@ -304,7 +304,7 @@ export const createOutputConfigRequest = (data?: EspOutputConfigResponse): MspMe
     msg.writeU16(data.minCommand)
     msg.writeU16(data.minThrottle)
     msg.writeU16(data.maxThrottle)
-    msg.writeU16(data.digitalIdle)
+    msg.writeU16(data.digitalIdle * 100)
     msg.writeU8(+data.digitalTlm)
     msg.writeU8(data.motorPoles)
     msg.writeU8(data.motorLimit)
@@ -324,7 +324,7 @@ export const parseOutputConfigResponse = (msg: MspMessage): EspOutputConfigRespo
     minCommand: reader.readU16(),
     minThrottle: reader.readU16(),
     maxThrottle: reader.readU16(),
-    digitalIdle: reader.readU16(),
+    digitalIdle: reader.readU16() * 0.01,
     digitalTlm: !!reader.readU8(),
     motorPoles: reader.readU8(),
     motorLimit: reader.readU8(),

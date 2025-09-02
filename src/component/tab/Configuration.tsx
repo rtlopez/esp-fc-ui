@@ -90,9 +90,6 @@ const ConfigurationTab = () => {
 
   useEffect(() => {
     return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-      }
       if (msg.isCmd(MspCommand.ESP_CMD_SERIAL_NAMES)) {
         const v = parseSerialNamesResponse(msg)
         setSerialNames(v.names)
