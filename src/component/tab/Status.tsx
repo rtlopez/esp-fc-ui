@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useSerial } from '@/api/serial/SerialProvider'
 import { useMsp } from '@/api/msp/MspProvider'
+import { useBoardinfo } from '@/api/BoardInfoProvider'
 import { MspMessage, MspCommand } from '@/api/msp/msp'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Badge, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import { createQuaternion, Euler, Quaternion, radToDeg } from '@/api/spatial'
 import { createAttitudeRequest, parseAttitudeResponse } from '@/api/esp'
+import { parseArmingDisableFlags, SensorType, sensorPresent } from "@/api/board"
 import TabView from './TabView'
 import { DroneX } from '../model'
 import { Preview3DModel } from '../widget'
@@ -14,9 +15,9 @@ const QUATERNION_INIT = createQuaternion(0, 0, 0, 1)
 
 const StatusTab = () => {
 
+  const { status, version, connected } = useBoardinfo()
   const [attitudeE, setAttitudeE] = useState<Euler>({ roll: 0, pitch: 0, yaw: 0 })
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
-  const { connected } = useSerial()
   const { subscribeMsp, writeMsp } = useMsp()
 
   useEffect(() => {
@@ -53,7 +54,8 @@ const StatusTab = () => {
 
     <Row>
       <Col md={6}>
-        <Card>
+
+        <Card className='mb-3'>
           <Card.Header>Instruments</Card.Header>
           <Card.Body>
             <Row>
@@ -70,31 +72,49 @@ const StatusTab = () => {
             </Row>
           </Card.Body>
         </Card>
+
+        <Card className='mb-3'>
+          <Card.Header>Firmware</Card.Header>
+          <Card.Body>
+            {version ? `${version.fwVersion ?? ''} (${version.fwRevision ?? ''})` : 'Unknown (Not connected)'}
+          </Card.Body>
+        </Card>
+
       </Col>
       <Col md={6}>
-        <Card>
+
+        <Card className='mb-3'>
           <Card.Header>Pre-Flight Checks</Card.Header>
           <Card.Body>
             <ListGroup>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
-                <span>Battery</span>
-                <Badge bg="success">OK</Badge>
+                <span>Arming Prevention</span>
+                <span>{parseArmingDisableFlags(status?.armingDisableFlags || 0).map((name, k) => <Badge key={k} bg="danger" className="ms-1">{name}</Badge>)}</span>
+              </ListGroup.Item>
+              <ListGroup.Item className='d-flex justify-content-between align-items-start'>
+                <span>Gyro</span>
+                {sensorPresent(status?.sensors, SensorType.GYRO) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
+              </ListGroup.Item>
+              <ListGroup.Item className='d-flex justify-content-between align-items-start'>
+                <span>Accelerometer</span>
+                {sensorPresent(status?.sensors, SensorType.ACC) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>GPS</span>
-                <Badge bg="success">OK</Badge>
+                {sensorPresent(status?.sensors, SensorType.GPS) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>Barometer</span>
-                <Badge bg="success">OK</Badge>
+                {sensorPresent(status?.sensors, SensorType.BARO) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>Compass</span>
-                <Badge bg="success">OK</Badge>
+                {sensorPresent(status?.sensors, SensorType.MAG) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
               </ListGroup.Item>
             </ListGroup>
           </Card.Body>
         </Card>
+
       </Col>
     </Row>
 
