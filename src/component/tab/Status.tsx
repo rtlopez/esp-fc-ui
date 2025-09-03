@@ -12,11 +12,12 @@ import { DroneX } from '../model'
 import { Preview3DModel } from '../widget'
 
 const QUATERNION_INIT = createQuaternion(0, 0, 0, 1)
+const EULER_INIT = { roll: 0, pitch: 0, yaw: 0 }
 
 const StatusTab = () => {
 
   const { status, version, connected } = useBoardinfo()
-  const [attitudeE, setAttitudeE] = useState<Euler>({ roll: 0, pitch: 0, yaw: 0 })
+  const [attitudeE, setAttitudeE] = useState<Euler>(EULER_INIT)
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
   const { subscribeMsp, writeMsp } = useMsp()
 
