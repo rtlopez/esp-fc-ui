@@ -44,6 +44,8 @@ const StatusTab = () => {
   const attitudeStr = `${radToDeg(attitudeE.roll).toFixed(1)}\u00b0 x ${radToDeg(attitudeE.pitch).toFixed(1)}\u00b0`
   const headingStr = `${radToDeg(attitudeE.yaw).toFixed(1)}\u00b0`
 
+  const armingDisableFlags = parseArmingDisableFlags(status?.armingDisableFlags || 0)
+
   return <TabView title='Status' nosave>
     <Row>
       <Col>
@@ -90,19 +92,20 @@ const StatusTab = () => {
             <ListGroup>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>Arming Prevention</span>
-                <span>{parseArmingDisableFlags(status?.armingDisableFlags || 0).map((name, k) => <Badge key={k} bg="danger" className="ms-1">{name}</Badge>)}</span>
+                <span>{armingDisableFlags.length ? armingDisableFlags.map((name, k) => <Badge key={k} bg="danger" className="ms-1">{name}</Badge>) :
+                  (connected ? <Badge bg="success">OK</Badge> : <Badge bg="danger">Not connected</Badge>)}</span>
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>Gyro</span>
-                {sensorPresent(status?.sensors, SensorType.GYRO) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
+                {sensorPresent(status?.sensors, SensorType.GYRO) ? <Badge bg="success">OK</Badge> : <Badge bg="danger">Required</Badge>}
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>Accelerometer</span>
-                {sensorPresent(status?.sensors, SensorType.ACC) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
+                {sensorPresent(status?.sensors, SensorType.ACC) ? <Badge bg="success">OK</Badge> : <Badge bg="warning">No Stab</Badge>}
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>GPS</span>
-                {sensorPresent(status?.sensors, SensorType.GPS) ? <Badge bg="success">OK</Badge> : <Badge bg="info">Optional</Badge>}
+                {sensorPresent(status?.sensors, SensorType.GPS) ? <Badge bg="success">OK</Badge> : <Badge bg="warning">No Nav</Badge>}
               </ListGroup.Item>
               <ListGroup.Item className='d-flex justify-content-between align-items-start'>
                 <span>Barometer</span>
