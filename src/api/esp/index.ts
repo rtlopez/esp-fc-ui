@@ -569,6 +569,99 @@ export const parseSensorConfigResponse = (msg: MspMessage): EspSensorConfigRespo
   }
 }
 
+export interface EspLpfConfig {
+  type: number
+  freq: number
+}
+
+export interface EspAccelConfig {
+  lpf: EspLpfConfig
+}
+
+export const createAccelConfigRequest = (data?: EspAccelConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_ACCEL_CONFIG)
+  if (data) {
+    msg.writeU8(data.lpf.type)
+    msg.writeU16(data.lpf.freq)
+  }
+  return msg
+}
+
+export const parseAccelConfigResponse = (msg: MspMessage): EspAccelConfig => {
+  const reader = msg.getReader()
+  return {
+    lpf: {
+      type: reader.readU8(),
+      freq: reader.readU16(),
+    }
+  }
+}
+
+export interface EspDynNotchConfig {
+  count: number
+  q: number
+  minFreq: number
+  maxFreq: number
+}
+
+export interface EspRpmNotchConfig {
+  harmonics: number
+  q: number
+  minFreq: number
+}
+
+export interface EspGyroConfig {
+  align: number,
+  lpf: EspLpfConfig[],
+  dynNotch: EspDynNotchConfig,
+  rpmNotch: EspRpmNotchConfig,
+}
+
+export const createGyroConfigRequest = (data?: EspGyroConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_GYRO_CONFIG)
+  if (data) {
+    msg.writeU8(data.align)
+    msg.writeU8(data.lpf[0].type)
+    msg.writeU16(data.lpf[0].freq)
+    msg.writeU8(data.lpf[1].type)
+    msg.writeU16(data.lpf[1].freq)
+    msg.writeU8(data.lpf[2].type)
+    msg.writeU16(data.lpf[2].freq)
+    msg.writeU8(data.dynNotch.count)
+    msg.writeU8(Math.round(data.dynNotch.q * 10))
+    msg.writeU16(data.dynNotch.minFreq)
+    msg.writeU16(data.dynNotch.maxFreq)
+    msg.writeU8(data.rpmNotch.harmonics)
+    msg.writeU8(Math.round(data.rpmNotch.q * 10))
+    msg.writeU16(data.rpmNotch.minFreq)
+  }
+  return msg
+}
+
+export const parseGyroConfigResponse = (msg: MspMessage): EspGyroConfig => {
+  const reader = msg.getReader()
+  return {
+    align: reader.readU8(),
+    lpf: [0, 1, 2].map(() => {
+      return {
+        type: reader.readU8(),
+        freq: reader.readU16(),
+      }
+    }),
+    dynNotch: {
+      count: reader.readU8(),
+      q: reader.readU8() * 0.1,
+      minFreq: reader.readU16(),
+      maxFreq: reader.readU16(),
+    },
+    rpmNotch: {
+      harmonics: reader.readU8(),
+      q: reader.readU8() * 0.1,
+      minFreq: reader.readU16(),
+    }
+  }
+}
+
 export interface EspPidConfig {
   p: number
   i: number
