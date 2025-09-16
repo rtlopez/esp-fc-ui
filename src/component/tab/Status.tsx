@@ -16,7 +16,7 @@ const EULER_INIT = { roll: 0, pitch: 0, yaw: 0 }
 
 const StatusTab = () => {
 
-  const { status, version, connected } = useBoardinfo()
+  const { status, statistics, version, connected } = useBoardinfo()
   const [attitudeE, setAttitudeE] = useState<Euler>(EULER_INIT)
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
   const { subscribeMsp, writeMsp } = useMsp()
@@ -45,6 +45,8 @@ const StatusTab = () => {
   const headingStr = `${radToDeg(attitudeE.yaw).toFixed(1)}\u00b0`
 
   const armingDisableFlags = parseArmingDisableFlags(status?.armingDisableFlags || 0)
+
+  const heapUsed = statistics ? (statistics.heapTotal - statistics.heapFree) : 0
 
   return <TabView title='Status' nosave>
     <Row>
@@ -77,9 +79,17 @@ const StatusTab = () => {
         </Card>
 
         <Card className='mb-3'>
-          <Card.Header>Firmware</Card.Header>
+          <Card.Header>System</Card.Header>
           <Card.Body>
-            {version ? `${version.fwVersion ?? ''} (${version.fwRevision ?? ''})` : 'Unknown (Not connected)'}
+            {version ? <>
+              <div>Firmware: {version.fwVersion ?? ''} {version.fwRevision ?? ''}</div>
+            </> : 'Unknown (Not connected)'}
+            {statistics ? <>
+              <div>Heap Used: {(heapUsed / 1024).toFixed(0)} / {(statistics.heapTotal / 1024).toFixed(0)} kB ({(heapUsed / statistics.heapTotal * 100).toFixed(1)}%)</div>
+            </> : 'Unknown (Not connected)'}
+            {statistics ? <>
+              <div>Flash Used: {(statistics.flashUsed / 1024 / 1024).toFixed(1)} / {(statistics.flashTotal / 1024 / 1024).toFixed(1)} MB ({(statistics.flashUsed / (statistics.flashTotal + 1) * 100).toFixed(1)}%)</div>
+            </> : 'Unknown (Not connected)'}
           </Card.Body>
         </Card>
 

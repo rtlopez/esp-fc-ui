@@ -63,7 +63,7 @@ const SENSOR_DEFAULTS = {
 
 const deviceModes = [
   { id: 0, name: "Autodetect" },
-  { id: 1, name: "None" },
+  { id: 1, name: "Disabled" },
 ]
 
 const alignmentTypes = [
@@ -187,8 +187,8 @@ const SensorsTab = () => {
     writeMsp(createMagConfigRequest({
       align: data.magAlign,
       lpf: {
-        type: data.maglLpf.type,
-        freq: data.maglLpf.freq
+        type: data.magLpf.type,
+        freq: data.magLpf.freq
       }
     }))
     writeMsp(createSaveRequest())
@@ -212,8 +212,8 @@ const SensorsTab = () => {
   return <TabView title='Sensors' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
-      <Col md={6} className="mb-3">
-        <Card>
+      <Col md={6}>
+        <Card className='mb-3'>
           <Card.Header>Gyroscope</Card.Header>
           <Card.Body>
             <FormItem id="gyroAlign" label="Alignment">
@@ -224,7 +224,7 @@ const SensorsTab = () => {
           </Card.Body>
         </Card>
 
-        <Card>
+        <Card className='mb-3'>
           <Card.Header>Gyroscope Low-Pass Filter</Card.Header>
           <Card.Body>
             <FormItem id="gyroLpf0.type" label="Filter 1 Type">
@@ -260,8 +260,8 @@ const SensorsTab = () => {
         </Card>
       </Col>
 
-      <Col md={6} className="mb-3">
-        <Card>
+      <Col md={6}>
+        <Card className='mb-3'>
           <Card.Header>Gyroscope Dyn-Notch Filter</Card.Header>
           <Card.Body>
             <FormItem id="dynNotch.count" label="Count">
@@ -282,7 +282,7 @@ const SensorsTab = () => {
           </Card.Body>
         </Card>
 
-        <Card>
+        <Card className='mb-3'>
           <Card.Header>Gyroscope RPM-Notch Filter</Card.Header>
           <Card.Body>
             <FormItem id="rpmNotch.harmonics" label="Harmonics">
@@ -301,11 +301,11 @@ const SensorsTab = () => {
         </Card>
       </Col>
 
-      <Col md={6} className="mb-3">
-        <Card>
+      <Col md={6}>
+        <Card className="mb-3">
           <Card.Header>Accelerometer</Card.Header>
           <Card.Body>
-            <FormItem id="accelDev" label="Accelerometer">
+            <FormItem id="accelDev" label="Device">
               <Form.Select {...register("accelDev", { valueAsNumber: true })}>
                 {deviceModes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
@@ -325,11 +325,11 @@ const SensorsTab = () => {
         </Card>
       </Col>
 
-      <Col md={6} className="mb-3">
-        <Card>
+      <Col md={6}>
+        <Card className="mb-3">
           <Card.Header>Barometer</Card.Header>
           <Card.Body>
-            <FormItem id="baroDev" label="Barometer">
+            <FormItem id="baroDev" label="Device">
               <Form.Select {...register("baroDev", { valueAsNumber: true })}>
                 {deviceModes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
@@ -346,11 +346,11 @@ const SensorsTab = () => {
         </Card>
       </Col>
 
-      <Col md={6} className="mb-3">
-        <Card>
+      <Col md={6}>
+        <Card className="mb-3">
           <Card.Header>Magnetometer</Card.Header>
           <Card.Body>
-            <FormItem id="magDev" label="Magnetometer">
+            <FormItem id="magDev" label="Device">
               <Form.Select {...register("magDev", { valueAsNumber: true })}>
                 {deviceModes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
