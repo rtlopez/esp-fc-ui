@@ -7,7 +7,8 @@ import {
   parsePinConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse,
   parseFeaturesNamesResponse, parseModeNamesResponse, parseFeaturesConfigResponse,
   parseSensorConfigResponse, parsePidTuningResponse, parseMixerConfigResponse,
-  parseMixerNamesResponse, parseAccelConfigResponse, parseGyroConfigResponse
+  parseMixerNamesResponse, parseAccelConfigResponse, parseGyroConfigResponse,
+  parseBaroConfigResponse, parseMagConfigResponse
 } from "../esp"
 
 export const MspState = {
@@ -81,8 +82,8 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_DYN_NOTCH_CONFIG: { value: 0x30, label: 'ESP_CMD_DYN_NOTCH_CONFIG', ...E },
   ESP_CMD_VTX_CONFIG: { value: 0x31, label: 'ESP_CMD_VTX_CONFIG', ...E },
   ESP_CMD_GPS_CONFIG: { value: 0x32, label: 'ESP_CMD_GPS_CONFIG', ...E },
-  ESP_CMD_BARO_CONFIG: { value: 0x33, label: 'ESP_CMD_BARO_CONFIG', ...E },
-  ESP_CMD_MAG_CONFIG: { value: 0x34, label: 'ESP_CMD_MAG_CONFIG', ...E },
+  ESP_CMD_BARO_CONFIG: { value: 0x33, label: 'ESP_CMD_BARO_CONFIG', ...E, parse: parseBaroConfigResponse },
+  ESP_CMD_MAG_CONFIG: { value: 0x34, label: 'ESP_CMD_MAG_CONFIG', ...E, parse: parseMagConfigResponse },
   ESP_CMD_FEATURE_CONFIG: { value: 0x35, label: 'ESP_CMD_FEATURE_CONFIG', ...E, parse: parseFeaturesConfigResponse },
   ESP_CMD_MODEL_CONFIG: { value: 0x36, label: 'ESP_CMD_MODEL_CONFIG', ...E },
   ESP_CMD_CALIBRATE: { value: 0x37, label: 'ESP_CMD_CALIBRATE', ...E },

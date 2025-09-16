@@ -2,8 +2,9 @@ import { useCallback, useEffect } from 'react'
 import { MspCommand } from '@/api/msp/msp'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
-  createAccelConfigRequest, createGyroConfigRequest, createRebootRequest, createSaveRequest,
-  createSensorConfigRequest, parseAccelConfigResponse, parseGyroConfigResponse, parseSensorConfigResponse
+  createAccelConfigRequest, createBaroConfigRequest, createGyroConfigRequest, createMagConfigRequest,
+  createRebootRequest, createSaveRequest, createSensorConfigRequest, parseAccelConfigResponse,
+  parseBaroConfigResponse, parseGyroConfigResponse, parseMagConfigResponse, parseSensorConfigResponse
 } from '@/api/esp'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { SubmitHandler, useForm } from 'react-hook-form'
@@ -37,14 +38,27 @@ type FormValues = {
     minFreq: number
   }
   accelLpf: FormLpf
+  baroLpf: FormLpf
+  magAlign: number
+  magLpf: FormLpf
 }
 
-const INPUT_DEFAULTS = {
+const SENSOR_DEFAULTS = {
   val: 0,
   loopSync: 1,
   accelDev: 1,
   magDev: 1,
   baroDev: 1,
+  gyroAlign: 0,
+  gyroLpf0: { type: 0, freq: 100 },
+  gyroLpf1: { type: 0, freq: 213 },
+  gyroLpf2: { type: 7, freq: 150 },
+  dynNotch: { count: 3, q: 3.0, minFreq: 80, maxFreq: 400 },
+  rpmNotch: { harmonics: 3, q: 5.0, minFreq: 100 },
+  accelLpf: { type: 1, freq: 15 },
+  baroLpf: { type: 1, freq: 3 },
+  magAlign: 0,
+  magLpf: { type: 0, freq: 10 },
 }
 
 const deviceModes = [
@@ -90,7 +104,7 @@ const SensorsTab = () => {
     getValues,
     //formState: { errors }
   } = useForm<FormValues>({
-    defaultValues: INPUT_DEFAULTS
+    defaultValues: SENSOR_DEFAULTS
   });
 
   useEffect(() => {
@@ -115,7 +129,17 @@ const SensorsTab = () => {
       }
       if (msg.isCmd(MspCommand.ESP_CMD_ACCEL_CONFIG)) {
         const v = parseAccelConfigResponse(msg)
-        reset({ ...getValues(), accelLpf: { type: v.lpf.type, freq: v.lpf.freq } })
+        reset({ ...getValues(), ...{ accelLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
+        console.log("recv", v)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_BARO_CONFIG)) {
+        const v = parseBaroConfigResponse(msg)
+        reset({ ...getValues(), ...{ baroLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
+        console.log("recv", v)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_MAG_CONFIG)) {
+        const v = parseMagConfigResponse(msg)
+        reset({ ...getValues(), ...{ magAlign: v.align, magLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
         console.log("recv", v)
       }
     })
@@ -154,6 +178,19 @@ const SensorsTab = () => {
         freq: data.accelLpf.freq
       }
     }))
+    writeMsp(createBaroConfigRequest({
+      lpf: {
+        type: data.baroLpf.type,
+        freq: data.baroLpf.freq
+      }
+    }))
+    writeMsp(createMagConfigRequest({
+      align: data.magAlign,
+      lpf: {
+        type: data.maglLpf.type,
+        freq: data.maglLpf.freq
+      }
+    }))
     writeMsp(createSaveRequest())
     writeMsp(createRebootRequest())
   }
@@ -163,10 +200,12 @@ const SensorsTab = () => {
     writeMsp(createSensorConfigRequest())
     writeMsp(createGyroConfigRequest())
     writeMsp(createAccelConfigRequest())
+    writeMsp(createBaroConfigRequest())
+    writeMsp(createMagConfigRequest())
   }, [writeMsp])
 
   useEffect(() => {
-    if (!connected) reset(INPUT_DEFAULTS);
+    if (!connected) reset(SENSOR_DEFAULTS);
     else onLoad();
   }, [connected, reset, onLoad]);
 
@@ -177,24 +216,25 @@ const SensorsTab = () => {
         <Card>
           <Card.Header>Gyroscope</Card.Header>
           <Card.Body>
-
             <FormItem id="gyroAlign" label="Alignment">
               <Form.Select {...register("gyroAlign")} >
                 {alignmentTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
             </FormItem>
+          </Card.Body>
+        </Card>
 
-
+        <Card>
+          <Card.Header>Gyroscope Low-Pass Filter</Card.Header>
+          <Card.Body>
             <FormItem id="gyroLpf0.type" label="Filter 1 Type">
               <Form.Select {...register("gyroLpf0.type")}>
                 {filterTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
             </FormItem>
-
             <FormItem id="gyroLpf0.freq" label="Filter 1 Cut-off">
-              <Form.Control type="number" {...register("gyroLpf0.freq", { valueAsNumber: true })} />
+              <Form.Control type="number" step={1} min={0} max={500} {...register("gyroLpf0.freq", { valueAsNumber: true })} />
             </FormItem>
-
 
             <FormItem id="gyroLpf1.type" label="Filter 2 Type">
               <Form.Select {...register("gyroLpf1.type")}>
@@ -203,7 +243,7 @@ const SensorsTab = () => {
             </FormItem>
 
             <FormItem id="gyroLpf1.freq" label="Filter 2 Cut-off">
-              <Form.Control type="number" {...register("gyroLpf1.freq", { valueAsNumber: true })} />
+              <Form.Control type="number" step={1} min={0} max={500} {...register("gyroLpf1.freq", { valueAsNumber: true })} />
             </FormItem>
 
 
@@ -214,37 +254,47 @@ const SensorsTab = () => {
             </FormItem>
 
             <FormItem id="gyroLpf2.freq" label="Decimator Cut-off">
-              <Form.Control type="number" {...register("gyroLpf2.freq", { valueAsNumber: true })} />
+              <Form.Control type="number" step={1} min={0} max={500} {...register("gyroLpf2.freq", { valueAsNumber: true })} />
+            </FormItem>
+          </Card.Body>
+        </Card>
+      </Col>
+
+      <Col md={6} className="mb-3">
+        <Card>
+          <Card.Header>Gyroscope Dyn-Notch Filter</Card.Header>
+          <Card.Body>
+            <FormItem id="dynNotch.count" label="Count">
+              <Form.Control type="number" step={1} min={0} max={6} {...register("dynNotch.count", { valueAsNumber: true })} />
             </FormItem>
 
-
-            <FormItem id="dynNotch.count" label="Dyn Notch Count">
-              <Form.Control type="number" {...register("dynNotch.count", { valueAsNumber: true })} />
+            <FormItem id="dynNotch.q" label="Q Factor">
+              <Form.Control type="number" step={0.1} min={0} max={5} {...register("dynNotch.q", { valueAsNumber: true })} />
             </FormItem>
 
-            <FormItem id="dynNotch.q" label="Dyn Notch Q Factor">
-              <Form.Control type="number" step={0.1} {...register("dynNotch.q", { valueAsNumber: true })} />
+            <FormItem id="dynNotch.minFreq" label="Min Frequency">
+              <Form.Control type="number" step={1} min={50} max={200} {...register("dynNotch.minFreq", { valueAsNumber: true })} />
             </FormItem>
 
-            <FormItem id="dynNotch.minFreq" label="Dyn Notch Min Frequency">
-              <Form.Control type="number" step={10} {...register("dynNotch.minFreq", { valueAsNumber: true })} />
+            <FormItem id="dynNotch.maxFreq" label="Max Frequency">
+              <Form.Control type="number" step={1} min={150} max={500} {...register("dynNotch.maxFreq", { valueAsNumber: true })} />
+            </FormItem>
+          </Card.Body>
+        </Card>
+
+        <Card>
+          <Card.Header>Gyroscope RPM-Notch Filter</Card.Header>
+          <Card.Body>
+            <FormItem id="rpmNotch.harmonics" label="Harmonics">
+              <Form.Control type="number" step={1} min={1} max={3} {...register("rpmNotch.harmonics", { valueAsNumber: true })} />
             </FormItem>
 
-            <FormItem id="dynNotch.maxFreq" label="Dyn Notch Max Frequency">
-              <Form.Control type="number" step={10} {...register("dynNotch.maxFreq", { valueAsNumber: true })} />
+            <FormItem id="rpmNotch.q" label="Q Factor">
+              <Form.Control type="number" step={0.1} min={0} max={6} {...register("rpmNotch.q", { valueAsNumber: true })} />
             </FormItem>
 
-
-            <FormItem id="rpmNotch.harmonics" label="Rpm Notch Harmonics">
-              <Form.Control type="number" min={1} max={3} {...register("rpmNotch.harmonics", { valueAsNumber: true })} />
-            </FormItem>
-
-            <FormItem id="rpmNotch.q" label="Rpm Notch Q Factor">
-              <Form.Control type="number" step={0.1} {...register("rpmNotch.q", { valueAsNumber: true })} />
-            </FormItem>
-
-            <FormItem id="rpmNotch.minFreq" label="Rpm Notch Min Frequency">
-              <Form.Control type="number" {...register("rpmNotch.minFreq", { valueAsNumber: true })} />
+            <FormItem id="rpmNotch.minFreq" label="Min Frequency">
+              <Form.Control type="number" step={1} min={50} max={200} {...register("rpmNotch.minFreq", { valueAsNumber: true })} />
             </FormItem>
 
           </Card.Body>
@@ -284,6 +334,14 @@ const SensorsTab = () => {
                 {deviceModes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
             </FormItem>
+            <FormItem id="baroLpf.type" label="Filter Type">
+              <Form.Select {...register("baroLpf.type")}>
+                {filterTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+            <FormItem id="baroLpf.freq" label="Filter Cut-off">
+              <Form.Control type="number" step={1} min={0} max={25} {...register("baroLpf.freq", { valueAsNumber: true })} />
+            </FormItem>
           </Card.Body>
         </Card>
       </Col>
@@ -296,6 +354,19 @@ const SensorsTab = () => {
               <Form.Select {...register("magDev", { valueAsNumber: true })}>
                 {deviceModes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>
+            </FormItem>
+            <FormItem id="magAlign" label="Alignment">
+              <Form.Select {...register("magAlign")} >
+                {alignmentTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+            <FormItem id="magLpf.type" label="Filter Type">
+              <Form.Select {...register("magLpf.type")}>
+                {filterTypes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </Form.Select>
+            </FormItem>
+            <FormItem id="magLpf.freq" label="Filter Cut-off">
+              <Form.Control type="number" step={1} min={0} max={25} {...register("magLpf.freq", { valueAsNumber: true })} />
             </FormItem>
           </Card.Body>
         </Card>

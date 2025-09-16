@@ -662,6 +662,55 @@ export const parseGyroConfigResponse = (msg: MspMessage): EspGyroConfig => {
   }
 }
 
+export interface EspBaroConfig {
+  lpf: EspLpfConfig
+}
+
+export const createBaroConfigRequest = (data?: EspBaroConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_BARO_CONFIG)
+  if (data) {
+    msg.writeU8(data.lpf.type)
+    msg.writeU16(data.lpf.freq)
+  }
+  return msg
+}
+
+export const parseBaroConfigResponse = (msg: MspMessage): EspBaroConfig => {
+  const reader = msg.getReader()
+  return {
+    lpf: {
+      type: reader.readU8(),
+      freq: reader.readU16(),
+    }
+  }
+}
+
+export interface EspMagConfig {
+  align: number
+  lpf: EspLpfConfig
+}
+
+export const createMagConfigRequest = (data?: EspMagConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_BARO_CONFIG)
+  if (data) {
+    msg.writeU8(data.align)
+    msg.writeU8(data.lpf.type)
+    msg.writeU16(data.lpf.freq)
+  }
+  return msg
+}
+
+export const parseMagConfigResponse = (msg: MspMessage): EspMagConfig => {
+  const reader = msg.getReader()
+  return {
+    align: reader.readU8(),
+    lpf: {
+      type: reader.readU8(),
+      freq: reader.readU16(),
+    }
+  }
+}
+
 export interface EspPidConfig {
   p: number
   i: number
