@@ -81,15 +81,18 @@ const StatusTab = () => {
         <Card className='mb-3'>
           <Card.Header>System</Card.Header>
           <Card.Body>
-            {version ? <>
-              <div>Firmware: {version.fwVersion ?? ''} {version.fwRevision ?? ''}</div>
-            </> : 'Unknown (Not connected)'}
-            {statistics ? <>
-              <div>Heap Used: {(heapUsed / 1024).toFixed(0)} / {(statistics.heapTotal / 1024).toFixed(0)} kB ({(heapUsed / statistics.heapTotal * 100).toFixed(1)}%)</div>
-            </> : 'Unknown (Not connected)'}
-            {statistics ? <>
-              <div>Flash Used: {(statistics.flashUsed / 1024 / 1024).toFixed(1)} / {(statistics.flashTotal / 1024 / 1024).toFixed(1)} MB ({(statistics.flashUsed / (statistics.flashTotal + 1) * 100).toFixed(1)}%)</div>
-            </> : 'Unknown (Not connected)'}
+            <div className='d-flex justify-content-between align-items-start'>
+              <span>Firmware</span>
+              <span>{version ? `${version.fwVersion ?? ''} ${version.fwRevision ?? ''}` : '-'}</span>
+            </div>
+            <div className='d-flex justify-content-between align-items-start'>
+              <span>Memory usage</span>
+              <span>{statistics ? `${(heapUsed / 1024).toFixed(0)} / ${(statistics.heapTotal / 1024).toFixed(0)} kB (${(heapUsed / statistics.heapTotal * 100).toFixed(1)}%)` : '-'}</span>
+            </div>
+            <div className='d-flex justify-content-between align-items-start'>
+              <span>Flash usage</span>
+              <span>{statistics ? `${(statistics.flashUsed / 1024 / 1024).toFixed(1)} / ${(statistics.flashTotal / 1024 / 1024).toFixed(1)} MB (${(statistics.flashUsed / (statistics.flashTotal + 1) * 100).toFixed(1)}%)` : '-'}</span>
+            </div>
           </Card.Body>
         </Card>
 
