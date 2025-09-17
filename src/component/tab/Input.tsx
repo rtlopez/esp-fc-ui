@@ -77,10 +77,7 @@ const InputTab = () => {
     defaultValues: INPUT_DEFAULTS
   });
 
-  const { fields: channels } = useFieldArray({
-    control,
-    name: "channels",
-  });
+  const { fields: channels } = useFieldArray({ control, name: "channels" });
 
   useEffect(() => {
     return subscribeMsp((msg) => {

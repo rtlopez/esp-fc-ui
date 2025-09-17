@@ -8,7 +8,7 @@ import {
   parseFeaturesNamesResponse, parseModeNamesResponse, parseFeaturesConfigResponse,
   parseSensorConfigResponse, parsePidTuningResponse, parseMixerConfigResponse,
   parseMixerNamesResponse, parseAccelConfigResponse, parseGyroConfigResponse,
-  parseBaroConfigResponse, parseMagConfigResponse
+  parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse
 } from "../esp"
 
 export const MspState = {
@@ -74,7 +74,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_CURRENT_CONFIG: { value: 0x28, label: 'ESP_CMD_CURRENT_CONFIG', ...E },
   ESP_CMD_PID_CONFIG: { value: 0x29, label: 'ESP_CMD_PID_CONFIG', ...E },
   ESP_CMD_PID_COMMON_CONFIG: { value: 0x2a, label: 'ESP_CMD_PID_COMMON_CONFIG', ...E },
-  ESP_CMD_MODES_CONFIG: { value: 0x2b, label: 'ESP_CMD_MODES_CONFIG', ...E },
+  ESP_CMD_MODES_CONFIG: { value: 0x2b, label: 'ESP_CMD_MODES_CONFIG', ...E, parse: parseModesConfigResponse },
   ESP_CMD_FAILSAFE_CONFIG: { value: 0x2c, label: 'ESP_CMD_FAILSAFE_CONFIG', ...E },
   ESP_CMD_BLACKBOX_CONFIG: { value: 0x2d, label: 'ESP_CMD_BLACKBOX_CONFIG', ...E },
   ESP_CMD_MIXER_CONFIG: { value: 0x2e, label: 'ESP_CMD_MIXER_CONFIG', ...E, parse: parseMixerConfigResponse },

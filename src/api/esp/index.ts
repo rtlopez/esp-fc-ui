@@ -506,6 +506,48 @@ export const parseModeNamesResponse = (msg: MspMessage): EspModeNames => {
   return { names: parseNames(msg) }
 }
 
+export interface EspModeConfig {
+  id: number
+  ch: number
+  min: number
+  max: number
+}
+
+export interface EspModesConfig {
+  modeCount: number
+  modes: EspModeConfig[]
+}
+
+export const createModesConfigRequest = (data?: EspModesConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_MODES_CONFIG)
+  if (data) {
+    msg.writeU8(data.modeCount)
+    data.modes.map(m => {
+      msg.writeU8(m.id)
+      msg.writeU8(m.ch)
+      msg.writeU16(m.min)
+      msg.writeU16(m.max)
+    })
+  }
+  return msg
+}
+
+export const parseModesConfigResponse = (msg: MspMessage): EspModesConfig => {
+  const reader = msg.getReader()
+  const count = reader.readU8()
+  return {
+    modeCount: count,
+    modes: Array(count).fill(0).map(() => {
+      return {
+        id: reader.readU8(),
+        ch: reader.readU8(),
+        min: reader.readU16(),
+        max: reader.readU16(),
+      }
+    })
+  }
+}
+
 export interface EspPinFunction {
   type: number
   index: number
