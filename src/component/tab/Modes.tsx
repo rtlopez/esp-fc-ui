@@ -3,11 +3,15 @@ import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import { MspCommand } from '@/api/msp/msp'
 import {
-  createModeNamesRequest, createModesConfigRequest, createSaveRequest,
-  parseModeNamesResponse, parseModesConfigResponse
+  createInputRequest, createModeNamesRequest, createModesConfigRequest, createSaveRequest,
+  EspInputResponse, parseInputResponse, parseModeNamesResponse, parseModesConfigResponse
 } from '@/api/esp'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
+import Slider from "rc-slider"
+import 'rc-slider/assets/index.css'
+
+// https://www.npmjs.com/package/rc-slider?activeTab=readme
 
 type FormMode = {
   id: number
@@ -24,8 +28,8 @@ type FormValues = {
 const MODES_DEFAULTS: FormValues = {
   modeCount: 2,
   modes: [
-    { id: 1, ch: 4, min: 1300, max: 2100 },
-    { id: 2, ch: 5, min: 900, max: 1700 },
+    { id: 1, ch: 4, min: 1650, max: 2100 },
+    { id: 2, ch: 5, min: 900, max: 1350 },
     { id: 0xff, ch: 0xff, min: 900, max: 900 },
   ]
 }
@@ -52,9 +56,23 @@ const channelNames = [
   { id: 15, name: "CH16" },
 ]
 
+type Mark = {
+  style?: React.CSSProperties;
+  label?: React.ReactNode;
+}
+
+const marks = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].reduce((acc, i) => {
+  acc[i] = {
+    style: { fontWeight: i % 500 ? "normal" : "bold" },
+    label: `${i}`,
+  }
+  return acc
+}, {} as Record<number, Mark>)
+
 const ModesTab = () => {
 
   const [modeNames, setModeNames] = useState(MODE_NAMES_DEFAULT)
+  const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
   const { connected, writeMsp, subscribeMsp } = useMsp()
 
   const {
@@ -63,6 +81,8 @@ const ModesTab = () => {
     handleSubmit,
     reset,
     getValues,
+    watch,
+    setValue,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: MODES_DEFAULTS
@@ -82,11 +102,13 @@ const ModesTab = () => {
         reset({ ...getValues(), ...v })
         console.log("recv", v)
       }
+      if (msg.isCmd(MspCommand.ESP_CMD_INPUT)) {
+        setInputs(parseInputResponse(msg))
+      }
     })
   })
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("save", data)
     writeMsp(createModesConfigRequest({
       modeCount: data.modeCount,
       modes: data.modes,
@@ -95,7 +117,6 @@ const ModesTab = () => {
   }
 
   const onLoad = useCallback(() => {
-    console.log("load")
     writeMsp(createModeNamesRequest())
     writeMsp(createModesConfigRequest())
   }, [writeMsp])
@@ -108,6 +129,17 @@ const ModesTab = () => {
     else onLoad();
   }, [connected, reset, onLoad]);
 
+  useEffect(() => {
+    if (!connected) return;
+    else onLoad();
+    const interval = setInterval(() => {
+      writeMsp(createInputRequest())
+    }, 500);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [connected, writeMsp, onLoad]);
+
   return <TabView title='Modes' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
 
@@ -117,33 +149,78 @@ const ModesTab = () => {
           <Card.Body>
 
             <Row className='mb-3'>
-              <Col>Channel</Col>
-              <Col>Min</Col>
-              <Col>Max</Col>
-              <Col>Mode</Col>
+              <Col md={1}>Channel</Col>
+              <Col md={8} className="text-center">Range</Col>
+              <Col md={2}>Mode</Col>
+              <Col md={1}>Status</Col>
             </Row>
-            {modes.map((_m, i) => {
-              return <Row key={i}>
-                <Form.Group as={Col} controlId={`mode_ch_${i}`} className="mb-3">
-                  <Form.Select id={`mode_ch_${i}`} {...register(`modes.${i}.ch`)}>
-                    {channelNames.map(({ id, name }) => (
-                      <option key={id} value={id}>{name}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group >
-                <Form.Group as={Col} controlId={`mode_min_${i}`} className="mb-3">
-                  <Form.Control type='number' min={900} max={2100} step={25} {...register(`modes.${i}.min`, { valueAsNumber: true })} />
-                </Form.Group>
-                <Form.Group as={Col} controlId={`mode_max_${i}`}className="mb-3">
-                  <Form.Control type='number' min={900} max={2100} step={25} {...register(`modes.${i}.max`, { valueAsNumber: true })} />
-                </Form.Group>
-                <Form.Group as={Col} controlId={`mode_id_${i}`} className="mb-3">
-                  <Form.Select {...register(`modes.${i}.id`)}>
-                    {modeNames.map(({ id, name }) => (
-                      <option key={id} value={id}>{name}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+            {modes.map((_, i) => {
+              const min = watch(`modes.${i}.min`)
+              const max = watch(`modes.${i}.max`)
+              const ch = watch(`modes.${i}.ch`)
+              let chValue = ch !== 0xff && ch < inputs.count ? inputs.channels[ch] : 900
+              if (chValue % 100 === 0) chValue += 1 // to show the pointer on the slider
+              const inRange = chValue >= min && chValue <= max
+              if (chValue < 900) chValue = 900
+              if (chValue > 2100) chValue = 2100
+              const onSliderChange = (val: number | number[]) => {
+                if (Array.isArray(val)) {
+                  setValue(`modes.${i}.min`, val[0])
+                  setValue(`modes.${i}.max`, val[1])
+                }
+              }
+
+              return <Row key={i} className="border-top mt-2 pt-4">
+
+                <Col md={1}>
+                  <Form.Group controlId={`mode_ch_${i}`} className="mb-3">
+                    <Form.Select id={`mode_ch_${i}`} {...register(`modes.${i}.ch`)}>
+                      {channelNames.map(({ id, name }) => (
+                        <option key={id} value={id}>{name}</option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group >
+                </Col>
+
+                <Col md={8} className='mt-2'>
+                  <Slider
+                    range={{ draggableTrack: true }}
+                    min={900}
+                    max={2100}
+                    step={25}
+                    value={[min, max]}
+                    onChange={onSliderChange}
+                    allowCross={true}
+                    pushable={false}
+                    marks={{
+                      ...marks,
+                      [chValue]: { style: { color: "orange", fontWeight: "bold" }, label: '⇧' },
+                    }}
+                    styles={{
+                      track: { backgroundColor: '#0d6efd', height: 6, top: 4 },
+                      rail: { backgroundColor: 'lightgray', height: 2, top: 6 },
+                    }}
+                    dotStyle={{ borderColor: 'lightgray', height: 6, width: 6, bottom: -1 }}
+                    activeDotStyle={{ borderColor: '#0d6efd', height: 8, width: 8, bottom: -2 }}
+                  />
+                </Col>
+
+                <Col md={2}>
+                  <Form.Group controlId={`mode_id_${i}`} className="mb-3">
+                    <Form.Select {...register(`modes.${i}.id`)}>
+                      {modeNames.map(({ id, name }) => (
+                        <option key={id} value={id}>{name}</option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col md={1}>
+                  {inRange ?
+                    <i className="bi bi-check-square" style={{ fontSize: "1.6em" }}></i> :
+                    <i className="bi bi-square" style={{ fontSize: "1.6em", color: "darkgray" }}></i>
+                  }
+                </Col>
               </Row>
             })}
 

@@ -30,6 +30,7 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
   }, [subscribeMsp, onLoad, setSaving])
 
   const submitHandler = useCallback(((e: FormEvent<Element>) => {
+    console.log("save")
     if(onSubmit) {
       setSaving(true)
       setTimeout(() => setSaving(false), 1000)
