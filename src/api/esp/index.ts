@@ -36,6 +36,7 @@ export const parseVersionResponse = (msg: MspMessage): EspVersionResponse => {
 export interface EspStatusResponse {
   sensors: number
   gyroTimeUs: number
+  loopTimeUs: number
   modeSwitchMask: number
   modeActiveMask: number
   armingDisableFlags: number
@@ -47,6 +48,7 @@ export const parseStatusResponse = (msg: MspMessage): EspStatusResponse => {
   const v = {
     sensors: reader.readU16(),
     gyroTimeUs: reader.readU16(),
+    loopTimeUs: reader.readU16(),
     modeSwitchMask: reader.readU32(),
     modeActiveMask: reader.readU32(),
     armingDisableFlags: reader.readU32(),
@@ -806,6 +808,64 @@ export const parsePidTuningResponse = (msg: MspMessage): EspPidTuning => {
       { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
       { p: reader.readU8(), i: reader.readU8(), d: reader.readU8(), f: reader.readU16() },
     ]
+  }
+}
+
+export interface EspDebugNames {
+  names: EspNameElement[]
+}
+
+export const createDebugNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_DEBUG_NAMES)
+}
+
+export const parseDebugNamesResponse = (msg: MspMessage): EspDebugNames => {
+  return { names: parseNames(msg) }
+}
+
+export interface EspBlackboxNames {
+  names: EspNameElement[]
+}
+
+export const createBlackboxNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_BLACKBOX_NAMES)
+}
+
+export const parseBlackboxNamesResponse = (msg: MspMessage): EspBlackboxNames => {
+  return { names: parseNames(msg) }
+}
+
+export interface EspBlackboxConfig {
+  device: number
+  denom: number
+  mode: number
+  fieldMask: number
+  debugMode: number
+  debugAxis: number
+}
+
+export const createBlackboxConfigRequest = (data?: EspBlackboxConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_BLACKBOX_CONFIG)
+  if (data) {
+    msg.writeU8(data.device)
+    msg.writeU8(data.denom)
+    msg.writeU8(data.mode)
+    msg.writeU32(data.fieldMask)
+    msg.writeU8(data.debugMode)
+    msg.writeU8(data.debugAxis)
+  }
+  return msg
+}
+
+export const parseBlackboxConfigResponse = (msg: MspMessage): EspBlackboxConfig => {
+  const reader = msg.getReader()
+  return {
+    device: reader.readU8(),
+    denom: reader.readU8(),
+    mode: reader.readU8(),
+    fieldMask: reader.readU32(),
+    debugMode: reader.readU8(),
+    debugAxis: reader.readU8(),
   }
 }
 

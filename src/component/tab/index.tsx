@@ -8,6 +8,7 @@ import SensorsTab from "./Sensors"
 import ConfigurationTab from "./Configuration"
 import MixerTab from "./Mixer"
 import ModesTab from "./Modes"
+import LoggingTab from "./Logging"
 
 export {
   StatusTab,
@@ -20,4 +21,5 @@ export {
   ConfigurationTab,
   MixerTab,
   ModesTab,
+  LoggingTab,
 }

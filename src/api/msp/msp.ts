@@ -8,7 +8,8 @@ import {
   parseFeaturesNamesResponse, parseModeNamesResponse, parseFeaturesConfigResponse,
   parseSensorConfigResponse, parsePidTuningResponse, parseMixerConfigResponse,
   parseMixerNamesResponse, parseAccelConfigResponse, parseGyroConfigResponse,
-  parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse
+  parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse,
+  parseDebugNamesResponse, parseBlackboxNamesResponse, parseBlackboxConfigResponse
 } from "../esp"
 
 export const MspState = {
@@ -57,10 +58,11 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   // ESP feature names commands
   ESP_CMD_MODE_NAMES: { value: 0x10, label: 'ESP_CMD_MODE_NAMES', ...E, parse: parseModeNamesResponse },
   ESP_CMD_FEATURE_NAMES: { value: 0x11, label: 'ESP_CMD_FEATURE_NAMES', ...E, parse: parseFeaturesNamesResponse },
-  ESP_CMD_DEBUG_NAMES: { value: 0x12, label: 'ESP_CMD_DEBUG_NAMES', ...E },
+  ESP_CMD_DEBUG_NAMES: { value: 0x12, label: 'ESP_CMD_DEBUG_NAMES', ...E, parse: parseDebugNamesResponse },
   ESP_CMD_SERIAL_NAMES: { value: 0x13, label: 'ESP_CMD_SERIAL_NAMES', ...E, parse: parseSerialNamesResponse },
   ESP_CMD_PID_NAMES: { value: 0x14, label: 'ESP_CMD_PID_NAMES', ...E },
   ESP_CMD_MIXER_NAMES: { value: 0x15, label: 'ESP_CMD_MIXER_NAMES', ...E, parse: parseMixerNamesResponse },
+  ESP_CMD_BLACKBOX_NAMES: { value: 0x16, label: 'ESP_CMD_BLACKBOX_NAMES', ...E, parse: parseBlackboxNamesResponse },
 
   // ESP configuration commands
   ESP_CMD_INPUT_CONFIG: { value: 0x20, label: 'ESP_CMD_INPUT_CONFIG', ...E, parse: parseInputConfigResponse },
@@ -76,7 +78,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_PID_COMMON_CONFIG: { value: 0x2a, label: 'ESP_CMD_PID_COMMON_CONFIG', ...E },
   ESP_CMD_MODES_CONFIG: { value: 0x2b, label: 'ESP_CMD_MODES_CONFIG', ...E, parse: parseModesConfigResponse },
   ESP_CMD_FAILSAFE_CONFIG: { value: 0x2c, label: 'ESP_CMD_FAILSAFE_CONFIG', ...E },
-  ESP_CMD_BLACKBOX_CONFIG: { value: 0x2d, label: 'ESP_CMD_BLACKBOX_CONFIG', ...E },
+  ESP_CMD_BLACKBOX_CONFIG: { value: 0x2d, label: 'ESP_CMD_BLACKBOX_CONFIG', ...E, parse: parseBlackboxConfigResponse },
   ESP_CMD_MIXER_CONFIG: { value: 0x2e, label: 'ESP_CMD_MIXER_CONFIG', ...E, parse: parseMixerConfigResponse },
   ESP_CMD_RPM_FILTER_CONFIG: { value: 0x2f, label: 'ESP_CMD_RPM_FILTER_CONFIG', ...E },
   ESP_CMD_DYN_NOTCH_CONFIG: { value: 0x30, label: 'ESP_CMD_DYN_NOTCH_CONFIG', ...E },
