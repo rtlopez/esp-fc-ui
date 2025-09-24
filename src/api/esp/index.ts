@@ -869,6 +869,53 @@ export const parseBlackboxConfigResponse = (msg: MspMessage): EspBlackboxConfig 
   }
 }
 
+export type EspFlashReadRequest = {
+  address: number
+  size: number
+}
+
+export type EspFlashReadResponse = {
+  address: number
+  size: number
+  flags: number
+  data: number[]
+}
+
+export const parseFlashReadResponse = (msg: MspMessage): EspFlashReadResponse => {
+  const reader = msg.getReader()
+  const v: EspFlashReadResponse = {
+    address: reader.readU32(),
+    size: reader.readU16(),
+    flags: reader.readU16(),
+    data: [],
+  }
+  for(let i = 0; i < v.size; i++) {
+    v.data.push(reader.readU8())
+  }
+  return v
+}
+
+export const createFlashReadRequest = (data: EspFlashReadRequest): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_FLASH_READ)
+  if(data) {
+    msg.writeU32(data.address)
+    msg.writeU16(data.size)
+  }
+  return msg
+}
+
+export type EspFlashErase = {
+  status: number
+}
+
+export const parseFlashEraseResponse = (_msg: MspMessage): EspFlashErase => {
+  return { status: 1 }
+}
+
+export const createFlashEraseRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_FLASH_ERASE)
+}
+
 export interface EspMixerNames {
   names: EspNameElement[]
 }
