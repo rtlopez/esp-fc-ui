@@ -169,6 +169,13 @@ const InputTab = () => {
               <Form.Control type="number" min={1100} max={1900} {...register("inputMid")} />
             </FormItem>
 
+          </Card.Body>
+        </Card>
+
+        <Card className='mb-2'>
+          <Card.Header>Fail Safe</Card.Header>
+          <Card.Body>
+
             <FormItem id="inputMin" label="Valid Minimum">
               <Form.Control type="number" min={800} max={1100} {...register("inputMin")} />
             </FormItem>
