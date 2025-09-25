@@ -1,12 +1,12 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, Form, Modal, ProgressBar, Row, Spinner } from 'react-bootstrap'
+import { Button, Card, Col, Form, Modal, ProgressBar, Row, Spinner, Table } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import { MspCommand } from '@/api/msp/msp'
 import {
   createBlackboxConfigRequest, createBlackboxNamesRequest, createDebugNamesRequest,
-  createFlashEraseRequest, createFlashReadRequest, createRebootRequest,
-  createSaveRequest, parseBlackboxConfigResponse, parseBlackboxNamesResponse,
-  parseDebugNamesResponse, parseFlashReadResponse
+  createFlashEraseRequest, createFlashLogsRequest, createFlashReadRequest, createRebootRequest,
+  createSaveRequest, EspFlashLogsItem, parseBlackboxConfigResponse, parseBlackboxNamesResponse,
+  parseDebugNamesResponse, parseFlashLogsResponse, parseFlashReadResponse
 } from '@/api/esp'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import TabView from './TabView'
@@ -44,6 +44,8 @@ const FIELD_NAMES_DEFAULT = [
   { id: 1, name: "SETPOINT" },
   { id: 2, name: "GYRO" },
 ]
+
+const LOGS_DEFAULT: EspFlashLogsItem[] = []
 
 const devices = [
   { id: 0, name: "None" },
@@ -97,6 +99,7 @@ const LoggingTab = () => {
   const [debugNames, setDebugNames] = useState(DEBUG_NAMES_DEFAULT)
   const [fieldNames, setFieldNames] = useState(FIELD_NAMES_DEFAULT)
   const [inProgress, setInProgress] = useState(false)
+  const [logs, setLogs] = useState(LOGS_DEFAULT)
   const [showConfirm, setShowConfirm] = useState(false);
   const [dnldPerc, setdnldPerc] = useState(0);
   const { connected, writeMsp, subscribeMsp } = useMsp()
@@ -131,6 +134,10 @@ const LoggingTab = () => {
       if (msg.isCmd(MspCommand.ESP_CMD_FLASH_ERASE)) {
         setInProgress(false)
       }
+      if (msg.isCmd(MspCommand.ESP_CMD_FLASH_LOGS)) {
+        const v = parseFlashLogsResponse(msg)
+        setLogs(v.logs)
+      }
       if (msg.isCmd(MspCommand.ESP_CMD_FLASH_READ)) {
         const v = parseFlashReadResponse(msg)
         console.log("recv", v)
@@ -138,7 +145,7 @@ const LoggingTab = () => {
           append(new Uint8Array(v.data))
           // calc dnld proggress
           const dnldProgress = Math.round(100 * v.address / statistics.flashUsed)
-          if(dnldPerc !== dnldProgress) {
+          if (dnldPerc !== dnldProgress) {
             setdnldPerc(dnldProgress)
           }
           // calc next chunk address
@@ -177,13 +184,15 @@ const LoggingTab = () => {
     writeMsp(createDebugNamesRequest())
     writeMsp(createBlackboxNamesRequest())
     writeMsp(createBlackboxConfigRequest())
+    writeMsp(createFlashLogsRequest())
   }, [writeMsp])
 
   useEffect(() => {
     if (!connected) {
       setDebugNames(DEBUG_NAMES_DEFAULT)
       setFieldNames(FIELD_NAMES_DEFAULT)
-      reset(LOGGING_DEFAULTS);
+      reset(LOGGING_DEFAULTS)
+      setLogs(LOGS_DEFAULT)
     } else onLoad();
   }, [connected, reset, onLoad]);
 
@@ -273,6 +282,23 @@ const LoggingTab = () => {
               </Button>
               <ConfirmModal show={showConfirm} onConfirm={flashEraseConfirm} onCancel={flashEraseCancel} />
             </Col>
+            
+            {logs.length ? <Table striped hover>
+              <thead>
+                <tr>
+                  <th>Num</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log, i) => {
+                  return <tr key={i}>
+                    <td>{i + 1}</td>
+                    <td>{(log.size / 1000).toFixed(1)} kB</td>
+                  </tr>
+                })}
+              </tbody>
+            </Table> : null }
 
           </Card.Body>
         </Card>

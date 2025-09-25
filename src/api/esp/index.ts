@@ -573,9 +573,8 @@ export const createPinConfigRequest = (data?: EspPinConfigResponse): MspMessage 
 
 export const parsePinConfigResponse = (msg: MspMessage): EspPinConfigResponse => {
   const reader = msg.getReader()
-  const count = reader.size / 2
   const v: EspPinConfigResponse = { pins: [] }
-  for (let i = 0; i < count; i++) {
+  while (reader.remain() >= 2) {
     const id = reader.readU8()
     const pin = reader.read8()
     const type = id >> 4
@@ -869,6 +868,38 @@ export const parseBlackboxConfigResponse = (msg: MspMessage): EspBlackboxConfig 
   }
 }
 
+export type EspFlashLogsItem = {
+  address: number
+  size: number
+}
+
+export type EspFlashLogsResponse = {
+  total: number
+  used: number
+  logs: EspFlashLogsItem[]
+}
+
+export const parseFlashLogsResponse = (msg: MspMessage): EspFlashLogsResponse => {
+  const reader = msg.getReader()
+  const v: EspFlashLogsResponse = {
+    total: reader.readU32(),
+    used: reader.readU32(),
+    logs: [],
+  }
+  while (reader.remain() >= 8) {
+    const log = {
+      address: reader.readU32(),
+      size: reader.readU32(),
+    }
+    if (log.size) v.logs.push(log)
+  }
+  return v
+}
+
+export const createFlashLogsRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_FLASH_LOGS)
+}
+
 export type EspFlashReadRequest = {
   address: number
   size: number
@@ -889,7 +920,7 @@ export const parseFlashReadResponse = (msg: MspMessage): EspFlashReadResponse =>
     flags: reader.readU16(),
     data: [],
   }
-  for(let i = 0; i < v.size; i++) {
+  while (reader.remain()) {
     v.data.push(reader.readU8())
   }
   return v
@@ -897,7 +928,7 @@ export const parseFlashReadResponse = (msg: MspMessage): EspFlashReadResponse =>
 
 export const createFlashReadRequest = (data: EspFlashReadRequest): MspMessage => {
   const msg = new MspMessage(MspCommand.ESP_CMD_FLASH_READ)
-  if(data) {
+  if (data) {
     msg.writeU32(data.address)
     msg.writeU16(data.size)
   }
