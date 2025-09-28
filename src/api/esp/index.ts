@@ -138,9 +138,9 @@ export interface EspOutputResponse {
 export const createOutputRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_OUTPUT)
 export const parseOutputResponse = (msg: MspMessage): EspOutputResponse => {
   const reader = msg.getReader()
-  const v = {
+  const v: EspOutputResponse = {
     count: reader.readU8(),
-    channels: [] as number[]
+    channels: []
   }
   for (let i = 0; i < v.count; i++) {
     v.channels.push(reader.readU16())
@@ -939,8 +939,9 @@ export type EspFlashErase = {
   status: number
 }
 
-export const parseFlashEraseResponse = (_msg: MspMessage): EspFlashErase => {
-  return { status: 1 }
+export const parseFlashEraseResponse = (msg: MspMessage): EspFlashErase => {
+  const reader = msg.getReader()
+  return { status: reader.readU8() }
 }
 
 export const createFlashEraseRequest = (): MspMessage => {
@@ -982,6 +983,35 @@ export const parseMixerConfigResponse = (msg: MspMessage): EspMixerConfig => {
     yawReverse: !!reader.readU8(),
     sync: reader.readU8(),
   }
+}
+
+export interface EspOutputOverride {
+  count: number
+  values: number[]
+}
+
+export const createOutputOverrideRequest = (data?: EspOutputOverride): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_OUTPUT_OVERRIDE)
+  if (data) {
+    msg.writeU8(data.count)
+    data.values.map(v => {
+      msg.writeU16(v)
+    })
+  }
+  return msg
+}
+
+export const parseOutputOverrideResponse = (msg: MspMessage): EspOutputOverride => {
+  const reader = msg.getReader()
+  const count = reader.readU8()
+  const v: EspOutputOverride = {
+    count: count,
+    values: [],
+  }
+  while (reader.remain() >= 2) {
+    v.values.push(reader.readU16())
+  }
+  return v
 }
 
 export const createSaveRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)

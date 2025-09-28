@@ -10,6 +10,7 @@ const textEncoder = new TextEncoder()
 export interface MspContextValue {
   subscribeMsp(callback: MspMessageCallback): () => void
   writeMsp: (message: MspMessage) => Promise<void>
+  useIntervalMsp: (calback: () => void, delay: number) => void
   subscribeText(callback: TextMessageCallback): () => void
   writeText: (message: string) => Promise<void>
   connect(): Promise<boolean>
@@ -22,6 +23,7 @@ export interface MspContextValue {
 const MspContext = createContext<MspContextValue>({
   subscribeMsp: () => () => { },
   writeMsp: () => Promise.resolve(),
+  useIntervalMsp: (_calback: () => void, _delay: number) => { },
   subscribeText: () => () => { },
   writeText: () => Promise.resolve(),
   connect: () => Promise.resolve(false),
@@ -107,7 +109,7 @@ const MspProvider = ({
       if (consumed) {
         if (msgRef.current.isReplyReceived()) {
           // notify msp subscribers
-          if(msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd, msgRef.current.toArray())
+          if (msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd, msgRef.current.toArray())
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
@@ -136,7 +138,7 @@ const MspProvider = ({
   }
 
   const writeMsp = async (msg: MspMessage) => {
-    if(msg.cmd > 0xf) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.cmd)
+    if (msg.cmd > 0xf) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.cmd)
     msgQueueRef.current.enqueue(msg)
   }
 
@@ -148,8 +150,18 @@ const MspProvider = ({
       textSubscribersRef.current.delete(id)
     }
   }
+
   const writeText = async (message: string) => {
     await write(textEncoder.encode(message + "\n"))
+  }
+
+  const useIntervalMsp = (callback: () => void, delay: number) => {
+    useEffect(() => {
+      const interval = setInterval(() => {
+        if(connected && !cliActive) callback();
+      }, delay);
+      return () => clearInterval(interval);
+    }, [callback, delay]);
   }
 
   useEffect(() => {
@@ -157,7 +169,7 @@ const MspProvider = ({
       if (connected && !msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
-        if(msg.cmd > 0xf) console.log("msp.send", msg.cmd, msg.toArray())
+        if (msg.cmd > 0xf) console.log("msp.send", msg.cmd, msg.toArray())
         await write(msg.toDataBuffer())
       }
     }, 5);
@@ -183,6 +195,7 @@ const MspProvider = ({
       value={{
         subscribeMsp,
         writeMsp,
+        useIntervalMsp,
         subscribeText,
         writeText,
         connect,

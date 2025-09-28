@@ -1,12 +1,13 @@
-import { useCallback, useEffect } from 'react'
-import { Card, Col, Form, Row } from 'react-bootstrap'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import { MspCommand } from '@/api/msp/msp'
 import {
   createOutputChannelConfigRequest, createOutputConfigRequest,
-  createRebootRequest, createSaveRequest, EspOutputChannelConfigRequest,
-  EspOutputChannelConfigResponse, EspOutputConfigResponse,
-  parseOutputChannelConfigResponse, parseOutputConfigResponse
+  createOutputOverrideRequest, createOutputRequest, createRebootRequest,
+  createSaveRequest, EspOutputChannelConfigRequest, EspOutputChannelConfigResponse,
+  EspOutputConfigResponse, parseOutputChannelConfigResponse, parseOutputConfigResponse,
+  parseOutputResponse
 } from '@/api/esp'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
@@ -35,7 +36,9 @@ type FormValues = {
   throttleLimitType: number
   throttleLimitPercent: number
   outputCount: number
-  outputChannels: Array<FormOutputChannel>
+  outputChannels: FormOutputChannel[]
+  outputValues: number[]
+  outputOverrides: number[]
 }
 
 const OUTPUT_DFAULTS: FormValues = {
@@ -57,8 +60,10 @@ const OUTPUT_DFAULTS: FormValues = {
     { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
     { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
     { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
-    { min: 1000, neutral: 1500, max: 2000, servo: false, reverse: false },
-  ]
+    { min: 1000, neutral: 1500, max: 2000, servo: true, reverse: false },
+  ],
+  outputValues: [1000, 1000, 1000, 1500],
+  outputOverrides: [1000, 1000, 1000, 1500],
 }
 
 const motorProtocols = [
@@ -126,12 +131,16 @@ const configChannelsApiToForm = (v: EspOutputChannelConfigResponse) => {
   return {
     outputCount: v.count,
     outputChannels: v.channels,
+    outputOverrides: v.channels.map(c => {
+      return c.servo ? c.neutral : 1000
+    })
   }
 }
 
 const OutputTab = () => {
 
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { connected, writeMsp, subscribeMsp, useIntervalMsp } = useMsp()
+  const [outputOverride, setOutputOverride] = useState(false)
 
   const {
     control,
@@ -139,15 +148,39 @@ const OutputTab = () => {
     handleSubmit,
     reset,
     getValues,
+    watch,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: OUTPUT_DFAULTS
   });
 
-  const { fields: outputChannels } = useFieldArray({
-    control,
-    name: "outputChannels",
-  });
+  const { fields: outputChannels } = useFieldArray({ control, name: "outputChannels" });
+  const { fields: outputValues } = useFieldArray({ control, name: "outputValues" });
+  const { fields: outputOverrides } = useFieldArray({ control, name: "outputOverrides" });
+
+  useEffect(() => {
+    return subscribeMsp((msg) => {
+      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CONFIG)) {
+        const v = parseOutputConfigResponse(msg)
+        const d = configApiToForm(v)
+        reset({ ...getValues(), ...d })
+        //console.log("recv", v, d)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)) {
+        const v = parseOutputChannelConfigResponse(msg)
+        const d = configChannelsApiToForm(v)
+        reset({ ...getValues(), ...d })
+        //console.log("recv", v, d)
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT)) {
+        const v = parseOutputResponse(msg)
+        reset({ ...getValues(), outputValues: v.channels })
+      }
+      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_OVERRIDE)) {
+        //const v = parseOutputOverrideResponse(msg)
+      }
+    })
+  })
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -159,33 +192,44 @@ const OutputTab = () => {
     writeMsp(createRebootRequest())
   }
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CONFIG)) {
-        const v = parseOutputConfigResponse(msg)
-        const d = configApiToForm(v)
-        reset({ ...getValues(), ...d })
-        console.log("recv", v, d)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)) {
-        const v = parseOutputChannelConfigResponse(msg)
-        const d = configChannelsApiToForm(v)
-        reset({ ...getValues(), ...d })
-        console.log("recv", v, d)
-      }
-    })
-  })
-
   const onLoad = useCallback(() => {
     console.log("load")
     writeMsp(createOutputConfigRequest())
     writeMsp(createOutputChannelConfigRequest())
   }, [writeMsp])
 
+  const onReset = useCallback(() => {
+    reset(OUTPUT_DFAULTS)
+  }, [reset])
+
   useEffect(() => {
-    if (!connected) reset(OUTPUT_DFAULTS)
+    if (!connected) onReset()
     else onLoad();
-  }, [connected, reset, onLoad])
+  }, [connected, onReset, onLoad])
+
+  // poll some msp messages
+  useIntervalMsp(useCallback(() => {
+    if (outputOverride) {
+      const count = getValues("outputCount")
+      const overrides = getValues("outputOverrides")
+      writeMsp(createOutputOverrideRequest({ count, values: overrides }))
+    }
+    writeMsp(createOutputRequest())
+  }, [outputOverride, getValues, writeMsp]), 300);
+
+  // clear override sliders when turned off
+  const prevOutputOverride = useRef(outputOverride);
+  useEffect(() => {
+    if (prevOutputOverride.current === true && outputOverride === false) {
+      const count = getValues("outputCount")
+      const overrides = getValues("outputChannels").map((c) => c.servo ? c.neutral : 1000)
+      writeMsp(createOutputOverrideRequest({ count, values: overrides }))
+      reset({...getValues(), outputOverrides: overrides})
+    }
+    prevOutputOverride.current = outputOverride;
+  }, [outputOverride, getValues, reset, writeMsp])
+
+  const [liveValues, liveOverrides] = watch(['outputValues', 'outputOverrides'])
 
   return <TabView title='Output' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
     <Row>
@@ -314,21 +358,59 @@ const OutputTab = () => {
     <Row>
       <Col>
         <Card className='mt-3'>
-          <Card.Header>Motor Test (DANGER ZONE)</Card.Header>
+          <Card.Header className="d-flex justify-content-between align-items-center">
+            Output Test (DANGER ZONE)
+            <Form.Switch label="I Understand a Risk" onChange={(e) => setOutputOverride(e.target.checked)} />
+          </Card.Header>
           <Card.Body>
-            <Form.Group as={Row} controlId="motorTest" className="mb-3">
-              <Col>
-                <Form.Switch />
+            {/* <Form.Group as={Row} controlId="motorTest" className="mb-3">
+              <Col sm={1}>
+                <Form.Switch onChange={(e) => setOutputOverride(e.target.checked)} />
               </Col>
-              <Form.Label column sm={11}><strong>I Understand a Risk</strong></Form.Label>
-            </Form.Group>
-            {[1, 2, 3, 4].map(motor => {
-              return <Form.Group key={motor} as={Row} controlId={`motor_${motor}`} className="mb-3">
-                <Form.Label column>{`M${motor}`}</Form.Label>
-                <Col sm={11}>
-                  <Form.Range min={0} max={100} step={1} defaultValue={0} />
+              <Col sm={11}>
+                <Form.Label><strong>I Understand a Risk</strong></Form.Label>
+              </Col>
+            </Form.Group> */}
+            {/* <Form.Group as={Row} controlId={`motor_all`} className="mb-3">
+              <Col sm={1}>
+                <Form.Label>{`M All`}</Form.Label>
+              </Col>
+              <Col sm={10}>
+                <Form.Range min={1000} max={2000} step={50} defaultValue={1000} disabled={!outputOverride} />
+              </Col>
+              <Col sm={1}>
+                1000
+              </Col>
+            </Form.Group> */}
+            {outputOverrides.map((v, i) => {
+              return <Form.Group key={v.id} as={Row} controlId={`motor_${i}`} className="mb-2">
+                <Col sm={1}>
+                  <Form.Label>{`${outputChannels[i].servo ? 'S' : 'M'}${i + 1}`}</Form.Label>
+                </Col>
+                <Col sm={10}>
+                  <Form.Range min={1000} max={2000} step={10} {...register(`outputOverrides.${i}`)} disabled={!outputOverride} />
+                </Col>
+                <Col sm={1}>
+                  {liveOverrides[i]}
                 </Col>
               </Form.Group>
+            })}
+          </Card.Body>
+        </Card>
+      </Col>
+      <Col>
+        <Card className='mt-3'>
+          <Card.Header>Output Status</Card.Header>
+          <Card.Body>
+            {outputValues.map((v, i) => {
+              return <Row key={v.id} className="mb-3">
+                <Col xs={2}>
+                  {`${outputChannels[i].servo ? 'S' : 'M'}${i + 1}`}
+                </Col>
+                <Col xs={10}>
+                  <ProgressBar key={i} now={liveValues[i]} label={`${liveValues[i]}`} min={1000} max={2000} animated={false} />
+                </Col>
+              </Row>
             })}
           </Card.Body>
         </Card>

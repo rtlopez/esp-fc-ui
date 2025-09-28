@@ -10,7 +10,8 @@ import {
   parseMixerNamesResponse, parseAccelConfigResponse, parseGyroConfigResponse,
   parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse,
   parseDebugNamesResponse, parseBlackboxNamesResponse, parseBlackboxConfigResponse,
-  parseFlashEraseResponse, parseFlashReadResponse, parseFlashLogsResponse
+  parseFlashEraseResponse, parseFlashReadResponse, parseFlashLogsResponse,
+  parseOutputOverrideResponse
 } from "../esp"
 
 export const MspState = {
@@ -100,6 +101,8 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_FLASH_LOGS: { value: 0x40, label: 'ESP_CMD_FLASH_LOGS', ...E, parse: parseFlashLogsResponse },
   ESP_CMD_FLASH_READ: { value: 0x41, label: 'ESP_CMD_FLASH_READ', ...E, parse: parseFlashReadResponse },
   ESP_CMD_FLASH_ERASE: { value: 0x42, label: 'ESP_CMD_FLASH_ERASE', ...E, parse: parseFlashEraseResponse },
+
+  ESP_CMD_OUTPUT_OVERRIDE: { value: 0x4a, label: 'ESP_CMD_OUTPUT_OVERRIDE', ...E, parse: parseOutputOverrideResponse },
 
   // ESP system commands
   ESP_CMD_DISABLE_ARM: { value: 0xf0, label: 'ESP_CMD_DISABLE_ARM', ...E },
