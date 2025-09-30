@@ -26,6 +26,7 @@ type FormValues = {
   accelDev: number
   magDev: number
   baroDev: number
+  alignment: number[]
 }
 
 const CONFIG_DEFAULTS = {
@@ -41,6 +42,7 @@ const CONFIG_DEFAULTS = {
   accelDev: 1,
   magDev: 1,
   baroDev: 1,
+  alignment: [0, 0, 0],
 }
 
 const CONFIG_DEFAULT_SERIAL_NAMES = [
@@ -57,6 +59,7 @@ const CONFIG_DEFAULT_FEATURE_NAMES = [
 ]
 
 const serialBauds = [9600, 19200, 57600, 115200, 230400, 250000, 460800, 500000, 921600, 1000000]
+
 const serialFunctions = [
   { id: 0, name: "None" },
   { id: 1 << 0, name: "Msp" },
@@ -131,12 +134,7 @@ const ConfigurationTab = () => {
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
-    writeMsp(createSensorConfigRequest({
-      loopSync: data.loopSync,
-      accelDev: data.accelDev,
-      baroDev: data.baroDev,
-      magDev: data.magDev,
-    }))
+    writeMsp(createSensorConfigRequest(data))
     writeMsp(createSerialConfigRequest({
       count: data.serialCount,
       configs: data.serialPorts.map((port) => ({
@@ -170,7 +168,7 @@ const ConfigurationTab = () => {
     const result = []
     for (let i = 1; i <= 8; i++) {
       const freq = Math.round(gyroFreq / i)
-      if(freq < 500) break
+      if (freq < 500) break
       result.push({ id: i, name: `[${i}] ${freq} Hz` })
     }
     return result
@@ -180,7 +178,6 @@ const ConfigurationTab = () => {
     <Row>
 
       <Col md={6}>
-
         <Card className='mb-3'>
           <Card.Header>System</Card.Header>
           <Card.Body>
@@ -208,7 +205,7 @@ const ConfigurationTab = () => {
       </Col>
 
       <Col md={6}>
-        <Card>
+        <Card className='mb-3'>
           <Card.Header>Serial Ports</Card.Header>
           <Card.Body>
             <Row className='mb-3'>

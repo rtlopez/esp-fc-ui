@@ -589,6 +589,7 @@ export interface EspSensorConfigResponse {
   accelDev: number
   baroDev: number
   magDev: number
+  alignment: number[]
 }
 
 export const createSensorConfigRequest = (data?: EspSensorConfigResponse): MspMessage => {
@@ -598,6 +599,9 @@ export const createSensorConfigRequest = (data?: EspSensorConfigResponse): MspMe
     msg.writeU8(data.accelDev)
     msg.writeU8(data.baroDev)
     msg.writeU8(data.magDev)
+    msg.writeU16(data.alignment[0])
+    msg.writeU16(data.alignment[1])
+    msg.writeU16(data.alignment[2])
   }
   return msg
 }
@@ -609,6 +613,11 @@ export const parseSensorConfigResponse = (msg: MspMessage): EspSensorConfigRespo
     accelDev: reader.readU8(),
     baroDev: reader.readU8(),
     magDev: reader.readU8(),
+    alignment: [
+      reader.read16(),
+      reader.read16(),
+      reader.read16(),
+    ]
   }
 }
 

@@ -22,6 +22,7 @@ type FormValues = {
   accelDev: number
   magDev: number
   baroDev: number
+  alignment: number[]
   gyroAlign: number
   gyroLpf0: FormLpf
   gyroLpf1: FormLpf
@@ -59,6 +60,7 @@ const SENSOR_DEFAULTS = {
   baroLpf: { type: 1, freq: 3 },
   magAlign: 0,
   magLpf: { type: 0, freq: 10 },
+  alignment: [0, 0, 0],
 }
 
 const deviceModes = [
@@ -90,6 +92,12 @@ const filterTypes = [
   { id: 8, name: "FIR2" },
   { id: 9, name: "Median 3" },
   { id: 10, name: "None" },
+]
+
+const axes = [
+  { id: 0, name: "Roll" },
+  { id: 1, name: "Pitch" },
+  { id: 2, name: "Yaw" },
 ]
 
 const SensorsTab = () => {
@@ -147,12 +155,7 @@ const SensorsTab = () => {
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
-    writeMsp(createSensorConfigRequest({
-      loopSync: data.loopSync,
-      accelDev: data.accelDev,
-      baroDev: data.baroDev,
-      magDev: data.magDev,
-    }))
+    writeMsp(createSensorConfigRequest(data))
     writeMsp(createGyroConfigRequest({
       align: data.gyroAlign,
       lpf: [
@@ -213,6 +216,17 @@ const SensorsTab = () => {
     <Row>
 
       <Col md={6}>
+        <Card className='mb-3'>
+          <Card.Header>Board Orientation</Card.Header>
+          <Card.Body>
+            {axes.map(({ id, name }) => {
+              return <FormItem key={id} id="loopSync" label={`${name} [°]`}>
+                <Form.Control type="number" min={-180} max={180} step={1} {...register(`alignment.${id}`)} />
+              </FormItem>
+            })}
+          </Card.Body>
+        </Card>
+
         <Card className='mb-3'>
           <Card.Header>Gyroscope</Card.Header>
           <Card.Body>
@@ -299,9 +313,7 @@ const SensorsTab = () => {
 
           </Card.Body>
         </Card>
-      </Col>
 
-      <Col md={6}>
         <Card className="mb-3">
           <Card.Header>Accelerometer</Card.Header>
           <Card.Body>
