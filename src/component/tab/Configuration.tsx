@@ -74,7 +74,7 @@ const ConfigurationTab = () => {
 
   const [serialNames, setSerialNames] = useState(CONFIG_DEFAULT_SERIAL_NAMES)
   const [featureNames, setFeatureNames] = useState(CONFIG_DEFAULT_FEATURE_NAMES)
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
   const { status } = useBoardinfo()
 
   const {
@@ -130,7 +130,7 @@ const ConfigurationTab = () => {
         console.log("recv", v)
       }
     })
-  })
+  }, [subscribeMsp, getValues, reset])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -158,10 +158,9 @@ const ConfigurationTab = () => {
     writeMsp(createFeaturesConfigRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) reset(CONFIG_DEFAULTS);
-    else onLoad();
-  }, [connected, reset, onLoad])
+  const onReset = useCallback(() => {
+    reset(CONFIG_DEFAULTS)
+  }, [reset])
 
   const loopSyncItems = useMemo(() => {
     const gyroFreq = 1000000 / (status?.gyroTimeUs || 500)
@@ -174,7 +173,7 @@ const ConfigurationTab = () => {
     return result
   }, [status?.gyroTimeUs])
 
-  return <TabView title='Configuration' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Configuration' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>
@@ -182,7 +181,7 @@ const ConfigurationTab = () => {
           <Card.Header>System</Card.Header>
           <Card.Body>
 
-            <FormItem id="loopSync" label="PID Loop Rate">
+            <FormItem id="loopSync" label="PID Rate">
               <Form.Select {...register("loopSync", { valueAsNumber: true })}>
                 {loopSyncItems.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </Form.Select>

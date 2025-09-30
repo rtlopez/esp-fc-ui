@@ -64,7 +64,7 @@ const INPUT_DEFAULTS = {
 const InputTab = () => {
 
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp, useIntervalMsp } = useMsp()
 
   const {
     control,
@@ -104,7 +104,7 @@ const InputTab = () => {
         console.log("recv", v, channels)
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -132,18 +132,15 @@ const InputTab = () => {
     writeMsp(createInputChannelConfigRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) return;
-    else onLoad();
-    const interval = setInterval(() => {
-      writeMsp(createInputRequest())
-    }, 300);
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [connected, writeMsp, onLoad]);
+  const onReset = useCallback(() => {
+    reset(INPUT_DEFAULTS)
+  }, [reset])
 
-  return <TabView title='Input' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  useIntervalMsp(useCallback(() => {
+    writeMsp(createInputRequest())
+  }, [writeMsp]), 300)
+
+  return <TabView title='Input' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col lg={6}>

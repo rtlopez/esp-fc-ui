@@ -17,7 +17,7 @@ const INPUT_DEFAULTS = {
 
 const TemplateTab = () => {
 
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
 
   const {
     //control,
@@ -41,7 +41,7 @@ const TemplateTab = () => {
       //   console.log("recv", v)
       // }
     })
-  })
+  }, [subscribeMsp])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -57,12 +57,11 @@ const TemplateTab = () => {
     //writeMsp(createInputConfigRequest())
   }, [])
 
-  useEffect(() => {
-    if (!connected) reset(INPUT_DEFAULTS);
-    else onLoad();
-  }, [connected, reset, onLoad]);
+  const onReset = useCallback(() => {
+    reset(INPUT_DEFAULTS);
+  }, [reset]);
 
-  return <TabView title='Status' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Status' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

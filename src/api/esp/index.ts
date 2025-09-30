@@ -877,6 +877,26 @@ export const parseBlackboxConfigResponse = (msg: MspMessage): EspBlackboxConfig 
   }
 }
 
+export type EspCalibrate = {
+  mode: number
+}
+
+export const parseCalibrateResponse = (msg: MspMessage): EspCalibrate => {
+  const reader = msg.getReader()
+  return {
+    mode: reader.readU8(),
+  }
+}
+
+export const createCalibrateRequest = (data?: EspCalibrate): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_CALIBRATE)
+  if(data) {
+    msg.writeU8(data.mode)
+  }
+  return msg
+}
+
+
 export type EspFlashLogsItem = {
   address: number
   size: number
@@ -1046,7 +1066,7 @@ export const parseDisableArmResponse = (_msg: MspMessage) => {
   return {}
 }
 
-export const createDefaultsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_SAVE)
+export const createDefaultsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_DEFAULTS)
 export const parseDefaultsResponse = (_msg: MspMessage) => {
   return {}
 }

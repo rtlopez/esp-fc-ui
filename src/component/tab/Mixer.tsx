@@ -148,7 +148,7 @@ const DronePreview: FC<DronePreviewProps> = ({ yawReverse }) => {
 const MixerTab = () => {
 
   const [mixerNames, setMixerNames] = useState(MIXER_NAMES)
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
 
   const {
     //control,
@@ -175,7 +175,7 @@ const MixerTab = () => {
         console.log("recv", v)
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -189,14 +189,14 @@ const MixerTab = () => {
     writeMsp(createMixerConfigRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) { setMixerNames(MIXER_NAMES); reset(MIXER_DEFAULTS); }
-    else onLoad();
-  }, [connected, reset, onLoad]);
+  const onReset = useCallback(() => {
+    setMixerNames(MIXER_NAMES);
+    reset(MIXER_DEFAULTS);
+  }, [reset]);
 
   const yawReverse = watch("yawReverse")
 
-  return <TabView title='Status' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Status' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

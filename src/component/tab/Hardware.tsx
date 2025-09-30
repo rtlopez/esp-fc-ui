@@ -106,7 +106,7 @@ const getFunctionName = (type: number, index: number): string => {
 
 const HardwareTab = () => {
 
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
 
   const {
     control,
@@ -119,10 +119,7 @@ const HardwareTab = () => {
     defaultValues: {}
   });
 
-  const { fields: pins } = useFieldArray({
-    control,
-    name: "pins",
-  });
+  const { fields: pins } = useFieldArray({ control, name: "pins" });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     writeMsp(createPinConfigRequest(data))
@@ -138,17 +135,16 @@ const HardwareTab = () => {
         console.log("recv", v)
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues])
 
   const onLoad = useCallback(() => {
     console.log("load")
     writeMsp(createPinConfigRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) reset(PIN_DFAULTS);
-    else onLoad();
-  }, [connected, reset, onLoad])
+  const onReset = useCallback(() => {
+    reset(PIN_DFAULTS);
+  }, [reset])
 
   const grouped = pins.reduce((acc, curr, i) => {
     curr.key = i
@@ -163,7 +159,7 @@ const HardwareTab = () => {
     return acc
   }, {} as Record<number, PinFunction[]>)
 
-  return <TabView title='Hardware' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Hardware' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
       {Object.entries(grouped).map(([func, funcPins], k) => {
         return <Col lg={6} key={k}>

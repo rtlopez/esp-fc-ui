@@ -102,7 +102,7 @@ const axes = [
 
 const SensorsTab = () => {
 
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
 
   const {
     //control,
@@ -151,7 +151,7 @@ const SensorsTab = () => {
         console.log("recv", v)
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -207,12 +207,11 @@ const SensorsTab = () => {
     writeMsp(createMagConfigRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) reset(SENSOR_DEFAULTS);
-    else onLoad();
-  }, [connected, reset, onLoad]);
+  const onReset = useCallback(() => {
+    reset(SENSOR_DEFAULTS);
+  }, [reset]);
 
-  return <TabView title='Sensors' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Sensors' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

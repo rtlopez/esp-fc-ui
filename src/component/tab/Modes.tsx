@@ -73,7 +73,7 @@ const ModesTab = () => {
 
   const [modeNames, setModeNames] = useState(MODE_NAMES_DEFAULT)
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { writeMsp, subscribeMsp, useIntervalMsp } = useMsp()
 
   const {
     control,
@@ -106,7 +106,7 @@ const ModesTab = () => {
         setInputs(parseInputResponse(msg))
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     writeMsp(createModesConfigRequest({
@@ -121,26 +121,16 @@ const ModesTab = () => {
     writeMsp(createModesConfigRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) {
-      reset(MODES_DEFAULTS);
-      setModeNames(MODE_NAMES_DEFAULT)
-    }
-    else onLoad();
-  }, [connected, reset, onLoad]);
+  const onReset = useCallback(() => {
+    reset(MODES_DEFAULTS);
+    setModeNames(MODE_NAMES_DEFAULT)
+  }, [reset]);
 
-  useEffect(() => {
-    if (!connected) return;
-    else onLoad();
-    const interval = setInterval(() => {
-      writeMsp(createInputRequest())
-    }, 500);
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [connected, writeMsp, onLoad]);
+  useIntervalMsp(useCallback(() => {
+    writeMsp(createInputRequest())
+  }, [writeMsp]), 300)
 
-  return <TabView title='Modes' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Modes' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col>

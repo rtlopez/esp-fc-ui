@@ -76,7 +76,7 @@ const TuningTab = () => {
         cmdPendingRef.current = false
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -100,10 +100,9 @@ const TuningTab = () => {
     writeMsp(createPidTuningRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) reset(PID_TUNING_DEFAULTS);
-    else onLoad();
-  }, [connected, reset, onLoad]);
+  const onReset = useCallback(() => {
+    reset(PID_TUNING_DEFAULTS);
+  }, [reset]);
 
   const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = watch(
     ["mode", "rpGain", "rpStability", "rpAgility", "rpBalance", "yawGain", "yawStability"]
@@ -127,7 +126,7 @@ const TuningTab = () => {
     }));
   }, [connected, mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability, getValues, writeMsp]);
 
-  return <TabView title='Tuning' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Tuning' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

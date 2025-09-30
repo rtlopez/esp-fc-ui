@@ -201,11 +201,6 @@ const OutputTab = () => {
     setOutputOverride(false)
   }, [reset])
 
-  useEffect(() => {
-    if (!connected) onReset()
-    else onLoad();
-  }, [connected, onReset, onLoad])
-
   // poll some msp messages
   useIntervalMsp(useCallback(() => {
     if (outputOverride) {
@@ -239,7 +234,7 @@ const OutputTab = () => {
     setOutputOverrides(copy)
   }, [outputOverrides, getValues])
 
-  return <TabView title='Output' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Output' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

@@ -101,7 +101,7 @@ const LoggingTab = () => {
   const [inProgress, setInProgress] = useState(false)
   const [logs, setLogs] = useState(LOGS_DEFAULT)
   const [showConfirm, setShowConfirm] = useState(false);
-  const [dnldPerc, setdnldPerc] = useState(0);
+  const [dnldPerc, setDnldPerc] = useState(0);
   const { connected, writeMsp, subscribeMsp } = useMsp()
   const { status, statistics } = useBoardinfo()
   const { append, finalize, clear } = useBlobAccumulator("application/octet-stream")
@@ -146,7 +146,7 @@ const LoggingTab = () => {
           // calc dnld proggress
           const dnldProgress = Math.round(100 * v.address / statistics.flashUsed)
           if (dnldPerc !== dnldProgress) {
-            setdnldPerc(dnldProgress)
+            setDnldPerc(dnldProgress)
           }
           // calc next chunk address
           const address = v.address + v.size
@@ -162,7 +162,7 @@ const LoggingTab = () => {
             const blob = finalize()
             clear()
             download(blob, `espfc_log_${dateStr()}.bbl`)
-            setdnldPerc(0)
+            setDnldPerc(0)
           }
         } else {
           // flash empty
@@ -170,7 +170,7 @@ const LoggingTab = () => {
         }
       }
     })
-  })
+  }, [subscribeMsp, reset, getValues, writeMsp, append, clear, setDnldPerc, dnldPerc, finalize, statistics?.flashUsed])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -187,14 +187,12 @@ const LoggingTab = () => {
     writeMsp(createFlashLogsRequest())
   }, [writeMsp])
 
-  useEffect(() => {
-    if (!connected) {
-      setDebugNames(DEBUG_NAMES_DEFAULT)
-      setFieldNames(FIELD_NAMES_DEFAULT)
-      reset(LOGGING_DEFAULTS)
-      setLogs(LOGS_DEFAULT)
-    } else onLoad();
-  }, [connected, reset, onLoad]);
+  const onReset = useCallback(() => {
+    setDebugNames(DEBUG_NAMES_DEFAULT)
+    setFieldNames(FIELD_NAMES_DEFAULT)
+    setLogs(LOGS_DEFAULT)
+    reset(LOGGING_DEFAULTS)
+  }, [reset]);
 
   const denomItems = useMemo(() => {
     const loopFreq = 1000000 / (status?.loopTimeUs || 1000)
@@ -231,7 +229,7 @@ const LoggingTab = () => {
     }
   }
 
-  return <TabView title='Logging' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad}>
+  return <TabView title='Logging' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

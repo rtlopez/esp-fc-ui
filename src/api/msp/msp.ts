@@ -11,7 +11,8 @@ import {
   parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse,
   parseDebugNamesResponse, parseBlackboxNamesResponse, parseBlackboxConfigResponse,
   parseFlashEraseResponse, parseFlashReadResponse, parseFlashLogsResponse,
-  parseOutputOverrideResponse
+  parseOutputOverrideResponse,
+  parseCalibrateResponse
 } from "../esp"
 
 export const MspState = {
@@ -90,7 +91,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_MAG_CONFIG: { value: 0x34, label: 'ESP_CMD_MAG_CONFIG', ...E, parse: parseMagConfigResponse },
   ESP_CMD_FEATURE_CONFIG: { value: 0x35, label: 'ESP_CMD_FEATURE_CONFIG', ...E, parse: parseFeaturesConfigResponse },
   ESP_CMD_MODEL_CONFIG: { value: 0x36, label: 'ESP_CMD_MODEL_CONFIG', ...E },
-  ESP_CMD_CALIBRATE: { value: 0x37, label: 'ESP_CMD_CALIBRATE', ...E },
+  ESP_CMD_CALIBRATE: { value: 0x37, label: 'ESP_CMD_CALIBRATE', ...E, parse: parseCalibrateResponse },
   ESP_CMD_ESC_PASSTHROUGH: { value: 0x38, label: 'ESP_CMD_ESC_PASSTHROUGH', ...E },
   ESP_CMD_ALIGNMENT_CONFIG: { value: 0x39, label: 'ESP_CMD_ALIGNMENT_CONFIG', ...E },
   ESP_CMD_PIN_CONFIG: { value: 0x3a, label: 'ESP_CMD_PIN_CONFIG', ...E, parse: parsePinConfigResponse },

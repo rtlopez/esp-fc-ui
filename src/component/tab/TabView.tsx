@@ -9,12 +9,18 @@ type TabViewProps = {
   reboot?: boolean
   onSubmit?: FormEventHandler
   onLoad?: () => void
+  onReset?: () => void
 } & PropsWithChildren
 
-const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad }) => {
+const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad, onReset }) => {
 
   const { connected, subscribeMsp } = useMsp()
-  const [ saving, setSaving ] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!connected) onReset?.()
+    else onLoad?.()
+  }, [connected, onReset, onLoad])
 
   useEffect(() => {
     return subscribeMsp((msg) => {
@@ -31,7 +37,7 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
 
   const submitHandler = useCallback(((e: FormEvent<Element>) => {
     console.log("save")
-    if(onSubmit) {
+    if (onSubmit) {
       setSaving(true)
       setTimeout(() => setSaving(false), 1000)
       onSubmit(e)
@@ -51,7 +57,7 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
           disabled={!connected}
           onClick={(e) => {
             e.preventDefault();
-            if (onLoad) onLoad()
+            onLoad?.()
           }}
         >
           <i className='bi bi-box-arrow-in-up'></i> Load
