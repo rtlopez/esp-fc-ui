@@ -61,7 +61,7 @@ const TesterTab = () => {
     borderRadius: 'var(--bs-border-radius)',
     background: 'var(--bs-tertiary-bg)',
     color: 'var(--bs-tertiary-color)',
-    padding: '2px', margin: '2px', minHeight: '400px', maxHeight: '400px'
+    padding: '2px', margin: '2px', minHeight: '550px', maxHeight: '550px'
   }
   const preRef = useRef<HTMLPreElement>(null);
   useEffect(() => {

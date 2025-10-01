@@ -1,4 +1,5 @@
-import { Button, Container, Navbar } from "react-bootstrap"
+import { Button, Container, Navbar, Toast, ToastContainer } from "react-bootstrap"
+import { useBoardinfo } from "@/api/BoardInfoProvider"
 import Connect from "./Connect"
 
 type TopBarProps = {
@@ -7,17 +8,35 @@ type TopBarProps = {
 
 const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
 
-  return <Navbar expand="lg" bg="secondary">
-    <Container fluid>
+  const { error, clearError } = useBoardinfo()
 
-      <Button variant="outline-light" className="me-2 d-lg-none" onClick={menuShow}>
-        <i className="bi bi-list" />
-      </Button>
-      <Navbar.Brand as="h1"><i className="bi bi-radar"></i> ESP-FC UI</Navbar.Brand>
-      <Connect />
+  return <>
+    <Navbar expand="lg" bg="secondary">
+      <Container fluid>
 
-    </Container>
-  </Navbar>
+        <Button variant="outline-light" className="me-2 d-lg-none" onClick={menuShow}>
+          <i className="bi bi-list" />
+        </Button>
+        <Navbar.Brand as="h1"><i className="bi bi-radar"></i> ESP-FC UI</Navbar.Brand>
+        <Connect />
+
+      </Container>
+    </Navbar>
+    <ToastContainer
+      className="p-3"
+      position="top-center"
+      style={{ zIndex: 1 }}
+    >
+      <Toast show={!!error} onClose={clearError} delay={10000} autohide>
+        <Toast.Header>
+          Error
+        </Toast.Header>
+        <Toast.Body>
+          {error}
+        </Toast.Body>
+      </Toast>
+    </ToastContainer>
+  </>
 }
 
 export default TopBar

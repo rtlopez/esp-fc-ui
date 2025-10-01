@@ -11,8 +11,7 @@ import {
   parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse,
   parseDebugNamesResponse, parseBlackboxNamesResponse, parseBlackboxConfigResponse,
   parseFlashEraseResponse, parseFlashReadResponse, parseFlashLogsResponse,
-  parseOutputOverrideResponse,
-  parseCalibrateResponse
+  parseOutputOverrideResponse, parseCalibrateResponse, parseMspVersionResponse
 } from "../esp"
 
 export const MspState = {
@@ -113,7 +112,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_REBOOT: { value: 0xf3, label: 'ESP_CMD_REBOOT', ...E, group: 'system' },
 
   // MSP commands
-  MSP_API_VERSION: { value: 1, label: 'MSP_API_VERSION', ...M, group: 'info' },
+  MSP_API_VERSION: { value: 1, label: 'MSP_API_VERSION', ...M, parse: parseMspVersionResponse, group: 'info' },
   MSP_FC_VARIANT: { value: 2, label: 'MSP_FC_VARIANT', ...M, group: 'info' },
   MSP_FC_VERSION: { value: 3, label: 'MSP_FC_VERSION', ...M, group: 'info' },
   MSP_BOARD_INFO: { value: 4, label: 'MSP_BOARD_INFO', ...M, group: 'info' },

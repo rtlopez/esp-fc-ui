@@ -1,6 +1,6 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
-import { MspMessage, mspParse } from "@/api/msp/msp"
+import { MspCommand, MspMessage, mspParse } from "@/api/msp/msp"
 
 type MspMessageCallback = (message: MspMessage) => void
 type TextMessageCallback = (message: string) => void
@@ -87,6 +87,13 @@ class TimedLock {
 
 type MspProviderProps = PropsWithChildren & {}
 
+const logMsg = (msg: MspMessage) => {
+  if (msg.variant === 'E') {
+    return msg.cmd === MspCommand.ESP_CMD_VERSION.value || msg.cmd >= MspCommand.ESP_CMD_MODE_NAMES.value
+  }
+  return true
+}
+
 const MspProvider = ({
   children,
 }: MspProviderProps) => {
@@ -109,7 +116,7 @@ const MspProvider = ({
       if (consumed) {
         if (msgRef.current.isReplyReceived()) {
           // notify msp subscribers
-          if (msgRef.current.cmd > 0xf) console.log("msp.recv", msgRef.current.cmd.toString(16).toUpperCase(), msgRef.current.toArray())
+          if (logMsg(msgRef.current)) console.log("msp.recv", msgRef.current.variant, msgRef.current.cmd.toString(16).toUpperCase(), msgRef.current.toArray())
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
@@ -138,7 +145,7 @@ const MspProvider = ({
   }
 
   const writeMsp = async (msg: MspMessage) => {
-    if (msg.cmd > 0xf) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.cmd.toString(16).toUpperCase())
+    if (logMsg(msg)) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.variant, msg.cmd.toString(16).toUpperCase())
     msgQueueRef.current.enqueue(msg)
   }
 
@@ -169,7 +176,7 @@ const MspProvider = ({
       if (connected && !msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
-        if (msg.cmd > 0xf) console.log("msp.send", msg.cmd.toString(16).toUpperCase(), msg.toArray())
+        if (logMsg(msg)) console.log("msp.send", msg.variant, msg.cmd.toString(16).toUpperCase(), msg.toArray())
         await write(msg.toDataBuffer())
       }
     }, 5);

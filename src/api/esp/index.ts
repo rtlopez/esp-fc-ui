@@ -33,6 +33,28 @@ export const parseVersionResponse = (msg: MspMessage): EspVersionResponse => {
   return v
 }
 
+export interface MspVersionResponse {
+  proto: number
+  major: number
+  minor: number
+  magic: number
+}
+
+export const createMspVersionRequest = (): MspMessage => new MspMessage(MspCommand.MSP_API_VERSION)
+export const parseMspVersionResponse = (msg: MspMessage): MspVersionResponse => {
+  const reader = msg.getReader()
+  const v = {
+    proto: reader.readU8(),
+    major: reader.readU8(),
+    minor: reader.readU8(),
+    magic: 0,
+  }
+  if(reader.remain() > 0) {
+    v.magic = reader.readU8()
+  }
+  return v
+}
+
 export interface EspStatusResponse {
   sensors: number
   gyroTimeUs: number
