@@ -1,5 +1,4 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from "react"
-import { useSerial } from "./serial/SerialProvider"
 import { useMsp } from "./msp/MspProvider"
 import { MspCommand, MspMessage } from "./msp/msp"
 import {
@@ -28,8 +27,7 @@ const BoardInfoProvider = ({
   children,
 }: BoardInfoProviderProps) => {
 
-  const { connected } = useSerial()
-  const { cliActive, subscribeMsp, writeMsp } = useMsp()
+  const { connected, cliActive, subscribeMsp, writeMsp } = useMsp()
   const [version, setVersion] = useState<EspVersionResponse | null>(null)
   const [status, setStatus] = useState<EspStatusResponse | null>(null)
   const [statistics, setStatistics] = useState<EspStatisticsResponse | null>(null)

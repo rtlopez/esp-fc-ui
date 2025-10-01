@@ -1,6 +1,6 @@
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspMessage, MspCommand, MspVariant, mspCommandFromValue } from "@/api/msp/msp"
+import { MspMessage, MspCommand, MspVariant, mspCommandFromValue, MspCommandEntry } from "@/api/msp/msp"
 import { Button, Col, Form, Row } from 'react-bootstrap'
 import TabView from './TabView'
 
@@ -100,11 +100,22 @@ const TesterTab = () => {
       <Col xl={3} xs={4}>
         <Form.Select onChange={(e) => setMspCode(+e.target.value)} defaultValue={mspCode}>
           <option key={0} value={0}>Select</option>
-          {(Object
-            .values(MspCommand)
-            .filter((c) => c.variant! === mspVariant))
-            .map(({ value, label, variant }) => <option key={variant + value} value={value}>{`${label} (${value})`}</option>)
-          }
+          {Object.entries(Object.values(MspCommand)
+            .filter((c) => c.variant! === mspVariant)
+            .reduce((groups: Record<string, MspCommandEntry[]>, command) => {
+              const group = command.group || 'Other';
+              groups[group] = [...(groups[group] || []), command];
+              return groups;
+            }, {}))
+            .map(([group, commands]) => (
+              <optgroup key={group} label={group}>
+                {commands.map(({ value, label, variant }) => (
+                  <option key={variant + value} value={value}>
+                    {`${label} (0x${value.toString(16).toUpperCase().padStart(2, '0')})`}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
         </Form.Select>
       </Col>
       <Col xl={2} xs={4}>
