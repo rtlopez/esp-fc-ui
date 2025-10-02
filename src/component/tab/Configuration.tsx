@@ -89,7 +89,6 @@ const ConfigurationTab = () => {
   });
 
   const { fields: serialPorts } = useFieldArray({ control, name: "serialPorts" });
-  const { fields: features } = useFieldArray({ control, name: "features" });
 
   useEffect(() => {
     return subscribeMsp((msg) => {
@@ -193,7 +192,7 @@ const ConfigurationTab = () => {
         <Card className='mb-3'>
           <Card.Header>Features</Card.Header>
           <Card.Body>
-            {features.map((_feature, id) => {
+            {Array.from({ length: 32 }).map((_, id) => {
               const featureName = featureNames.find(f => f.id == id)?.name
               return featureName ? <Form.Group key={id} as={Col} controlId={`feature_${id}`} className="mb-3">
                 <Form.Switch {...register(`features.${id}`)} label={featureName} />

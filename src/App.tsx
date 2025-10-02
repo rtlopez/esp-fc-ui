@@ -3,7 +3,7 @@ import SerialProvider from '@/api/serial/SerialProvider'
 import MspProvider from '@/api/msp/MspProvider'
 import BoardInfoProvider from '@/api/BoardInfoProvider'
 import Layout from '@/component/Layout'
-import { Route, Switch } from 'wouter'
+import { Route, Switch, Router } from 'wouter'
 import {
   HardwareTab, InputTab, OutputTab, StatusTab,
   TesterTab, TuningTab, SensorsTab, ConfigurationTab,
@@ -15,22 +15,24 @@ const App = () => {
     <SerialProvider>
       <MspProvider>
         <BoardInfoProvider>
-          <Layout>
-            <Switch>
-              <Route path="/"><StatusTab /></Route>
-              <Route path="/hardware"><HardwareTab /></Route>
-              <Route path="/sensors"><SensorsTab /></Route>
-              <Route path="/input"><InputTab /></Route>
-              <Route path="/output"><OutputTab /></Route>
-              <Route path="/mixer"><MixerTab /></Route>
-              <Route path="/configuration"><ConfigurationTab /></Route>
-              <Route path="/tuning"><TuningTab /></Route>
-              <Route path="/modes"><ModesTab /></Route>
-              <Route path="/logging"><LoggingTab /></Route>
-              <Route path="/cli"><TesterTab /></Route>
-              <Route><h1>Tab Not Found!</h1></Route>
-            </Switch>
-          </Layout>
+          <Router base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Layout>
+              <Switch>
+                <Route path="/"><StatusTab /></Route>
+                <Route path="/hardware"><HardwareTab /></Route>
+                <Route path="/sensors"><SensorsTab /></Route>
+                <Route path="/input"><InputTab /></Route>
+                <Route path="/output"><OutputTab /></Route>
+                <Route path="/mixer"><MixerTab /></Route>
+                <Route path="/configuration"><ConfigurationTab /></Route>
+                <Route path="/tuning"><TuningTab /></Route>
+                <Route path="/modes"><ModesTab /></Route>
+                <Route path="/logging"><LoggingTab /></Route>
+                <Route path="/cli"><TesterTab /></Route>
+                <Route><h1>Not Found!</h1></Route>
+              </Switch>
+            </Layout>
+          </Router>
         </BoardInfoProvider>
       </MspProvider>
     </SerialProvider>
