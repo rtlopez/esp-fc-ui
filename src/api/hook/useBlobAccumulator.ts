@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react"
 
 export function useBlobAccumulator(mimeType?: string) {
-  const chunksRef = useRef<Uint8Array[]>([])
+  const chunksRef = useRef<Uint8Array<ArrayBuffer>[]>([])
   const totalLengthRef = useRef(0)
   const [blob, setBlob] = useState<Blob | null>(null)
 
   // append chunk
-  const append = useCallback((chunk: Uint8Array) => {
+  const append = useCallback((chunk: Uint8Array<ArrayBuffer>) => {
     chunksRef.current.push(chunk)
     totalLengthRef.current += chunk.byteLength
   }, [])
