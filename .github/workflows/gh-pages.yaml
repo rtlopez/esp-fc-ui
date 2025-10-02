@@ -1,4 +1,4 @@
-name: Build and Deploy Vite App to GitHub Pages
+name: build-esp-fc-ui
 
 on:
   push:
