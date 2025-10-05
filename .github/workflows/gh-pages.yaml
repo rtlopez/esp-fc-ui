@@ -49,8 +49,17 @@ jobs:
           name: production-files
           path: ./dist
 
+      # - name: Prepare tag
+      #   id: prepare_tag
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   run: |
+      #     echo "DEPLOY_TAG_NAME=deploy-${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          commit_message: ${{ github.event.head_commit.message }}
+          #tag_name: ${{ steps.prepare_tag.outputs.DEPLOY_TAG_NAME }}
+          #tag_message: 'Deployment ${{ github.ref_name }}'

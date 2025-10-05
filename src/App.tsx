@@ -7,7 +7,7 @@ import { Route, Switch, Router } from 'wouter'
 import {
   HardwareTab, InputTab, OutputTab, StatusTab,
   TesterTab, TuningTab, SensorsTab, ConfigurationTab,
-  MixerTab, ModesTab, LoggingTab
+  MixerTab, ModesTab, LoggingTab, FlashTab,
 } from './component/tab'
 
 const App = () => {
@@ -29,6 +29,7 @@ const App = () => {
                 <Route path="/modes"><ModesTab /></Route>
                 <Route path="/logging"><LoggingTab /></Route>
                 <Route path="/cli"><TesterTab /></Route>
+                <Route path="/flash"><FlashTab /></Route>
                 <Route><h1>Not Found!</h1></Route>
               </Switch>
             </Layout>

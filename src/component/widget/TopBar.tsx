@@ -1,6 +1,7 @@
 import { Button, Container, Navbar, Toast, ToastContainer } from "react-bootstrap"
 import { useBoardinfo } from "@/api/BoardInfoProvider"
 import Connect from "./Connect"
+import Flash from "./Flash"
 
 type TopBarProps = {
   menuShow: () => void
@@ -18,7 +19,10 @@ const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
           <i className="bi bi-list" />
         </Button>
         <Navbar.Brand as="h1"><i className="bi bi-radar"></i> ESP-FC UI</Navbar.Brand>
-        <Connect />
+        <span>
+          <Flash />
+          <Connect />
+        </span>
 
       </Container>
     </Navbar>
