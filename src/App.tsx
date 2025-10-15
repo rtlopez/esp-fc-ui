@@ -10,6 +10,9 @@ import {
   MixerTab, ModesTab, LoggingTab, FlashTab,
 } from './component/tab'
 
+// https://blog.logrocket.com/react-hook-form-vs-react-19/
+// https://react.dev/learn/you-might-not-need-an-effect
+
 const App = () => {
   return (
     <SerialProvider>

@@ -93,6 +93,7 @@ const BoardInfoProvider = ({
         }, 5000)
       }
     } else if (!connected && version !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVersion(null)
       setStatus(null)
       setStatistics(null)

@@ -43,7 +43,7 @@ const armingDisableFlags: Record<number, string> = {
 
 export const parseArmingDisableFlags = (flags: number): string[] => {
   const result = []
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i <= 25; i++) {
     if (flags & (1 << i)) result.push(armingDisableFlags[i])
   }
   return result

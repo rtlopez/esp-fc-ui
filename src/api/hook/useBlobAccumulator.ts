@@ -1,6 +1,19 @@
 import { useCallback, useRef, useState } from "react"
 
-export function useBlobAccumulator(mimeType?: string) {
+const download = (blob: Blob, filename: string): void => {
+  const a = document.createElement('a')
+  a.setAttribute('href', URL.createObjectURL(blob))
+  a.setAttribute('download', filename)
+  a.click()
+}
+
+const dateStr = (d: Date = new Date()): string => {
+  const iso = d.toISOString(); // "2025-09-24T13:45:30.123Z"
+  const safe = iso.replace(/[-:TZ.]/g, "").slice(2, 14);
+  return safe.slice(0, 6) + "_" + safe.slice(6)
+}
+
+export const useBlobAccumulator = (mimeType?: string) => {
   const chunksRef = useRef<Uint8Array<ArrayBuffer>[]>([])
   const totalLengthRef = useRef(0)
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -41,6 +54,8 @@ export function useBlobAccumulator(mimeType?: string) {
     finalize,
     getArrayBuffer,
     clear,
+    download,
+    dateStr,
     blob,
   }
 }

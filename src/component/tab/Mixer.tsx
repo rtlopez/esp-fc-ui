@@ -6,7 +6,7 @@ import {
   createMixerConfigRequest, createMixerNamesRequest, createSaveRequest,
   EspNameElement, parseMixerConfigResponse, parseMixerNamesResponse
 } from '@/api/esp'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { SubmitHandler, useForm, useWatch } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
 
@@ -151,12 +151,11 @@ const MixerTab = () => {
   const { writeMsp, subscribeMsp } = useMsp()
 
   const {
-    //control,
+    control,
     register,
     handleSubmit,
     reset,
     getValues,
-    watch
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: MIXER_DEFAULTS
@@ -194,7 +193,7 @@ const MixerTab = () => {
     reset(MIXER_DEFAULTS);
   }, [reset]);
 
-  const yawReverse = watch("yawReverse")
+  const yawReverse = useWatch({ control, name: 'yawReverse'})
 
   return <TabView title='Status' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>

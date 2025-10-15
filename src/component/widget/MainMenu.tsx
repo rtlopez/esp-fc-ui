@@ -19,6 +19,7 @@ const menuItems = [
 
 const MainMenu = () => {
   const [location] = useLocation()
+  const disabled = location === '/flash'
   return (
     <Nav
       as="ul"
@@ -27,7 +28,7 @@ const MainMenu = () => {
     >
       {menuItems.map((item, i) => {
         return <Nav.Item as="li" key={i}>
-          <Nav.Link as={Link} to={item.link} active={location === item.link}>
+          <Nav.Link as={Link} to={item.link} active={location === item.link} disabled={disabled}>
             <i className={`bi ${item.icon} fs-5`}></i> <span className="ms-2">{item.label}</span>
           </Nav.Link>
         </Nav.Item>

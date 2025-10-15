@@ -8,7 +8,7 @@ import {
   createSaveRequest, EspFlashLogsItem, parseBlackboxConfigResponse, parseBlackboxNamesResponse,
   parseDebugNamesResponse, parseFlashLogsResponse, parseFlashReadResponse
 } from '@/api/esp'
-import { SubmitHandler, useForm } from 'react-hook-form'
+import { SubmitHandler, useForm, useWatch } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
 import { useBoardinfo } from '@/api/BoardInfoProvider'
@@ -81,19 +81,6 @@ const ConfirmModal: FC<ConfirmProps> = ({ show, onConfirm, onCancel }) => {
   </Modal>
 }
 
-function dateStr(d: Date = new Date()): string {
-  const iso = d.toISOString(); // "2025-09-24T13:45:30.123Z"
-  const safe = iso.replace(/[-:TZ.]/g, "").slice(2, 14);
-  return safe.slice(0, 6) + "_" + safe.slice(6)
-}
-
-function download(blob: Blob, filename: string) {
-  const a = document.createElement('a')
-  a.setAttribute('href', URL.createObjectURL(blob))
-  a.setAttribute('download', filename)
-  a.click()
-}
-
 const LoggingTab = () => {
 
   const [debugNames, setDebugNames] = useState(DEBUG_NAMES_DEFAULT)
@@ -104,19 +91,20 @@ const LoggingTab = () => {
   const [dnldPerc, setDnldPerc] = useState(0);
   const { connected, writeMsp, subscribeMsp } = useMsp()
   const { status, statistics } = useBoardinfo()
-  const { append, finalize, clear } = useBlobAccumulator("application/octet-stream")
+  const { append, finalize, clear, download, dateStr } = useBlobAccumulator("application/octet-stream")
 
   const {
-    //control,
+    control,
     register,
     handleSubmit,
     reset,
     getValues,
-    watch,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: LOGGING_DEFAULTS
   });
+
+  const fieldMask = useWatch({control, name: 'fieldMask'})
 
   useEffect(() => {
     return subscribeMsp((msg) => {
@@ -170,7 +158,7 @@ const LoggingTab = () => {
         }
       }
     })
-  }, [subscribeMsp, reset, getValues, writeMsp, append, clear, setDnldPerc, dnldPerc, finalize, statistics?.flashUsed])
+  }, [subscribeMsp, reset, getValues, writeMsp, append, clear, setDnldPerc, dnldPerc, finalize, statistics?.flashUsed, download, dateStr])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log("save", data)
@@ -307,7 +295,6 @@ const LoggingTab = () => {
           <Card.Header>Logged Fields</Card.Header>
           <Card.Body>
             {fieldNames.map(({ id, name }) => {
-              const fieldMask = watch('fieldMask')
               return <Form.Switch
                 id={`field_mask_${id}`}
                 key={id}

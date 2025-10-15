@@ -1,0 +1,32 @@
+[
+    {
+        "version": "v0.3.0-dev",
+        "file": "espfc_v0.3.0-dev_esp32_0x00.bin",
+        "board": "ESP32",
+        "checksum": "9174d39831a66f025298199b33b81d94"
+    },
+    {
+        "version": "v0.3.0-dev",
+        "file": "espfc_v0.3.0-dev_esp32s3_0x00.bin",
+        "board": "ESP32-S3",
+        "checksum": "e33d405bb11b44279a787ad15f2b5630"
+    },
+    {
+        "version": "v0.2.1",
+        "file": "espfc_v0.2.1_esp32_0x00.bin",
+        "board": "ESP32",
+        "checksum": "fefa74927250f06fef9d0b9dfc06576e"
+    },
+    {
+        "version": "v0.2.1",
+        "file": "espfc_v0.2.1_esp32s3_0x00.bin",
+        "board": "ESP32-S3",
+        "checksum": "fc2f0b2676202ebadbe3360a52e7b1ef"
+    },
+    {
+        "version": "",
+        "file": "",
+        "board": "ALL",
+        "title": "Custom File"
+    }
+]

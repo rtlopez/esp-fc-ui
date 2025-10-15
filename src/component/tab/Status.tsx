@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import { useBoardinfo } from '@/api/BoardInfoProvider'
 import { MspMessage, MspCommand } from '@/api/msp/msp'
+import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Badge, Button, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import { createQuaternion, Euler, Quaternion, radToDeg } from '@/api/spatial'
@@ -14,12 +15,15 @@ import { Preview3DModel } from '../widget'
 const QUATERNION_INIT = createQuaternion(0, 0, 0, 1)
 const EULER_INIT = { roll: 0, pitch: 0, yaw: 0 }
 
+const textEncoder = new TextEncoder()
+
 const StatusTab = () => {
 
   const { status, statistics, version, connected } = useBoardinfo()
   const [attitudeE, setAttitudeE] = useState<Euler>(EULER_INIT)
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
-  const { subscribeMsp, useIntervalMsp, writeMsp } = useMsp()
+  const { subscribeMsp, useIntervalMsp, writeMsp, writeText, subscribeText } = useMsp()
+  const { append, finalize, clear, download, dateStr } = useBlobAccumulator("text/plain")
 
   useEffect(() => {
     return subscribeMsp((msg: MspMessage) => {
@@ -33,6 +37,17 @@ const StatusTab = () => {
       }
     })
   }, [subscribeMsp])
+
+  useEffect(() => {
+    return subscribeText((text: string) => {
+      append(textEncoder.encode(text))
+      if (text.includes("#dump end")) {
+        const blob = finalize()
+        clear()
+        download(blob, `espfc_dump_${dateStr()}.txt`)
+      }
+    })
+  }, [subscribeText, append, clear, finalize, download, dateStr])
 
   const onReset = useCallback(() => {
     setAttitudeQ(QUATERNION_INIT)
@@ -58,6 +73,10 @@ const StatusTab = () => {
   const handleReset = useCallback(() => {
     writeMsp(createDefaultsRequest())
   }, [writeMsp])
+
+  const handleBackup = useCallback(() => {
+    writeText('\ndump') // \n workaround to flush FC RX buffer
+  }, [writeText])
 
 
   const attitudeStr = `${radToDeg(attitudeE.roll).toFixed(1)}\u00b0 x ${radToDeg(attitudeE.pitch).toFixed(1)}\u00b0`
@@ -120,7 +139,8 @@ const StatusTab = () => {
           <Card.Body>
             <Button onClick={handleCalibrateGyro} className="me-2" disabled={!connected}>Calibrate Gyro</Button>
             <Button onClick={handleCalibrateMag} className="me-2" disabled={!connected}>Calibrate Mag</Button>
-            <Button onClick={handleReset} variant="outline-primary" disabled={!connected}>Reset To Defaults</Button>
+            <Button onClick={handleReset} className="me-2" variant="outline-primary" disabled={!connected}>Reset To Defaults</Button>
+            <Button onClick={handleBackup} className="me-2" variant="primary" disabled={!connected}>Backup</Button>
           </Card.Body>
         </Card>
         <Card className='mb-3'>

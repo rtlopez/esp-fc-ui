@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
+import { SubmitHandler, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { MspCommand } from '@/api/msp/msp'
 import { createPidTuningRequest, createSaveRequest, parsePidTuningResponse } from '@/api/esp'
 import { Card, Col, Row, Form } from 'react-bootstrap'
@@ -59,7 +59,7 @@ const TuningTab = () => {
     handleSubmit,
     reset,
     getValues,
-    watch,
+    //watch,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: PID_TUNING_DEFAULTS
@@ -78,7 +78,7 @@ const TuningTab = () => {
     })
   }, [subscribeMsp, reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
+  const onSubmit: SubmitHandler<FormValues> = useCallback<SubmitHandler<FormValues>>((data) => {
     console.log("save", data)
     cmdPendingRef.current = true
     writeMsp(createPidTuningRequest({
@@ -93,7 +93,7 @@ const TuningTab = () => {
     }))
     writeMsp(createSaveRequest())
     //writeMsp(createRebootRequest())
-  }
+  }, [writeMsp])
 
   const onLoad = useCallback(() => {
     console.log("load")
@@ -104,9 +104,9 @@ const TuningTab = () => {
     reset(PID_TUNING_DEFAULTS);
   }, [reset]);
 
-  const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = watch(
-    ["mode", "rpGain", "rpStability", "rpAgility", "rpBalance", "yawGain", "yawStability"]
-  )
+  const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = useWatch({ 
+    control, name:  ["mode", "rpGain", "rpStability", "rpAgility", "rpBalance", "yawGain", "yawStability"]
+  });
 
   // Watch only relevant parameters and send update on change
   useEffect(() => {
@@ -126,6 +126,7 @@ const TuningTab = () => {
     }));
   }, [connected, mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability, getValues, writeMsp]);
 
+  // eslint-disable-next-line react-hooks/refs
   return <TabView title='Tuning' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 

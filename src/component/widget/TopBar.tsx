@@ -2,6 +2,7 @@ import { Button, Container, Navbar, Toast, ToastContainer } from "react-bootstra
 import { useBoardinfo } from "@/api/BoardInfoProvider"
 import Connect from "./Connect"
 import Flash from "./Flash"
+import { Link } from "wouter"
 
 type TopBarProps = {
   menuShow: () => void
@@ -18,7 +19,7 @@ const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
         <Button variant="outline-light" className="me-2 d-lg-none" onClick={menuShow}>
           <i className="bi bi-list" />
         </Button>
-        <Navbar.Brand as="h1"><i className="bi bi-radar"></i> ESP-FC UI</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/" className="h1"><i className="bi bi-radar"></i> ESP-FC UI</Navbar.Brand>
         <span>
           <Flash />
           <Connect />

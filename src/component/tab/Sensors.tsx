@@ -219,7 +219,7 @@ const SensorsTab = () => {
           <Card.Header>Board Orientation</Card.Header>
           <Card.Body>
             {axes.map(({ id, name }) => {
-              return <FormItem key={id} id="loopSync" label={`${name} [°]`}>
+              return <FormItem key={id} id={`alignment_${id}`} label={`${name} [°]`}>
                 <Form.Control type="number" min={-180} max={180} step={1} {...register(`alignment.${id}`)} />
               </FormItem>
             })}
