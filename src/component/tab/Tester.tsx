@@ -36,9 +36,9 @@ const TesterTab = () => {
     })
   }, [subscribeMsp])
 
-  const sendText = useCallback(() => {
+  const sendText = useCallback(async () => {
     //console.log(["sendText", cmd])
-    writeText(cmd)
+    await writeText(cmd)
     setCmd('')
   }, [writeText, cmd])
 

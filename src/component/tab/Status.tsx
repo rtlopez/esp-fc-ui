@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import { useBoardinfo } from '@/api/BoardInfoProvider'
-import { MspMessage, MspCommand } from '@/api/msp/msp'
 import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Badge, Button, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import { createQuaternion, Euler, Quaternion, radToDeg } from '@/api/spatial'
-import { createAttitudeRequest, createCalibrateRequest, createDefaultsRequest, parseAttitudeResponse } from '@/api/esp'
+import { createAttitudeRequest, createCalibrateRequest, createDefaultsRequest, createRebootRequest, parseAttitudeResponse } from '@/api/esp'
 import { parseArmingDisableFlags, SensorType, sensorPresent } from "@/api/board"
 import TabView from './TabView'
 import { DroneX } from '../model'
@@ -22,21 +21,8 @@ const StatusTab = () => {
   const { status, statistics, version, connected } = useBoardinfo()
   const [attitudeE, setAttitudeE] = useState<Euler>(EULER_INIT)
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
-  const { subscribeMsp, useIntervalMsp, writeMsp, writeText, subscribeText } = useMsp()
+  const { useIntervalMsp, writeText, send, subscribeText } = useMsp()
   const { append, finalize, clear, download, dateStr } = useBlobAccumulator("text/plain")
-
-  useEffect(() => {
-    return subscribeMsp((msg: MspMessage) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_ATTITUDE)) {
-        const [q, e] = parseAttitudeResponse(msg)
-        setAttitudeQ(q)
-        setAttitudeE(e)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_CALIBRATE)) {
-        console.log("recv calibrate")
-      }
-    })
-  }, [subscribeMsp])
 
   useEffect(() => {
     return subscribeText((text: string) => {
@@ -58,26 +44,32 @@ const StatusTab = () => {
   }, [])
 
   // poll some msp messages
-  useIntervalMsp(useCallback(() => {
-    writeMsp(createAttitudeRequest())
-  }, [writeMsp]), 150);
+  useIntervalMsp(useCallback(async () => {
+    const msg = await send(createAttitudeRequest())
+    const [q, e] = parseAttitudeResponse(msg)
+    setAttitudeQ(q)
+    setAttitudeE(e)
+  }, [send]), 190);
 
-  const handleCalibrateGyro = useCallback(() => {
-    writeMsp(createCalibrateRequest({ mode: 1 }))
-  }, [writeMsp])
+  const handleCalibrateGyro = useCallback(async () => {
+    await send(createCalibrateRequest({ mode: 1 }))
+    console.log("recv calibrate 1")
+  }, [send])
 
-  const handleCalibrateMag = useCallback(() => {
-    writeMsp(createCalibrateRequest({ mode: 2 }))
-  }, [writeMsp])
+  const handleCalibrateMag = useCallback(async () => {
+    await send(createCalibrateRequest({ mode: 2 }))
+    console.log("recv calibrate 2")
+  }, [send])
 
-  const handleReset = useCallback(() => {
-    writeMsp(createDefaultsRequest())
-  }, [writeMsp])
+  const handleReset = useCallback(async () => {
+    await send(createDefaultsRequest())
+    await send(createRebootRequest())
+    console.log("defaults")
+  }, [send])
 
-  const handleBackup = useCallback(() => {
-    writeText('\ndump') // \n workaround to flush FC RX buffer
+  const handleBackup = useCallback(async () => {
+    await writeText('\ndump') // \n workaround to flush FC RX buffer
   }, [writeText])
-
 
   const attitudeStr = `${radToDeg(attitudeE.roll).toFixed(1)}\u00b0 x ${radToDeg(attitudeE.pitch).toFixed(1)}\u00b0`
   const headingStr = `${radToDeg(attitudeE.yaw).toFixed(1)}\u00b0`

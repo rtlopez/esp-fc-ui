@@ -1,6 +1,6 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
-import { MspCommand, MspMessage, mspParse } from "@/api/msp/msp"
+import { MspCommand, MspMessage, mspParse, MspVariant } from "@/api/msp/msp"
 import Queue from "@/api/Queue"
 import TimedLock from "@/api/TimedLock"
 
@@ -11,8 +11,9 @@ const textEncoder = new TextEncoder()
 
 export interface MspContextValue {
   subscribeMsp(callback: MspMessageCallback): () => void
-  writeMsp: (message: MspMessage) => Promise<void>
+  writeMsp: (message: MspMessage) => void
   useIntervalMsp: (calback: () => void, delay: number) => void
+  send: (msg: MspMessage) => Promise<MspMessage>
   subscribeText(callback: TextMessageCallback): () => void
   writeText: (message: string) => Promise<void>
   connect(): Promise<boolean>
@@ -24,8 +25,9 @@ export interface MspContextValue {
 
 const MspContext = createContext<MspContextValue>({
   subscribeMsp: () => () => { },
-  writeMsp: () => Promise.resolve(),
+  writeMsp: () => { },
   useIntervalMsp: (_calback: () => void, _delay: number) => { },
+  send: async (_msg: MspMessage) => Promise.resolve(new MspMessage(0)),
   subscribeText: () => () => { },
   writeText: () => Promise.resolve(),
   connect: () => Promise.resolve(false),
@@ -44,6 +46,23 @@ const logMsg = (msg: MspMessage) => {
   return true
 }
 
+type PendingItem = {
+  resolve: (value: MspMessage) => void
+  reject: (reason?: unknown) => void
+  timeout: NodeJS.Timeout
+}
+
+export class MspError extends Error {
+  variant?: MspVariant
+  cmd?: number
+  constructor(variant: MspVariant, cmd: number, message: string) {
+    super(message)
+    this.name = "MspError"
+    this.variant = variant
+    this.cmd = cmd
+  }
+}
+
 const MspProvider = ({ children }: MspProviderProps) => {
 
   const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, connected } = useSerial()
@@ -55,6 +74,27 @@ const MspProvider = ({ children }: MspProviderProps) => {
   const msgQueueLockRef = useRef(new TimedLock())
   const msgRef = useRef(new MspMessage())
   const [cliActive, setCliActive] = useState(false)
+  const pendingRef = useRef(new Map<string, PendingItem>())
+
+  const writeMsp = (msg: MspMessage) => {
+    if (logMsg(msg)) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.variant, msg.cmd.toString(16).toUpperCase())
+    msgQueueRef.current.enqueue(msg)
+  }
+
+  const send = async (msg: MspMessage): Promise<MspMessage> => {
+    return new Promise((resolve, reject) => {
+      const key = `${msg.variant}-${msg.cmd}`
+      pendingRef.current.set(key, {
+        resolve,
+        reject,
+        timeout: setTimeout(() => {
+          pendingRef.current.delete(key)
+          reject(new MspError(msg.variant, msg.cmd, 'Msp command timeout'))
+        }, 2000)
+      })
+      writeMsp(msg)
+    })
+  }
 
   const receive = (data: Uint8Array) => {
     let text = '';
@@ -65,6 +105,13 @@ const MspProvider = ({ children }: MspProviderProps) => {
         if (msgRef.current.isReplyReceived()) {
           // notify msp subscribers
           if (logMsg(msgRef.current)) console.log("msp.recv", msgRef.current.variant, msgRef.current.cmd.toString(16).toUpperCase(), msgRef.current.toArray())
+          const key = `${msgRef.current.variant}-${msgRef.current.cmd}`
+          const pending = pendingRef.current.get(key)
+          if (pending) {
+            clearTimeout(pending.timeout)
+            pendingRef.current.delete(key)
+            pending.resolve(msgRef.current)
+          }
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
@@ -92,11 +139,6 @@ const MspProvider = ({ children }: MspProviderProps) => {
     }
   }
 
-  const writeMsp = async (msg: MspMessage) => {
-    if (logMsg(msg)) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.variant, msg.cmd.toString(16).toUpperCase())
-    msgQueueRef.current.enqueue(msg)
-  }
-
   const subscribeText = (callback: TextMessageCallback) => {
     const id = currentSubscriberIdRef.current
     textSubscribersRef.current.set(id, callback)
@@ -113,7 +155,7 @@ const MspProvider = ({ children }: MspProviderProps) => {
   const useIntervalMsp = (callback: () => void, delay: number) => {
     useEffect(() => {
       const interval = setInterval(() => {
-        if(connected && !cliActive) callback();
+        if (connected && !cliActive) callback();
       }, delay);
       return () => clearInterval(interval);
     }, [callback, delay]);
@@ -151,6 +193,7 @@ const MspProvider = ({ children }: MspProviderProps) => {
         subscribeMsp,
         writeMsp,
         useIntervalMsp,
+        send,
         subscribeText,
         writeText,
         connect,
