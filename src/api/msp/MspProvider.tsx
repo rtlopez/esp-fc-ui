@@ -1,6 +1,8 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
 import { MspCommand, MspMessage, mspParse } from "@/api/msp/msp"
+import Queue from "@/api/Queue"
+import TimedLock from "@/api/TimedLock"
 
 type MspMessageCallback = (message: MspMessage) => void
 type TextMessageCallback = (message: string) => void
@@ -33,58 +35,6 @@ const MspContext = createContext<MspContextValue>({
   connected: false,
 });
 
-class Queue<T> {
-
-  private items: Array<T>
-
-  constructor() {
-    this.items = [];
-  }
-
-  enqueue(element: T) {
-    this.items.push(element);
-  }
-
-  dequeue(): T | undefined {
-    return this.items.shift();
-  }
-
-  peek(): T | undefined {
-    return this.items[0];
-  }
-
-  isEmpty(): boolean {
-    return this.items.length === 0;
-  }
-
-  size(): number {
-    return this.items.length;
-  }
-}
-
-class TimedLock {
-  private timer: ReturnType<typeof setTimeout> | null = null;
-
-  acquire(durationMs: number = 100): boolean {
-    if (this.timer !== null) return false
-    this.timer = setTimeout(() => {
-      this.timer = null;
-    }, durationMs);
-    return true
-  }
-
-  release(): void {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-  }
-
-  isActive(): boolean {
-    return this.timer !== null;
-  }
-}
-
 type MspProviderProps = PropsWithChildren & {}
 
 const logMsg = (msg: MspMessage) => {
@@ -94,9 +44,7 @@ const logMsg = (msg: MspMessage) => {
   return true
 }
 
-const MspProvider = ({
-  children,
-}: MspProviderProps) => {
+const MspProvider = ({ children }: MspProviderProps) => {
 
   const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, connected } = useSerial()
 
