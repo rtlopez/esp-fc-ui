@@ -95,7 +95,7 @@ const TuningTab = () => {
     //writeMsp(createRebootRequest())
   }, [writeMsp])
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
     writeMsp(createPidTuningRequest())
   }, [writeMsp])

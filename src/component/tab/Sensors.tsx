@@ -198,7 +198,7 @@ const SensorsTab = () => {
     writeMsp(createRebootRequest())
   }
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
     writeMsp(createSensorConfigRequest())
     writeMsp(createGyroConfigRequest())

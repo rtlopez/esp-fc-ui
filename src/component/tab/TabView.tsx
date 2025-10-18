@@ -1,4 +1,4 @@
-import { FormEventHandler, PropsWithChildren, useEffect, FC, useCallback, FormEvent, MouseEvent } from 'react'
+import { FormEventHandler, PropsWithChildren, useEffect, FC, useCallback, FormEvent, MouseEvent, useRef } from 'react'
 import { MspCommand } from '@/api/msp/msp'
 import { useMsp } from '@/api/msp/MspProvider'
 import { Button, Col, Form, Row } from 'react-bootstrap'
@@ -8,17 +8,28 @@ type TabViewProps = {
   nosave?: boolean
   reboot?: boolean
   onSubmit?: FormEventHandler
-  onLoad?: () => void
+  onLoad?: () => Promise<void>
   onReset?: () => void
 } & PropsWithChildren
 
 const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad, onReset }) => {
 
   const { connected, rebooting, saving, initialized, subscribeMsp } = useMsp()
+  const firstRun = useRef(true);
 
   useEffect(() => {
-    if (!connected) onReset?.()
-    else if(initialized) onLoad?.()
+    const doEffect = async () => {
+      if (!connected) {
+        firstRun.current = true
+        onReset?.()
+      }
+      else if (initialized && firstRun.current) {
+        // allow onLoad to be called only once
+        firstRun.current = false
+        await onLoad?.()
+      }
+    }
+    doEffect().then(() => {})
   }, [connected, initialized, onReset, onLoad])
 
   useEffect(() => {
@@ -31,13 +42,13 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
 
   const submitHandler = useCallback(((e: FormEvent<Element>) => {
     console.log("btn.save")
-    if(initialized) onSubmit?.(e)
+    if (initialized) onSubmit?.(e)
   }), [initialized, onSubmit])
 
   const loadHandler = useCallback((e: MouseEvent<HTMLButtonElement>) => {
     console.log("btn.load")
     e.preventDefault()
-    if(initialized) onLoad?.()
+    if (initialized) onLoad?.()
   }, [initialized, onLoad])
 
   return <Form className='mb-5' onSubmit={submitHandler}>

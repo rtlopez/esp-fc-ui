@@ -52,7 +52,7 @@ const TemplateTab = () => {
     writeMsp(createSaveRequest())
   }
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
     //writeMsp(createInputConfigRequest())
   }, [])

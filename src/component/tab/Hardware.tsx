@@ -137,7 +137,7 @@ const HardwareTab = () => {
     })
   }, [subscribeMsp, reset, getValues])
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
     writeMsp(createPinConfigRequest())
   }, [writeMsp])

@@ -1,10 +1,10 @@
-import { FC, useCallback, useEffect, useState } from 'react'
+import { FC, useCallback, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspCommand } from '@/api/msp/msp'
 import {
   createMixerConfigRequest, createMixerNamesRequest, createSaveRequest,
-  EspNameElement, parseMixerConfigResponse, parseMixerNamesResponse
+  EspMixerConfig, EspNameElement, parseMixerConfigResponse, 
+  parseMixerNamesResponse
 } from '@/api/esp'
 import { SubmitHandler, useForm, useWatch } from 'react-hook-form'
 import TabView from './TabView'
@@ -148,7 +148,7 @@ const DronePreview: FC<DronePreviewProps> = ({ yawReverse }) => {
 const MixerTab = () => {
 
   const [mixerNames, setMixerNames] = useState(MIXER_NAMES)
-  const { writeMsp, subscribeMsp } = useMsp()
+  const { send } = useMsp()
 
   const {
     control,
@@ -161,32 +161,21 @@ const MixerTab = () => {
     defaultValues: MIXER_DEFAULTS
   });
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_MIXER_NAMES)) {
-        const v = parseMixerNamesResponse(msg)
-        setMixerNames(v.names)
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_MIXER_CONFIG)) {
-        const v = parseMixerConfigResponse(msg)
-        reset({ ...getValues(), ...v })
-        console.log("recv", v)
-      }
-    })
-  }, [subscribeMsp, reset, getValues])
+  const updateMixerConfig = useCallback((v: EspMixerConfig) => {
+    reset({ ...getValues(), ...v })
+  }, [reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
     console.log("save", data)
-    writeMsp(createMixerConfigRequest(data))
-    writeMsp(createSaveRequest())
-  }
+    updateMixerConfig(parseMixerConfigResponse(await send(createMixerConfigRequest(data))))
+    await send(createSaveRequest())
+  }, [send, updateMixerConfig])
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
-    writeMsp(createMixerNamesRequest())
-    writeMsp(createMixerConfigRequest())
-  }, [writeMsp])
+    setMixerNames(parseMixerNamesResponse(await send(createMixerNamesRequest())).names)
+    updateMixerConfig(parseMixerConfigResponse(await send(createMixerConfigRequest())))
+  }, [send, updateMixerConfig])
 
   const onReset = useCallback(() => {
     setMixerNames(MIXER_NAMES);
@@ -195,7 +184,7 @@ const MixerTab = () => {
 
   const yawReverse = useWatch({ control, name: 'yawReverse'})
 
-  return <TabView title='Status' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
+  return <TabView title='Status' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
       <Col md={6}>

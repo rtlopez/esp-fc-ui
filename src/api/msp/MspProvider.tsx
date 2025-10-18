@@ -97,24 +97,12 @@ const MspProvider = ({ children }: MspProviderProps) => {
     rebootingRef.current = rebooting
   }, [rebooting])
 
-  // useEffect(() => {
-  //   msgQueueRef.current.empty()
-  //   if (!connected) {
-  //     pendingRef.current.forEach((pending, key) => {
-  //       clearTimeout(pending.timer)
-  //       pending.reject(new MspError(pending.msg.variant, pending.msg.cmd, `Msp (${key}) command rejected: disconnected`))
-  //     })
-  //     pendingRef.current.clear()
-  //   }
-  // }, [connected])
-
   const writeMsp = useCallback((msg: MspMessage) => {
-    //if (logMsg(msg)) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.toId())
+    //if (logMsg(msg)) console.log("msp.enqu", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.toId())
     msgQueueRef.current.enqueue(msg)
   }, [])
 
   const send = useCallback(async (msg: MspMessage): Promise<MspMessage> => {
-    //console.log("msp.send", msg.variant, msg.cmd.toString(16).toUpperCase())
     return new Promise((resolve, reject) => {
       const key = getKey(msg)
       if (rebootingRef.current) {
@@ -161,10 +149,10 @@ const MspProvider = ({ children }: MspProviderProps) => {
             callback(msgRef.current);
           });
           if (msgRef.current.isCmd(MspCommand.ESP_CMD_REBOOT)) {
-            console.log('msp.reboot acknowledged')
+            console.log('msp.reboot.ack')
           }
           if (msgRef.current.isCmd(MspCommand.ESP_CMD_SAVE)) {
-            console.log('msp.save acknowledged')
+            console.log('msp.save.ack')
             setSaving(false)
           }
           msgRef.current = new MspMessage()
@@ -209,12 +197,15 @@ const MspProvider = ({ children }: MspProviderProps) => {
       if (connected && !msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
-        if (logMsg(msg)) console.log("msp.write", msg.toId(), msg.toArray())
+        if (logMsg(msg)) console.log("msp.send", msg.toId(), msg.toArray())
         if (msg.isCmd(MspCommand.ESP_CMD_REBOOT)) {
           console.log('msp.rebooting...')
           setRebooting(true)
           rebootingRef.current = true
-          setTimeout(() => { setRebooting(false); rebootingRef.current = false; }, 500)
+          setTimeout(() => {
+            setRebooting(false)
+            rebootingRef.current = false
+          }, 500)
         }
         if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
           console.log('msp.saving...')
@@ -232,11 +223,22 @@ const MspProvider = ({ children }: MspProviderProps) => {
     })
   })
 
+  const clearQueues = () => {
+    msgQueueRef.current.empty()
+    pendingRef.current.forEach((pending, key) => {
+      clearTimeout(pending.timer)
+      pending.reject(new MspError(pending.msg.variant, pending.msg.cmd, `Msp (${key}) command rejected: disconnected`))
+    })
+    pendingRef.current.clear()
+  }
+
   const connect = async () => {
+    clearQueues()
     return await serialConnect()
   }
 
   const disconnect = async () => {
+    clearQueues()
     await serialDisconnect()
   }
 

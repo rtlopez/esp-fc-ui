@@ -187,7 +187,7 @@ const OutputTab = () => {
     writeMsp(createRebootRequest())
   }
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
     writeMsp(createOutputConfigRequest())
     writeMsp(createOutputChannelConfigRequest())
@@ -213,10 +213,14 @@ const OutputTab = () => {
   const prevOutputOverride = useRef(outputOverride);
   useEffect(() => {
     if (prevOutputOverride.current === true && outputOverride === false) {
-      const values = getValues("outputChannels").map((c) => c.servo ? c.neutral : getValues().minCommand)
+      const updateOutputOverrides = (values: number[], allMotorsValue: number) => {
+        setOutputOverrides(values)
+        setOutputOverrideAllMotors(allMotorsValue)
+      }
+      const minCommand = getValues().minCommand
+      const values = getValues("outputChannels").map((c) => c.servo ? c.neutral : minCommand)
       writeMsp(createOutputOverrideRequest({ count: outputCount, values }))
-      setOutputOverrides(values)
-      setOutputOverrideAllMotors(getValues().minCommand)
+      updateOutputOverrides(values, minCommand)
     }
     prevOutputOverride.current = outputOverride;
   }, [outputOverride, outputCount, getValues, writeMsp])

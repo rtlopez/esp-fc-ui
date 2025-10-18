@@ -40,17 +40,17 @@ const BoardInfoProvider = ({ children }: BoardInfoProviderProps) => {
     const load = async () => {
       if (connected && version === null) {
         // was disconnectd and is now connected
-        console.log("boardinfo.connecting...")
+        console.log("board.connecting...")
         try {
           const u = parseMspVersionResponse(await send(createMspVersionRequest()))
-          console.log('msp version:', u)
+          console.log('msp.ver:', u)
           if (u.magic !== 0xff) throw new Error("Unsupported board, go to the CLI tab or update firmware!")
           const v = parseVersionResponse(await send(createVersionRequest()))
-          console.log('esp version: ', v)
+          console.log('esp.ver: ', v)
           setVersion(v)
           await send(createDisableArmRequest({ type: 1 }))
           setInitialized(true)
-          console.log("boardinfo.connected")
+          console.log("board.connected")
         } catch (e) {
           if (e instanceof Error) {
             console.error("Connection failed: ", e.message)
@@ -67,7 +67,7 @@ const BoardInfoProvider = ({ children }: BoardInfoProviderProps) => {
         setVersion(null)
         setStatus(null)
         setStatistics(null)
-        console.log("boardinfo.disconnected")
+        console.log("board.disconnected")
       }
     }
     load()

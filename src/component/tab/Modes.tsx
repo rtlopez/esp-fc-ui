@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspCommand } from '@/api/msp/msp'
 import {
-  createInputRequest, createModeNamesRequest, createModesConfigRequest, createSaveRequest,
-  EspInputResponse, parseInputResponse, parseModeNamesResponse, parseModesConfigResponse
+  createInputRequest, createModeNamesRequest, createModesConfigRequest,
+  createSaveRequest, EspInputResponse, EspModesConfig, parseInputResponse,
+  parseModeNamesResponse, parseModesConfigResponse
 } from '@/api/esp'
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
+import { SubmitHandler, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import TabView from './TabView'
 import Slider from "rc-slider"
 import 'rc-slider/assets/index.css'
@@ -74,7 +74,7 @@ const ModesTab = () => {
 
   const [modeNames, setModeNames] = useState(MODE_NAMES_DEFAULT)
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
-  const { writeMsp, subscribeMsp } = useMsp()
+  const { send } = useMsp()
 
   const {
     control,
@@ -82,45 +82,31 @@ const ModesTab = () => {
     handleSubmit,
     reset,
     getValues,
-    watch,
     setValue,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: MODES_DEFAULTS
   });
 
-  const { fields: modes } = useFieldArray({ control, name: "modes" });
+  const { fields: modes } = useFieldArray({ control, name: 'modes' })
+  const watchModes = useWatch({ control, name: 'modes' })
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_MODE_NAMES)) {
-        const v = parseModeNamesResponse(msg)
-        setModeNames([{ id: 0xff, name: "- None -" }, ...v.names])
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_MODES_CONFIG)) {
-        const v = parseModesConfigResponse(msg)
-        reset({ ...getValues(), ...v })
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_INPUT)) {
-        setInputs(parseInputResponse(msg))
-      }
-    })
-  }, [subscribeMsp, reset, getValues])
+  const updateModesConfig = useCallback((v: EspModesConfig) => {
+    reset({ ...getValues(), ...v })
+  }, [reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    writeMsp(createModesConfigRequest({
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    updateModesConfig(parseModesConfigResponse(await send(createModesConfigRequest({
       modeCount: data.modeCount,
       modes: data.modes,
-    }))
-    writeMsp(createSaveRequest())
-  }
+    }))))
+    await send(createSaveRequest())
+  }, [send, updateModesConfig])
 
-  const onLoad = useCallback(() => {
-    writeMsp(createModeNamesRequest())
-    writeMsp(createModesConfigRequest())
-  }, [writeMsp])
+  const onLoad = useCallback(async () => {
+    setModeNames([{ id: 0xff, name: "- None -" }, ...parseModeNamesResponse(await send(createModeNamesRequest())).names])
+    updateModesConfig(parseModesConfigResponse(await send(createModesConfigRequest())))
+  }, [send, updateModesConfig])
 
   const onReset = useCallback(() => {
     reset(MODES_DEFAULTS);
@@ -128,8 +114,8 @@ const ModesTab = () => {
   }, [reset]);
 
   useIntervalMsp(useCallback(async () => {
-    writeMsp(createInputRequest())
-  }, [writeMsp]), 300)
+    setInputs(parseInputResponse(await send(createInputRequest())))
+  }, [send]), 350)
 
   return <TabView title='Modes' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
@@ -146,9 +132,9 @@ const ModesTab = () => {
               <Col md={1}>Status</Col>
             </Row>
             {modes.map((_, i) => {
-              const min = watch(`modes.${i}.min`)
-              const max = watch(`modes.${i}.max`)
-              const ch = watch(`modes.${i}.ch`)
+              const ch = watchModes[i].ch
+              const min = watchModes[i].min
+              const max = watchModes[i].max
               let chValue = ch !== 0xff && ch < inputs.count ? inputs.channels[ch] : 900
               if (chValue % 100 === 0) chValue += 1 // to show the pointer on the slider
               const inRange = chValue >= min && chValue <= max

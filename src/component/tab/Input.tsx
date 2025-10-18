@@ -127,7 +127,7 @@ const InputTab = () => {
     writeMsp(createRebootRequest())
   }
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
     writeMsp(createInputConfigRequest())
     writeMsp(createInputChannelConfigRequest())

@@ -41,7 +41,7 @@ const StatusTab = () => {
     setAttitudeE(EULER_INIT)
   }, [])
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
   }, [])
 
   // poll some msp messages
