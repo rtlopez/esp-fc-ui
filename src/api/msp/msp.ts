@@ -263,6 +263,10 @@ export class MspMessage {
     str += ']'
     return str
   }
+
+  toId(): string {
+    return `${this.variant}:${this.cmd.toString(16).toUpperCase().padStart(2, '0')}`
+  }
 }
 
 const isCharCode = (code: number, c: string): boolean => code === c.charCodeAt(0)

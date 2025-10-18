@@ -1,5 +1,5 @@
 import { Button, Container, Navbar, Toast, ToastContainer } from "react-bootstrap"
-import { useBoardinfo } from "@/api/BoardInfoProvider"
+import { useBoardInfo } from "@/api/BoardInfoProvider"
 import Connect from "./Connect"
 import Flash from "./Flash"
 import { Link } from "wouter"
@@ -10,7 +10,7 @@ type TopBarProps = {
 
 const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
 
-  const { error, clearError } = useBoardinfo()
+  const { error, clearError } = useBoardInfo()
 
   return <>
     <Navbar expand="lg" bg="secondary">

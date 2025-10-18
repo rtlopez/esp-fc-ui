@@ -10,6 +10,7 @@ import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
 import Slider from "rc-slider"
 import 'rc-slider/assets/index.css'
+import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
 
 // https://www.npmjs.com/package/rc-slider?activeTab=readme
 
@@ -73,7 +74,7 @@ const ModesTab = () => {
 
   const [modeNames, setModeNames] = useState(MODE_NAMES_DEFAULT)
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
-  const { writeMsp, subscribeMsp, useIntervalMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
 
   const {
     control,
@@ -126,7 +127,7 @@ const ModesTab = () => {
     setModeNames(MODE_NAMES_DEFAULT)
   }, [reset]);
 
-  useIntervalMsp(useCallback(() => {
+  useIntervalMsp(useCallback(async () => {
     writeMsp(createInputRequest())
   }, [writeMsp]), 300)
 

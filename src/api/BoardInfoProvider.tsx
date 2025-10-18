@@ -6,6 +6,7 @@ import {
   EspStatusResponse, EspVersionResponse, parseMspVersionResponse,
   parseStatisticsResponse, parseStatusResponse, parseVersionResponse
 } from "./esp"
+import { useIntervalMsp } from "./hook/useIntervalMsp"
 
 export interface BoardInfoContextValue {
   version: EspVersionResponse | null
@@ -29,23 +30,27 @@ type BoardInfoProviderProps = PropsWithChildren & {}
 
 const BoardInfoProvider = ({ children }: BoardInfoProviderProps) => {
 
-  const { connected, send, disconnect, useIntervalMsp } = useMsp()
+  const { connected, send, disconnect, setInitialized } = useMsp()
   const [version, setVersion] = useState<EspVersionResponse | null>(null)
   const [status, setStatus] = useState<EspStatusResponse | null>(null)
   const [statistics, setStatistics] = useState<EspStatisticsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    (async () => {
-      if (connected) {
+    const load = async () => {
+      if (connected && version === null) {
+        // was disconnectd and is now connected
+        console.log("boardinfo.connecting...")
         try {
           const u = parseMspVersionResponse(await send(createMspVersionRequest()))
-          console.log('msp ver:', u)
-          if (u.magic !== 0xff) throw new Error("Unsupported board")
+          console.log('msp version:', u)
+          if (u.magic !== 0xff) throw new Error("Unsupported board, go to the CLI tab or update firmware!")
           const v = parseVersionResponse(await send(createVersionRequest()))
-          console.log('esp ver: ', v)
+          console.log('esp version: ', v)
           setVersion(v)
           await send(createDisableArmRequest({ type: 1 }))
+          setInitialized(true)
+          console.log("boardinfo.connected")
         } catch (e) {
           if (e instanceof Error) {
             console.error("Connection failed: ", e.message)
@@ -54,20 +59,28 @@ const BoardInfoProvider = ({ children }: BoardInfoProviderProps) => {
             console.error("Connection failed: ", e)
             setError("Unexpected connection error!")
           }
-          await disconnect()
+          //await disconnect()
         }
-      } else {
+      } else if (!connected && version !== null) {
+        // was connected but is disconnected now
+        setInitialized(false)
         setVersion(null)
         setStatus(null)
         setStatistics(null)
+        console.log("boardinfo.disconnected")
       }
-    })()
-  }, [connected, send, disconnect])
+    }
+    load()
+  }, [connected, version, send, disconnect, setInitialized])
 
   useIntervalMsp(useCallback(async () => {
-    setStatus(parseStatusResponse(await send(createStatusRequest())))
-    setStatistics(parseStatisticsResponse(await send(createStatisticsRequest())))
-  }, [send]), 350);
+    try {
+      setStatus(parseStatusResponse(await send(createStatusRequest())))
+      setStatistics(parseStatisticsResponse(await send(createStatisticsRequest())))
+    } catch (e) {
+      console.error(e)
+    }
+  }, [send]), 350)
 
   const clearError = () => {
     setError(null)
@@ -90,6 +103,6 @@ const BoardInfoProvider = ({ children }: BoardInfoProviderProps) => {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useBoardinfo = () => useContext(BoardInfoContext)
+export const useBoardInfo = () => useContext(BoardInfoContext)
 
 export default BoardInfoProvider

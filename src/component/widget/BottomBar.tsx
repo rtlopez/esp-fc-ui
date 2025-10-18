@@ -1,9 +1,9 @@
 import { Container, Navbar } from "react-bootstrap"
-import { useBoardinfo } from "@/api/BoardInfoProvider"
+import { useBoardInfo } from "@/api/BoardInfoProvider"
 
 const BottomBar = () => {
 
-  const { status, statistics, version, connected } = useBoardinfo()
+  const { status, statistics, version, connected } = useBoardInfo()
 
   return <Navbar expand="lg" bg="secondary" fixed="bottom">
     <Container fluid>

@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Row>
 
           {/* Sidebar (visible on lg+) */}
-          <Col lg={2} className="d-none d-lg-block min-vh-100 p-3">
+          <Col lg={2} className="d-none d-lg-block min-vh-100 p-3 mb-5">
             <h5>Menu</h5>
             <hr/>
             <MainMenu />

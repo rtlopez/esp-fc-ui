@@ -11,7 +11,7 @@ import {
 import { SubmitHandler, useForm, useWatch } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
-import { useBoardinfo } from '@/api/BoardInfoProvider'
+import { useBoardInfo } from '@/api/BoardInfoProvider'
 import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 
 const DNLD_SIZE = 160
@@ -90,7 +90,7 @@ const LoggingTab = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [dnldPerc, setDnldPerc] = useState(0);
   const { connected, writeMsp, subscribeMsp } = useMsp()
-  const { status, statistics } = useBoardinfo()
+  const { status, statistics } = useBoardInfo()
   const { append, finalize, clear, download, dateStr } = useBlobAccumulator("application/octet-stream")
 
   const {

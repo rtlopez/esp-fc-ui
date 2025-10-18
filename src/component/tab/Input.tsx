@@ -11,6 +11,7 @@ import { FormItem, RcControls } from '@/component/widget'
 import TabView from './TabView'
 import { MspCommand } from '@/api/msp/msp'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
+import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
 
 const channelMaping: Record<number, string> = {
   0: "Roll",
@@ -64,7 +65,7 @@ const INPUT_DEFAULTS = {
 const InputTab = () => {
 
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
-  const { writeMsp, subscribeMsp, useIntervalMsp } = useMsp()
+  const { writeMsp, subscribeMsp } = useMsp()
 
   const {
     control,
@@ -136,7 +137,7 @@ const InputTab = () => {
     reset(INPUT_DEFAULTS)
   }, [reset])
 
-  useIntervalMsp(useCallback(() => {
+  useIntervalMsp(useCallback(async () => {
     writeMsp(createInputRequest())
   }, [writeMsp]), 300)
 

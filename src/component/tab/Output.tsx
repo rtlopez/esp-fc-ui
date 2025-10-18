@@ -9,9 +9,10 @@ import {
   EspOutputConfigResponse, parseOutputChannelConfigResponse, parseOutputConfigResponse,
   parseOutputResponse
 } from '@/api/esp'
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
+import { SubmitHandler, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
+import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
 
 type FormOutputChannel = {
   min: number
@@ -134,7 +135,7 @@ const configChannelsApiToForm = (v: EspOutputChannelConfigResponse) => {
 
 const OutputTab = () => {
 
-  const { connected, writeMsp, subscribeMsp, useIntervalMsp } = useMsp()
+  const { connected, writeMsp, subscribeMsp } = useMsp()
   const [outputValues, setOutputValues] = useState(OUTPUT_VALUE_DEFAULTS)
   const [outputOverrides, setOutputOverrides] = useState(OUTPUT_VALUE_DEFAULTS)
   const [outputOverride, setOutputOverride] = useState(false)
@@ -146,13 +147,12 @@ const OutputTab = () => {
     handleSubmit,
     reset,
     getValues,
-    watch,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: OUTPUT_DFAULTS
   });
 
-  const [outputCount] = watch(['outputCount'])
+  const [outputCount] = useWatch({control, name: ['outputCount']})
   const { fields: outputChannels } = useFieldArray({ control, name: "outputChannels" });
 
   useEffect(() => {
@@ -202,7 +202,7 @@ const OutputTab = () => {
   }, [reset])
 
   // poll some msp messages
-  useIntervalMsp(useCallback(() => {
+  useIntervalMsp(useCallback(async () => {
     if (outputOverride) {
       writeMsp(createOutputOverrideRequest({ count: outputCount, values: outputOverrides }))
     }

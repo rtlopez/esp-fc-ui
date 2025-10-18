@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { useBoardinfo } from '@/api/BoardInfoProvider'
+import { useBoardInfo } from '@/api/BoardInfoProvider'
 import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Badge, Button, Card, Col, ListGroup, Row } from 'react-bootstrap'
@@ -10,6 +10,7 @@ import { parseArmingDisableFlags, SensorType, sensorPresent } from "@/api/board"
 import TabView from './TabView'
 import { DroneX } from '../model'
 import { Preview3DModel } from '../widget'
+import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
 
 const QUATERNION_INIT = createQuaternion(0, 0, 0, 1)
 const EULER_INIT = { roll: 0, pitch: 0, yaw: 0 }
@@ -18,10 +19,10 @@ const textEncoder = new TextEncoder()
 
 const StatusTab = () => {
 
-  const { status, statistics, version, connected } = useBoardinfo()
+  const { status, statistics, version, connected } = useBoardInfo()
   const [attitudeE, setAttitudeE] = useState<Euler>(EULER_INIT)
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
-  const { useIntervalMsp, writeText, send, subscribeText } = useMsp()
+  const { writeText, send, subscribeText } = useMsp()
   const { append, finalize, clear, download, dateStr } = useBlobAccumulator("text/plain")
 
   useEffect(() => {

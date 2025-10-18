@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
-import { useBoardinfo } from '@/api/BoardInfoProvider'
-import { MspCommand } from '@/api/msp/msp'
+import { useBoardInfo } from '@/api/BoardInfoProvider'
 import {
   createFeaturesConfigRequest, createFeaturesNamesRequest, createRebootRequest,
   createSaveRequest, createSensorConfigRequest, createSerialConfigRequest,
-  createSerialNamesRequest, parseFeaturesConfigResponse, parseFeaturesNamesResponse,
+  createSerialNamesRequest, EspFeaturesConfig, EspSensorConfigResponse,
+  EspSerialConfigResponse, parseFeaturesConfigResponse, parseFeaturesNamesResponse,
   parseSensorConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse
 } from '@/api/esp'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
@@ -74,8 +74,8 @@ const ConfigurationTab = () => {
 
   const [serialNames, setSerialNames] = useState(CONFIG_DEFAULT_SERIAL_NAMES)
   const [featureNames, setFeatureNames] = useState(CONFIG_DEFAULT_FEATURE_NAMES)
-  const { writeMsp, subscribeMsp } = useMsp()
-  const { status } = useBoardinfo()
+  const { send } = useMsp()
+  const { status } = useBoardInfo()
 
   const {
     control,
@@ -90,72 +90,54 @@ const ConfigurationTab = () => {
 
   const { fields: serialPorts } = useFieldArray({ control, name: "serialPorts" });
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SERIAL_NAMES)) {
-        const v = parseSerialNamesResponse(msg)
-        setSerialNames(v.names)
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_FEATURE_NAMES)) {
-        const v = parseFeaturesNamesResponse(msg)
-        setFeatureNames(v.names)
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_SENSOR_CONFIG)) {
-        const v = parseSensorConfigResponse(msg)
-        reset({ ...getValues(), ...v })
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_FEATURE_CONFIG)) {
-        const v = parseFeaturesConfigResponse(msg)
-        const features = []
-        for (let i = 0; i < 32; i++) {
-          features[i] = !!(v.features & (1 << i))
-        }
-        reset({ ...getValues(), features })
-        console.log("recv", features)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_SERIAL_CONFIG)) {
-        const v = parseSerialConfigResponse(msg)
-        const f = {
-          serialCount: v.count,
-          serialPorts: v.configs.map((c) => ({
-            baud: c.baud,
-            func: c.func
-          }))
-        }
-        reset({ ...getValues(), ...f })
-        console.log("recv", v)
-      }
-    })
-  }, [subscribeMsp, getValues, reset])
+  const updateSerialPorts = useCallback((v: EspSerialConfigResponse) => {
+    const serial = {
+      serialCount: v.count,
+      serialPorts: v.configs.map((c) => ({
+        baud: c.baud,
+        func: c.func
+      }))
+    }
+    reset({ ...getValues(), ...serial })
+  }, [reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
+  const updateSensors = useCallback((v: EspSensorConfigResponse) => {
+    reset({ ...getValues(), ...v })
+  }, [reset, getValues])
+
+  const updateFeatures = useCallback((v: EspFeaturesConfig) => {
+    const features = []
+    for (let i = 0; i < 32; i++) {
+      features[i] = !!(v.features & (1 << i))
+    }
+    reset({ ...getValues(), features })
+  }, [reset, getValues])
+
+  const onSubmit: SubmitHandler<FormValues> = async (data) => {
     console.log("save", data)
-    writeMsp(createSensorConfigRequest(data))
-    writeMsp(createSerialConfigRequest({
+    updateSensors(parseSensorConfigResponse(await send(createSensorConfigRequest(data))))
+    updateSerialPorts(parseSerialConfigResponse(await send(createSerialConfigRequest({
       count: data.serialCount,
       configs: data.serialPorts.map((port) => ({
         baud: port.baud,
         func: port.func,
       }))
-    }))
-    writeMsp(createFeaturesConfigRequest({
+    }))))
+    updateFeatures(parseFeaturesConfigResponse(await send(createFeaturesConfigRequest({
       features: data.features.reduce((acc, v, i) => acc | (v ? (1 << i) : 0), 0)
-    }))
-    writeMsp(createSaveRequest())
-    writeMsp(createRebootRequest())
+    }))))
+    await send(createSaveRequest())
+    await send(createRebootRequest())
   }
 
-  const onLoad = useCallback(() => {
+  const onLoad = useCallback(async () => {
     console.log("load")
-    writeMsp(createSensorConfigRequest())
-    writeMsp(createSerialNamesRequest())
-    writeMsp(createFeaturesNamesRequest())
-    writeMsp(createSerialConfigRequest())
-    writeMsp(createFeaturesConfigRequest())
-  }, [writeMsp])
+    setSerialNames(parseSerialNamesResponse(await send(createSerialNamesRequest())).names)
+    setFeatureNames(parseFeaturesNamesResponse(await send(createFeaturesNamesRequest())).names)
+    updateSensors(parseSensorConfigResponse(await send(createSensorConfigRequest())))
+    updateSerialPorts(parseSerialConfigResponse(await send(createSerialConfigRequest())))
+    updateFeatures(parseFeaturesConfigResponse(await send(createFeaturesConfigRequest())))
+  }, [send, updateSerialPorts, updateSensors, updateFeatures])
 
   const onReset = useCallback(() => {
     reset(CONFIG_DEFAULTS)
@@ -167,7 +149,7 @@ const ConfigurationTab = () => {
     for (let i = 1; i <= 8; i++) {
       const freq = Math.round(gyroFreq / i)
       if (freq < 500) break
-      result.push({ id: i, name: `[${i}] ${freq} Hz` })
+      result.push({ id: i, name: `[1:${i}] ${freq} Hz` })
     }
     return result
   }, [status?.gyroTimeUs])

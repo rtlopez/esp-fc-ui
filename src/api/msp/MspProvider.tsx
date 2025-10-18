@@ -1,4 +1,4 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from "react"
+import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { useSerial } from '@/api/serial/SerialProvider'
 import { MspCommand, MspMessage, mspParse, MspVariant } from "@/api/msp/msp"
 import Queue from "@/api/Queue"
@@ -12,7 +12,6 @@ const textEncoder = new TextEncoder()
 export interface MspContextValue {
   subscribeMsp(callback: MspMessageCallback): () => void
   writeMsp: (message: MspMessage) => void
-  useIntervalMsp: (calback: () => void, delay: number) => void
   send: (msg: MspMessage) => Promise<MspMessage>
   subscribeText(callback: TextMessageCallback): () => void
   writeText: (message: string) => Promise<void>
@@ -21,12 +20,15 @@ export interface MspContextValue {
   cliActive: boolean,
   setCliActive: (value: boolean) => void,
   connected: boolean
+  rebooting: boolean
+  saving: boolean
+  initialized: boolean
+  setInitialized: (value: boolean) => void
 }
 
 const MspContext = createContext<MspContextValue>({
   subscribeMsp: () => () => { },
   writeMsp: () => { },
-  useIntervalMsp: (_calback: () => void, _delay: number) => { },
   send: async (_msg: MspMessage) => Promise.resolve(new MspMessage(0)),
   subscribeText: () => () => { },
   writeText: () => Promise.resolve(),
@@ -35,21 +37,20 @@ const MspContext = createContext<MspContextValue>({
   cliActive: false,
   setCliActive: (_value: boolean) => { },
   connected: false,
+  rebooting: false,
+  saving: false,
+  initialized: false,
+  setInitialized: (_value: boolean) => { },
 });
 
 type MspProviderProps = PropsWithChildren & {}
 
-const logMsg = (msg: MspMessage) => {
-  if (msg.variant === 'E') {
-    return msg.cmd === MspCommand.ESP_CMD_VERSION.value || msg.cmd >= MspCommand.ESP_CMD_MODE_NAMES.value
-  }
-  return true
-}
-
 type PendingItem = {
+  msg: MspMessage
   resolve: (value: MspMessage) => void
   reject: (reason?: unknown) => void
-  timeout: NodeJS.Timeout
+  timer: ReturnType<typeof setTimeout>
+  time: number
 }
 
 export class MspError extends Error {
@@ -63,6 +64,17 @@ export class MspError extends Error {
   }
 }
 
+const logMsg = (msg: MspMessage) => {
+  if (msg.variant === 'E') {
+    return msg.cmd === MspCommand.ESP_CMD_VERSION.value || msg.cmd >= MspCommand.ESP_CMD_MODE_NAMES.value
+  }
+  return true
+}
+
+const getKey = (msg: MspMessage) => {
+  return `${msg.variant}:${msg.cmd.toString(16).toUpperCase()}`
+}
+
 const MspProvider = ({ children }: MspProviderProps) => {
 
   const { write, subscribe, connect: serialConnect, disconnect: serialDisconnect, connected } = useSerial()
@@ -73,48 +85,88 @@ const MspProvider = ({ children }: MspProviderProps) => {
   const msgQueueRef = useRef(new Queue<MspMessage>())
   const msgQueueLockRef = useRef(new TimedLock())
   const msgRef = useRef(new MspMessage())
-  const [cliActive, setCliActive] = useState(false)
   const pendingRef = useRef(new Map<string, PendingItem>())
+  const [cliActive, setCliActive] = useState(false)
+  const [rebooting, setRebooting] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
-  const writeMsp = (msg: MspMessage) => {
-    if (logMsg(msg)) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.variant, msg.cmd.toString(16).toUpperCase())
+  const rebootingRef = useRef(false)
+
+  useEffect(() => {
+    rebootingRef.current = rebooting
+  }, [rebooting])
+
+  // useEffect(() => {
+  //   msgQueueRef.current.empty()
+  //   if (!connected) {
+  //     pendingRef.current.forEach((pending, key) => {
+  //       clearTimeout(pending.timer)
+  //       pending.reject(new MspError(pending.msg.variant, pending.msg.cmd, `Msp (${key}) command rejected: disconnected`))
+  //     })
+  //     pendingRef.current.clear()
+  //   }
+  // }, [connected])
+
+  const writeMsp = useCallback((msg: MspMessage) => {
+    //if (logMsg(msg)) console.log("msp.enque", msgQueueRef.current.size(), msgQueueLockRef.current.isActive(), msg.toId())
     msgQueueRef.current.enqueue(msg)
-  }
+  }, [])
 
-  const send = async (msg: MspMessage): Promise<MspMessage> => {
+  const send = useCallback(async (msg: MspMessage): Promise<MspMessage> => {
+    //console.log("msp.send", msg.variant, msg.cmd.toString(16).toUpperCase())
     return new Promise((resolve, reject) => {
-      const key = `${msg.variant}-${msg.cmd}`
+      const key = getKey(msg)
+      if (rebootingRef.current) {
+        reject(new MspError(msg.variant, msg.cmd, `Msp (${key}) rejected: rebooting`))
+        return
+      }
+      if (pendingRef.current.get(key)) {
+        reject(new MspError(msg.variant, msg.cmd, `Msp (${key}) rejected: already in queue`))
+        return
+      }
       pendingRef.current.set(key, {
+        msg,
+        time: new Date().getTime(),
         resolve,
         reject,
-        timeout: setTimeout(() => {
+        timer: setTimeout(() => {
           pendingRef.current.delete(key)
-          reject(new MspError(msg.variant, msg.cmd, 'Msp command timeout'))
+          reject(new MspError(msg.variant, msg.cmd, `Msp (${key}) command timeout`))
         }, 2000)
       })
       writeMsp(msg)
     })
-  }
+  }, [writeMsp])
 
   const receive = (data: Uint8Array) => {
     let text = '';
     data.forEach(b => {
       const consumed = mspParse(b, msgRef.current)
-      //console.log([consumed, b, msg.state, msg.dir, msg.received, msg.size, msg.checksum])
+      //console.log([consumed, b, msgRef.current.state, msgRef.current.dir, msgRef.current.received, msgRef.current.size, msgRef.current.checksum])
       if (consumed) {
         if (msgRef.current.isReplyReceived()) {
           // notify msp subscribers
-          if (logMsg(msgRef.current)) console.log("msp.recv", msgRef.current.variant, msgRef.current.cmd.toString(16).toUpperCase(), msgRef.current.toArray())
-          const key = `${msgRef.current.variant}-${msgRef.current.cmd}`
+          const key = getKey(msgRef.current)
           const pending = pendingRef.current.get(key)
+          let msgTime = 0
           if (pending) {
-            clearTimeout(pending.timeout)
+            msgTime = new Date().getTime() - pending.time
+            clearTimeout(pending.timer)
             pendingRef.current.delete(key)
             pending.resolve(msgRef.current)
           }
+          if (logMsg(msgRef.current)) console.log("msp.recv", msgRef.current.toId(), `${msgTime}ms`, msgRef.current.toArray())
           Array.from(mspSubscribersRef.current).forEach(([, callback]) => {
             callback(msgRef.current);
           });
+          if (msgRef.current.isCmd(MspCommand.ESP_CMD_REBOOT)) {
+            console.log('msp.reboot acknowledged')
+          }
+          if (msgRef.current.isCmd(MspCommand.ESP_CMD_SAVE)) {
+            console.log('msp.save acknowledged')
+            setSaving(false)
+          }
           msgRef.current = new MspMessage()
           msgQueueLockRef.current.release()
         }
@@ -152,21 +204,22 @@ const MspProvider = ({ children }: MspProviderProps) => {
     await write(textEncoder.encode(message + "\n"))
   }
 
-  const useIntervalMsp = (callback: () => void, delay: number) => {
-    useEffect(() => {
-      const interval = setInterval(() => {
-        if (connected && !cliActive) callback();
-      }, delay);
-      return () => clearInterval(interval);
-    }, [callback, delay]);
-  }
-
   useEffect(() => {
     const interval = setInterval(async () => {
       if (connected && !msgQueueLockRef.current.isActive() && !msgQueueRef.current.isEmpty()) {
         msgQueueLockRef.current.acquire(100)
         const msg = msgQueueRef.current.dequeue()!
-        if (logMsg(msg)) console.log("msp.send", msg.variant, msg.cmd.toString(16).toUpperCase(), msg.toArray())
+        if (logMsg(msg)) console.log("msp.write", msg.toId(), msg.toArray())
+        if (msg.isCmd(MspCommand.ESP_CMD_REBOOT)) {
+          console.log('msp.rebooting...')
+          setRebooting(true)
+          rebootingRef.current = true
+          setTimeout(() => { setRebooting(false); rebootingRef.current = false; }, 500)
+        }
+        if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
+          console.log('msp.saving...')
+          setSaving(true)
+        }
         await write(msg.toDataBuffer())
       }
     }, 5);
@@ -192,7 +245,6 @@ const MspProvider = ({ children }: MspProviderProps) => {
       value={{
         subscribeMsp,
         writeMsp,
-        useIntervalMsp,
         send,
         subscribeText,
         writeText,
@@ -201,6 +253,10 @@ const MspProvider = ({ children }: MspProviderProps) => {
         cliActive,
         setCliActive,
         connected,
+        rebooting,
+        saving,
+        initialized,
+        setInitialized,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import { FormEventHandler, PropsWithChildren, useEffect, FC, useState, useCallback, FormEvent } from 'react'
+import { FormEventHandler, PropsWithChildren, useEffect, FC, useCallback, FormEvent, MouseEvent } from 'react'
 import { MspCommand } from '@/api/msp/msp'
 import { useMsp } from '@/api/msp/MspProvider'
 import { Button, Col, Form, Row } from 'react-bootstrap'
@@ -14,35 +14,31 @@ type TabViewProps = {
 
 const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, onLoad, onReset }) => {
 
-  const { connected, subscribeMsp } = useMsp()
-  const [saving, setSaving] = useState(false)
+  const { connected, rebooting, saving, initialized, subscribeMsp } = useMsp()
 
   useEffect(() => {
     if (!connected) onReset?.()
-    else onLoad?.()
-  }, [connected, onReset, onLoad])
+    else if(initialized) onLoad?.()
+  }, [connected, initialized, onReset, onLoad])
 
   useEffect(() => {
     return subscribeMsp((msg) => {
       if (msg.isCmd(MspCommand.ESP_CMD_REBOOT)) {
-        console.log("reboot")
-        if (onLoad) setTimeout(onLoad, 500)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-        setSaving(false)
+        if (onLoad) setTimeout(onLoad, 900)
       }
     })
-  }, [subscribeMsp, onLoad, setSaving])
+  }, [subscribeMsp, onLoad])
 
   const submitHandler = useCallback(((e: FormEvent<Element>) => {
-    console.log("save")
-    if (onSubmit) {
-      setSaving(true)
-      setTimeout(() => setSaving(false), 1000)
-      onSubmit(e)
-    }
-  }), [onSubmit])
+    console.log("btn.save")
+    if(initialized) onSubmit?.(e)
+  }), [initialized, onSubmit])
+
+  const loadHandler = useCallback((e: MouseEvent<HTMLButtonElement>) => {
+    console.log("btn.load")
+    e.preventDefault()
+    if(initialized) onLoad?.()
+  }, [initialized, onLoad])
 
   return <Form className='mb-5' onSubmit={submitHandler}>
 
@@ -54,15 +50,12 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
         <Button
           variant="outline-primary"
           className="me-2"
-          disabled={!connected}
-          onClick={(e) => {
-            e.preventDefault();
-            onLoad?.()
-          }}
+          disabled={!connected || saving || rebooting}
+          onClick={loadHandler}
         >
           <i className='bi bi-box-arrow-in-up'></i> Load
         </Button>
-        <Button variant='primary' disabled={!connected || saving} type="submit">
+        <Button variant='primary' disabled={!connected || saving || rebooting} type="submit">
           <i className='bi bi-floppy'></i> {reboot ? 'Save And Reboot' : 'Save'}
         </Button>
       </Col> : null}
