@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
   createInputChannelConfigRequest, createInputConfigRequest,
-  createInputRequest, createRebootRequest, createSaveRequest, EspInputResponse,
-  parseInputChannelConfigResponse, parseInputConfigResponse,
-  parseInputResponse
+  createInputRequest, createRebootRequest, createSaveRequest,
+  EspInputResponse, parseInputChannelConfigResponse,
+  parseInputConfigResponse, parseInputResponse
 } from '@/api/esp'
+import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
 import { Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
 import { FormItem, RcControls } from '@/component/widget'
 import TabView from './TabView'
-import { MspCommand } from '@/api/msp/msp'
-import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form';
-import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
+import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 
 const channelMaping: Record<number, string> = {
   0: "Roll",
@@ -44,6 +43,7 @@ type FormValues = {
   inputMid: number
   inputMin: number
   inputMax: number
+  channelCount: number
   channels: Array<FormChannel>
 }
 
@@ -54,6 +54,7 @@ const INPUT_DEFAULTS = {
   inputMid: 1500,
   inputMin: 880,
   inputMax: 2200,
+  channelCount: 4,
   channels: [
     { map: 1, min: 1000, max: 2000, fsMode: 0, fsValue: 1500 },
     { map: 2, min: 1000, max: 2000, fsMode: 0, fsValue: 1500 },
@@ -65,7 +66,7 @@ const INPUT_DEFAULTS = {
 const InputTab = () => {
 
   const [inputs, setInputs] = useState<EspInputResponse>({ count: 8, channels: [1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500] })
-  const { writeMsp, subscribeMsp } = useMsp()
+  const { send } = useMsp()
 
   const {
     control,
@@ -78,68 +79,55 @@ const InputTab = () => {
     defaultValues: INPUT_DEFAULTS
   });
 
-  const { fields: channels } = useFieldArray({ control, name: "channels" });
+  const { fields: channels } = useFieldArray({ control, name: "channels" })
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_INPUT)) {
-        setInputs(parseInputResponse(msg))
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CONFIG)) {
-        const v = parseInputConfigResponse(msg)
-        const data = {
-          inputType: v.type,
-          inputDeadband: v.deadband,
-          inputSmoothing: v.smoothing,
-          inputMid: v.mid,
-          inputMin: v.min,
-          inputMax: v.max,
-        }
-        reset({ ...getValues(), ...data })
-        console.log("recv", v, data)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CHANNEL_CONFIG)) {
-        const v = parseInputChannelConfigResponse(msg)
-        const channels = v.channels
-        reset({ ...getValues(), channels })
-        console.log("recv", v, channels)
-      }
-    })
-  }, [subscribeMsp, reset, getValues])
-
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("save", data)
-    const v = {
+  const updateInputConfig = useCallback(async (data?: FormValues) => {
+    const v = parseInputConfigResponse(await send(createInputConfigRequest(data && {
       type: data.inputType,
       deadband: data.inputDeadband,
       smoothing: data.inputSmoothing,
       mid: data.inputMid,
       min: data.inputMin,
       max: data.inputMax,
-    }
-    const c = {
-      count: 0,
-      channels: data.channels
-    }
-    writeMsp(createInputConfigRequest(v))
-    writeMsp(createInputChannelConfigRequest(c))
-    writeMsp(createSaveRequest())
-    writeMsp(createRebootRequest())
-  }
+    })))
+    reset({ ...getValues(), ...{
+      inputType: v.type,
+      inputDeadband: v.deadband,
+      inputSmoothing: v.smoothing,
+      inputMid: v.mid,
+      inputMin: v.min,
+      inputMax: v.max,
+    } })
+  }, [send, reset, getValues])
+
+  const updateInputChannelConfig = useCallback(async (data?: FormValues) => {
+    const v = parseInputChannelConfigResponse(await send(createInputChannelConfigRequest(data && {
+      count: data.channelCount,
+      channels: data.channels.map(ch => { return {...ch, map: ch.map - 1} })
+    })))
+    const channels = v.channels.map(ch => { return {...ch, map: ch.map + 1} })
+    reset({ ...getValues(), channels, channelCount: v.count })
+  }, [send, reset, getValues])
+
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    await updateInputConfig(data)
+    await updateInputChannelConfig(data)
+    await send(createSaveRequest())
+    await send(createRebootRequest())
+  }, [send, updateInputConfig, updateInputChannelConfig])
 
   const onLoad = useCallback(async () => {
-    console.log("load")
-    writeMsp(createInputConfigRequest())
-    writeMsp(createInputChannelConfigRequest())
-  }, [writeMsp])
+    await updateInputConfig()
+    await updateInputChannelConfig()
+  }, [updateInputConfig, updateInputChannelConfig])
 
   const onReset = useCallback(() => {
     reset(INPUT_DEFAULTS)
   }, [reset])
 
   useIntervalMsp(useCallback(async () => {
-    writeMsp(createInputRequest())
-  }, [writeMsp]), 300)
+    setInputs(parseInputResponse(await send(createInputRequest())))
+  }, [send]), 300)
 
   return <TabView title='Input' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>

@@ -10,7 +10,7 @@ type TopBarProps = {
 
 const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
 
-  const { error, clearError } = useBoardInfo()
+  const { error, clearError, connected } = useBoardInfo()
 
   return <>
     <Navbar expand="lg" bg="secondary">
@@ -19,7 +19,7 @@ const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
         <Button variant="outline-light" className="me-2 d-lg-none" onClick={menuShow}>
           <i className="bi bi-list" />
         </Button>
-        <Navbar.Brand as={Link} to="/" className="h1"><i className="bi bi-radar"></i> ESP-FC UI</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/" className="h1"><i className="bi bi-radar"></i> ESP-FC UI{!connected ? <i>{' - (DEMO MODE)'}</i> : null}</Navbar.Brand>
         <span>
           <Flash />
           <Connect />

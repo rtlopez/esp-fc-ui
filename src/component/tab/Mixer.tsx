@@ -2,7 +2,7 @@ import { FC, useCallback, useState } from 'react'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
-  createMixerConfigRequest, createMixerNamesRequest, createSaveRequest,
+  createMixerConfigRequest, createMixerNamesRequest, createRebootRequest, createSaveRequest,
   EspMixerConfig, EspNameElement, parseMixerConfigResponse, 
   parseMixerNamesResponse
 } from '@/api/esp'
@@ -166,13 +166,12 @@ const MixerTab = () => {
   }, [reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
-    console.log("save", data)
     updateMixerConfig(parseMixerConfigResponse(await send(createMixerConfigRequest(data))))
     await send(createSaveRequest())
+    await send(createRebootRequest())
   }, [send, updateMixerConfig])
 
   const onLoad = useCallback(async () => {
-    console.log("load")
     setMixerNames(parseMixerNamesResponse(await send(createMixerNamesRequest())).names)
     updateMixerConfig(parseMixerConfigResponse(await send(createMixerConfigRequest())))
   }, [send, updateMixerConfig])

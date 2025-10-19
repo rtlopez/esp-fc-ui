@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import { SubmitHandler, useFieldArray, useForm, useWatch } from 'react-hook-form'
-import { MspCommand } from '@/api/msp/msp'
 import { createPidTuningRequest, createSaveRequest, parsePidTuningResponse } from '@/api/esp'
 import { Card, Col, Row, Form } from 'react-bootstrap'
 import TabView from './TabView'
@@ -50,8 +49,7 @@ const TuningTab = () => {
   const [rollRate, setRollRate] = useState(240)
   const [pitchRate, setPitchRate] = useState(240)
   const [yawRate, setYawRate] = useState(320)
-  const { connected, writeMsp, subscribeMsp } = useMsp()
-  const cmdPendingRef = useRef(false)
+  const { connected, send } = useMsp()
 
   const {
     control,
@@ -59,7 +57,6 @@ const TuningTab = () => {
     handleSubmit,
     reset,
     getValues,
-    //watch,
     //formState: { errors }
   } = useForm<FormValues>({
     defaultValues: PID_TUNING_DEFAULTS
@@ -67,22 +64,9 @@ const TuningTab = () => {
 
   const { fields: pidValues } = useFieldArray({ control, name: "pids", });
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_PID_TUNING)) {
-        const v = parsePidTuningResponse(msg)
-        reset({ ...getValues(), ...v })
-        console.log("recv", v)
-        cmdPendingRef.current = false
-      }
-    })
-  }, [subscribeMsp, reset, getValues])
-
-  const onSubmit: SubmitHandler<FormValues> = useCallback<SubmitHandler<FormValues>>((data) => {
-    console.log("save", data)
-    cmdPendingRef.current = true
-    writeMsp(createPidTuningRequest({
-      mode: data.mode | 0x80, // change config
+  const updatePidTuning = useCallback(async (persist: boolean, data?: FormValues) => {
+    const v = parsePidTuningResponse(await send(createPidTuningRequest(data && {
+      mode: data.mode | (persist ? 0x80 : 0), // change config?
       rpGain: data.rpGain,
       rpStability: data.rpStability,
       rpAgility: data.rpAgility,
@@ -90,43 +74,68 @@ const TuningTab = () => {
       yawGain: data.yawGain,
       yawStability: data.yawStability,
       pids: data.pids,
-    }))
-    writeMsp(createSaveRequest())
-    //writeMsp(createRebootRequest())
-  }, [writeMsp])
+    })))
+    reset({ ...getValues(), ...v })
+  }, [send, reset, getValues])
+
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    await updatePidTuning(true, data)
+    await send(createSaveRequest())
+    //await send(createRebootRequest())
+  }, [send, updatePidTuning])
 
   const onLoad = useCallback(async () => {
-    console.log("load")
-    writeMsp(createPidTuningRequest())
-  }, [writeMsp])
+    await updatePidTuning(false)
+  }, [updatePidTuning])
 
   const onReset = useCallback(() => {
     reset(PID_TUNING_DEFAULTS);
   }, [reset]);
 
-  const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = useWatch({ 
-    control, name:  ["mode", "rpGain", "rpStability", "rpAgility", "rpBalance", "yawGain", "yawStability"]
+  const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = useWatch({
+    control, name: ["mode", "rpGain", "rpStability", "rpAgility", "rpBalance", "yawGain", "yawStability"]
   });
 
   // Watch only relevant parameters and send update on change
+  const cmdPendingRef = useRef(false)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!connected) return;
-    if (!mode) return; // only in slider mode
-    if (cmdPendingRef.current) return; // do not send next until we recive previous command response
-    cmdPendingRef.current = true
-    writeMsp(createPidTuningRequest({
-      mode: mode,
-      rpGain: rpGain,
-      rpStability: rpStability,
-      rpAgility: rpAgility,
-      rpBalance: rpBalance,
-      yawGain: yawGain,
-      yawStability: yawStability,
-      pids: getValues("pids"), // do not change pids
-    }));
-  }, [connected, mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability, getValues, writeMsp]);
+    if (!connected) return
+    if (!mode) return // only in slider mode
 
-  // eslint-disable-next-line react-hooks/refs
+    const update = async () => {
+      if (cmdPendingRef.current) return // do not send next until we recive previous command response
+      cmdPendingRef.current = true
+      //setTimeout(() => { cmdPendingRef.current = false }, 70) // throttle
+      try {
+        await updatePidTuning(false, {
+          mode: mode,
+          rpGain: rpGain,
+          rpStability: rpStability,
+          rpAgility: rpAgility,
+          rpBalance: rpBalance,
+          yawGain: yawGain,
+          yawStability: yawStability,
+          pids: getValues("pids"), // do not change pids
+        })
+      } catch (e) {
+        console.warn("Failed to update PID tuning:", e)
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50)); // min delay between commands
+      cmdPendingRef.current = false
+    }
+
+    update()
+
+    // trail call debounce
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => { update() }, 150)
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    }
+
+  }, [connected, mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability, getValues, updatePidTuning])
+
   return <TabView title='Tuning' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 

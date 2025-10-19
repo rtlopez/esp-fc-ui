@@ -117,7 +117,6 @@ const LoggingTab = () => {
       if (msg.isCmd(MspCommand.ESP_CMD_BLACKBOX_CONFIG)) {
         const v = parseBlackboxConfigResponse(msg)
         reset({ ...getValues(), ...v })
-        console.log("recv", v)
       }
       if (msg.isCmd(MspCommand.ESP_CMD_FLASH_ERASE)) {
         setInProgress(false)
@@ -128,7 +127,6 @@ const LoggingTab = () => {
       }
       if (msg.isCmd(MspCommand.ESP_CMD_FLASH_READ)) {
         const v = parseFlashReadResponse(msg)
-        console.log("recv", v)
         if (statistics?.flashUsed) {
           append(new Uint8Array(v.data))
           // calc dnld proggress
@@ -161,14 +159,12 @@ const LoggingTab = () => {
   }, [subscribeMsp, reset, getValues, writeMsp, append, clear, setDnldPerc, dnldPerc, finalize, statistics?.flashUsed, download, dateStr])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("save", data)
     writeMsp(createBlackboxConfigRequest(data))
     writeMsp(createSaveRequest())
     writeMsp(createRebootRequest())
   }
 
   const onLoad = useCallback(async () => {
-    console.log("load")
     writeMsp(createDebugNamesRequest())
     writeMsp(createBlackboxNamesRequest())
     writeMsp(createBlackboxConfigRequest())

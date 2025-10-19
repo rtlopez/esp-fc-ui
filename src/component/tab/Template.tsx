@@ -1,8 +1,7 @@
-import { useCallback, useEffect } from 'react'
-import { Card, Col, Form, Row } from 'react-bootstrap'
+import { useCallback } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspCommand } from '@/api/msp/msp'
-import { createSaveRequest } from '@/api/esp'
+import { createRebootRequest, createSaveRequest } from '@/api/esp'
+import { Card, Col, Form, Row } from 'react-bootstrap'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
@@ -17,7 +16,7 @@ const INPUT_DEFAULTS = {
 
 const TemplateTab = () => {
 
-  const { writeMsp, subscribeMsp } = useMsp()
+  const { send } = useMsp()
 
   const {
     //control,
@@ -30,31 +29,16 @@ const TemplateTab = () => {
     defaultValues: INPUT_DEFAULTS
   });
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SAVE)) {
-        console.log("saved")
-      }
-      // if (msg.isCmd(MspCommand.ESP_CMD_INPUT_CONFIG)) {
-      //   const v = parseInputConfigResponse(msg)
-      //   reset({ ...getValues(), ...v })
-      //   console.log("recv", v)
-      // }
-    })
-  }, [subscribeMsp])
-
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("save", data)
-    // const v = {
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (_data) => {
+    // updateInputConfig(parseInputConfigResponse(await send(createInputConfigRequest({
     //   val: data.val,
-    // }
-    // writeMsp(createInputConfigRequest(v))
-    writeMsp(createSaveRequest())
-  }
+    // })))
+    await send(createSaveRequest())
+    await send(createRebootRequest())
+  }, [send])
 
   const onLoad = useCallback(async () => {
-    console.log("load")
-    //writeMsp(createInputConfigRequest())
+    //updateInputConfig(parseInputConfigResponse(await send(createInputConfigRequest())))
   }, [])
 
   const onReset = useCallback(() => {

@@ -3,7 +3,7 @@ import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
   createInputRequest, createModeNamesRequest, createModesConfigRequest,
-  createSaveRequest, EspInputResponse, EspModesConfig, parseInputResponse,
+  createSaveRequest, EspInputResponse, parseInputResponse,
   parseModeNamesResponse, parseModesConfigResponse
 } from '@/api/esp'
 import { SubmitHandler, useFieldArray, useForm, useWatch } from 'react-hook-form'
@@ -91,21 +91,22 @@ const ModesTab = () => {
   const { fields: modes } = useFieldArray({ control, name: 'modes' })
   const watchModes = useWatch({ control, name: 'modes' })
 
-  const updateModesConfig = useCallback((v: EspModesConfig) => {
-    reset({ ...getValues(), ...v })
-  }, [reset, getValues])
-
-  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
-    updateModesConfig(parseModesConfigResponse(await send(createModesConfigRequest({
+  const updateModesConfig = useCallback(async (data?: FormValues) => {
+    const v = parseModesConfigResponse(await send(createModesConfigRequest(data && {
       modeCount: data.modeCount,
       modes: data.modes,
-    }))))
+    })))
+    reset({ ...getValues(), ...v })
+  }, [send, reset, getValues])
+
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    await updateModesConfig(data)
     await send(createSaveRequest())
   }, [send, updateModesConfig])
 
   const onLoad = useCallback(async () => {
     setModeNames([{ id: 0xff, name: "- None -" }, ...parseModeNamesResponse(await send(createModeNamesRequest())).names])
-    updateModesConfig(parseModesConfigResponse(await send(createModesConfigRequest())))
+    await updateModesConfig()
   }, [send, updateModesConfig])
 
   const onReset = useCallback(() => {

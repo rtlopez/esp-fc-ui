@@ -54,18 +54,15 @@ const StatusTab = () => {
 
   const handleCalibrateGyro = useCallback(async () => {
     await send(createCalibrateRequest({ mode: 1 }))
-    console.log("recv calibrate 1")
   }, [send])
 
   const handleCalibrateMag = useCallback(async () => {
     await send(createCalibrateRequest({ mode: 2 }))
-    console.log("recv calibrate 2")
   }, [send])
 
   const handleReset = useCallback(async () => {
     await send(createDefaultsRequest())
     await send(createRebootRequest())
-    console.log("defaults")
   }, [send])
 
   const handleBackup = useCallback(async () => {

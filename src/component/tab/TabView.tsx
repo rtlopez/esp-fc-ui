@@ -21,11 +21,13 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
     const doEffect = async () => {
       if (!connected) {
         firstRun.current = true
+        console.log("tab.reset")
         onReset?.()
       }
       else if (initialized && firstRun.current) {
         // allow onLoad to be called only once
         firstRun.current = false
+        console.log("tab.load")
         await onLoad?.()
       }
     }

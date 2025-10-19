@@ -178,7 +178,6 @@ const OutputTab = () => {
   }, [outputOverride, reset, getValues, setOutputValues, subscribeMsp])
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("save", data)
     const c = configFormToApi(data)
     const v = configChannelsFormToApi(data)
     writeMsp(createOutputConfigRequest(c))
@@ -188,7 +187,6 @@ const OutputTab = () => {
   }
 
   const onLoad = useCallback(async () => {
-    console.log("load")
     writeMsp(createOutputConfigRequest())
     writeMsp(createOutputChannelConfigRequest())
   }, [writeMsp])

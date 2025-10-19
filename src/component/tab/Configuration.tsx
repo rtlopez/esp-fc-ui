@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Card, Col, Form, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
 import { useBoardInfo } from '@/api/BoardInfoProvider'
 import {
@@ -9,6 +8,7 @@ import {
   EspSerialConfigResponse, parseFeaturesConfigResponse, parseFeaturesNamesResponse,
   parseSensorConfigResponse, parseSerialConfigResponse, parseSerialNamesResponse
 } from '@/api/esp'
+import { Card, Col, Form, Row } from 'react-bootstrap'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
 import { FormItem } from '../widget'
@@ -114,7 +114,6 @@ const ConfigurationTab = () => {
   }, [reset, getValues])
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    console.log("save", data)
     updateSensors(parseSensorConfigResponse(await send(createSensorConfigRequest(data))))
     updateSerialPorts(parseSerialConfigResponse(await send(createSerialConfigRequest({
       count: data.serialCount,
@@ -131,7 +130,6 @@ const ConfigurationTab = () => {
   }
 
   const onLoad = useCallback(async () => {
-    console.log("load")
     setSerialNames(parseSerialNamesResponse(await send(createSerialNamesRequest())).names)
     setFeatureNames(parseFeaturesNamesResponse(await send(createFeaturesNamesRequest())).names)
     updateSensors(parseSensorConfigResponse(await send(createSensorConfigRequest())))

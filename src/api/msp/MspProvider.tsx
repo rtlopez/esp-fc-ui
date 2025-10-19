@@ -72,7 +72,7 @@ const logMsg = (msg: MspMessage) => {
 }
 
 const getKey = (msg: MspMessage) => {
-  return `${msg.variant}:${msg.cmd.toString(16).toUpperCase()}`
+  return `${msg.variant}:${msg.cmd.toString(16).toUpperCase().padStart(2, '0')}`
 }
 
 const MspProvider = ({ children }: MspProviderProps) => {

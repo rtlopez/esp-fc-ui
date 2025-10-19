@@ -1,10 +1,12 @@
-import { useCallback, useEffect } from 'react'
-import { MspCommand } from '@/api/msp/msp'
+import { useCallback } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import {
-  createAccelConfigRequest, createBaroConfigRequest, createGyroConfigRequest, createMagConfigRequest,
-  createRebootRequest, createSaveRequest, createSensorConfigRequest, parseAccelConfigResponse,
-  parseBaroConfigResponse, parseGyroConfigResponse, parseMagConfigResponse, parseSensorConfigResponse
+  createAccelConfigRequest, createBaroConfigRequest, createGyroConfigRequest,
+  createMagConfigRequest, createRebootRequest, createSaveRequest,
+  createSensorConfigRequest, EspAccelConfig, EspBaroConfig, EspGyroConfig,
+  EspMagConfig, EspSensorConfigResponse, parseAccelConfigResponse,
+  parseBaroConfigResponse, parseGyroConfigResponse, parseMagConfigResponse,
+  parseSensorConfigResponse
 } from '@/api/esp'
 import { Card, Col, Form, Row } from 'react-bootstrap'
 import { SubmitHandler, useForm } from 'react-hook-form'
@@ -102,7 +104,7 @@ const axes = [
 
 const SensorsTab = () => {
 
-  const { writeMsp, subscribeMsp } = useMsp()
+  const { send } = useMsp()
 
   const {
     //control,
@@ -115,48 +117,37 @@ const SensorsTab = () => {
     defaultValues: SENSOR_DEFAULTS
   });
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_SENSOR_CONFIG)) {
-        const v = parseSensorConfigResponse(msg)
-        reset({ ...getValues(), ...v })
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_GYRO_CONFIG)) {
-        const v = parseGyroConfigResponse(msg)
-        reset({
-          ...getValues(),
-          gyroAlign: v.align,
-          gyroLpf0: { type: v.lpf[0].type, freq: v.lpf[0].freq },
-          gyroLpf1: { type: v.lpf[1].type, freq: v.lpf[1].freq },
-          gyroLpf2: { type: v.lpf[2].type, freq: v.lpf[2].freq },
-          dynNotch: { ...v.dynNotch },
-          rpmNotch: { ...v.rpmNotch },
-        })
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_ACCEL_CONFIG)) {
-        const v = parseAccelConfigResponse(msg)
-        reset({ ...getValues(), ...{ accelLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_BARO_CONFIG)) {
-        const v = parseBaroConfigResponse(msg)
-        reset({ ...getValues(), ...{ baroLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
-        console.log("recv", v)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_MAG_CONFIG)) {
-        const v = parseMagConfigResponse(msg)
-        reset({ ...getValues(), ...{ magAlign: v.align, magLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
-        console.log("recv", v)
-      }
-    })
-  }, [subscribeMsp, reset, getValues])
+  const updateSensorConfig = useCallback((v: EspSensorConfigResponse) => {
+    reset({ ...getValues(), ...v })
+  }, [reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    console.log("save", data)
-    writeMsp(createSensorConfigRequest(data))
-    writeMsp(createGyroConfigRequest({
+  const updateGyroConfig = useCallback((v: EspGyroConfig) => {
+    reset({
+      ...getValues(),
+      gyroAlign: v.align,
+      gyroLpf0: { type: v.lpf[0].type, freq: v.lpf[0].freq },
+      gyroLpf1: { type: v.lpf[1].type, freq: v.lpf[1].freq },
+      gyroLpf2: { type: v.lpf[2].type, freq: v.lpf[2].freq },
+      dynNotch: { ...v.dynNotch },
+      rpmNotch: { ...v.rpmNotch },
+    })
+  }, [reset, getValues])
+
+  const updateAccelConfig = useCallback((v: EspAccelConfig) => {
+    reset({ ...getValues(), ...{ accelLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
+  }, [reset, getValues])
+
+  const updateBaroConfig = useCallback((v: EspBaroConfig) => {
+    reset({ ...getValues(), ...{ baroLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
+  }, [reset, getValues])
+
+  const updateMagConfig = useCallback((v: EspMagConfig) => {
+    reset({ ...getValues(), ...{ magAlign: v.align, magLpf: { type: v.lpf.type, freq: v.lpf.freq } } })
+  }, [reset, getValues])
+
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    updateSensorConfig(parseSensorConfigResponse(await send(createSensorConfigRequest(data))))
+    updateGyroConfig(parseGyroConfigResponse(await send(createGyroConfigRequest({
       align: data.gyroAlign,
       lpf: [
         { type: data.gyroLpf0.type, freq: data.gyroLpf0.freq },
@@ -174,38 +165,37 @@ const SensorsTab = () => {
         q: data.rpmNotch.q,
         minFreq: data.rpmNotch.minFreq,
       }
-    }))
-    writeMsp(createAccelConfigRequest({
+    }))))
+    updateAccelConfig(parseAccelConfigResponse(await send(createAccelConfigRequest({
       lpf: {
         type: data.accelLpf.type,
         freq: data.accelLpf.freq
       }
-    }))
-    writeMsp(createBaroConfigRequest({
+    }))))
+    updateBaroConfig(parseBaroConfigResponse(await send(createBaroConfigRequest({
       lpf: {
         type: data.baroLpf.type,
         freq: data.baroLpf.freq
       }
-    }))
-    writeMsp(createMagConfigRequest({
+    }))))
+    updateMagConfig(parseMagConfigResponse(await send(createMagConfigRequest({
       align: data.magAlign,
       lpf: {
         type: data.magLpf.type,
         freq: data.magLpf.freq
       }
-    }))
-    writeMsp(createSaveRequest())
-    writeMsp(createRebootRequest())
-  }
+    }))))
+    await send(createSaveRequest())
+    await send(createRebootRequest())
+  }, [send, updateSensorConfig, updateGyroConfig, updateAccelConfig, updateBaroConfig, updateMagConfig])
 
   const onLoad = useCallback(async () => {
-    console.log("load")
-    writeMsp(createSensorConfigRequest())
-    writeMsp(createGyroConfigRequest())
-    writeMsp(createAccelConfigRequest())
-    writeMsp(createBaroConfigRequest())
-    writeMsp(createMagConfigRequest())
-  }, [writeMsp])
+    await send(createSensorConfigRequest())
+    await send(createGyroConfigRequest())
+    await send(createAccelConfigRequest())
+    await send(createBaroConfigRequest())
+    await send(createMagConfigRequest())
+  }, [send])
 
   const onReset = useCallback(() => {
     reset(SENSOR_DEFAULTS);

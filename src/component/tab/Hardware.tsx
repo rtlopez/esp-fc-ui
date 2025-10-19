@@ -1,8 +1,10 @@
-import { useCallback, useEffect } from 'react'
-import { Card, Col, Form, Row } from 'react-bootstrap'
+import { useCallback } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspCommand } from '@/api/msp/msp'
-import { createPinConfigRequest, createRebootRequest, createSaveRequest, parsePinConfigResponse } from '@/api/esp'
+import {
+  createPinConfigRequest, createRebootRequest, createSaveRequest,
+  EspPinConfigResponse, parsePinConfigResponse
+} from '@/api/esp'
+import { Card, Col, Form, Row } from 'react-bootstrap'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
 
@@ -106,7 +108,7 @@ const getFunctionName = (type: number, index: number): string => {
 
 const HardwareTab = () => {
 
-  const { writeMsp, subscribeMsp } = useMsp()
+  const { send } = useMsp()
 
   const {
     control,
@@ -121,26 +123,19 @@ const HardwareTab = () => {
 
   const { fields: pins } = useFieldArray({ control, name: "pins" });
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    writeMsp(createPinConfigRequest(data))
-    writeMsp(createSaveRequest())
-    writeMsp(createRebootRequest())
-  }
+  const updatePinConfig = useCallback(async (v: EspPinConfigResponse) => {
+    reset({ ...getValues(), ...v })
+  }, [reset, getValues])
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_PIN_CONFIG)) {
-        const v = parsePinConfigResponse(msg)
-        reset({ ...getValues(), ...v })
-        console.log("recv", v)
-      }
-    })
-  }, [subscribeMsp, reset, getValues])
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    updatePinConfig(parsePinConfigResponse(await send(createPinConfigRequest(data))))
+    await send(createSaveRequest())
+    await send(createRebootRequest())
+  }, [send, updatePinConfig])
 
   const onLoad = useCallback(async () => {
-    console.log("load")
-    writeMsp(createPinConfigRequest())
-  }, [writeMsp])
+    updatePinConfig(parsePinConfigResponse(await send(createPinConfigRequest())))
+  }, [send, updatePinConfig])
 
   const onReset = useCallback(() => {
     reset(PIN_DFAULTS);
