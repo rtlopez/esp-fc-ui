@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useRef } from "react"
 
 const download = (blob: Blob, filename: string): void => {
   const a = document.createElement('a')
@@ -14,48 +14,45 @@ const dateStr = (d: Date = new Date()): string => {
 }
 
 export const useBlobAccumulator = (mimeType?: string) => {
-  const chunksRef = useRef<Uint8Array<ArrayBuffer>[]>([])
+  const chunksRef = useRef<ArrayBuffer[]>([])
   const totalLengthRef = useRef(0)
-  const [blob, setBlob] = useState<Blob | null>(null)
 
   // append chunk
-  const append = useCallback((chunk: Uint8Array<ArrayBuffer>) => {
+  const append = useCallback((chunk: ArrayBuffer) => {
     chunksRef.current.push(chunk)
     totalLengthRef.current += chunk.byteLength
-  }, [])
-
-  // build blob
-  const finalize = useCallback(() => {
-    const newBlob = new Blob(chunksRef.current, mimeType ? { type: mimeType } : undefined)
-    setBlob(newBlob)
-    return newBlob
-  }, [mimeType])
-
-  // optional: make ArrayBuffer
-  const getArrayBuffer = useCallback((): ArrayBuffer => {
-    const out = new Uint8Array(totalLengthRef.current)
-    let offset = 0
-    for (const c of chunksRef.current) {
-      out.set(c, offset)
-      offset += c.byteLength
-    }
-    return out.buffer
   }, [])
 
   // clear buffer
   const clear = useCallback(() => {
     chunksRef.current = []
     totalLengthRef.current = 0
-    setBlob(null)
   }, [])
+
+  // build blob
+  const finalize = useCallback(() => {
+    const blob = new Blob(chunksRef.current, mimeType ? { type: mimeType } : undefined)
+    clear()
+    return blob
+  }, [mimeType, clear])
+
+  const getArrayBuffer = useCallback((): ArrayBuffer => {
+    const out = new Uint8Array(totalLengthRef.current)
+    let offset = 0
+    for (const c of chunksRef.current) {
+      out.set(new Uint8Array(c), offset)
+      offset += c.byteLength
+    }
+    clear()
+    return out.buffer
+  }, [clear])
 
   return {
     append,
+    clear,
     finalize,
     getArrayBuffer,
-    clear,
     download,
     dateStr,
-    blob,
   }
 }

@@ -90,7 +90,7 @@ const LoggingTab = () => {
   const [dnldPerc, setDnldPerc] = useState(0);
   const { connected, send } = useMsp()
   const { status, statistics } = useBoardInfo()
-  const { append, finalize, clear, download, dateStr } = useBlobAccumulator("application/octet-stream")
+  const { append, finalize, download, dateStr } = useBlobAccumulator("application/octet-stream")
 
   const {
     control,
@@ -165,39 +165,40 @@ const LoggingTab = () => {
   }
 
   const flashRead = async () => {
-    if (statistics && statistics.flashUsed) {
+    if (!statistics || !statistics.flashUsed) {
+      console.log('flash empty')
+      return
+    }
+
+    try {
       setInProgress(true)
-      while (true) {
-        const r = await send(createFlashReadRequest({ address: 0, size: DNLD_SIZE }))
-        const v = parseFlashReadResponse(r)
+      let address = 0
+      let size = DNLD_SIZE
+      const end = statistics.flashUsed
+      while (size && address < end) {
+        const v = parseFlashReadResponse(await send(createFlashReadRequest({ address, size })))
 
         // append data chunk
-        append(new Uint8Array(v.data))
-        
-        // calc next chunk address
-        const address = v.address + v.size
-        const size = Math.min(DNLD_SIZE, statistics.flashUsed - address)
-        console.log("next", { address, size, total: statistics.flashUsed })
+        append(v.buffer)
 
         // calc dnld proggress
-        const dnldProgress = Math.round(100 * v.address / statistics.flashUsed)
+        const dnldProgress = Math.round(100 * v.address / end)
         if (dnldPerc !== dnldProgress) {
           setDnldPerc(dnldProgress)
         }
-        
-        // finish reading
-        if (!size || address >= statistics.flashUsed) {
-          console.log("finish")
-          setInProgress(false)
-          const blob = finalize()
-          clear()
-          download(blob, `espfc_log_${dateStr()}.bbl`)
-          setDnldPerc(0)
-          break
-        }
+
+        // calc next chunk address
+        address += v.size
+        size = Math.min(DNLD_SIZE, end - address)
+        console.log("bbl.chunk", { address, size, total: end })
       }
-    } else {
-      console.log('flash epmty')
+
+      // finish reading, start download
+      console.log("bbl.dnld")
+      download(finalize(), `espfc_log_${dateStr()}.bbl`)
+    } finally {
+      setDnldPerc(0)
+      setInProgress(false)
     }
   }
 

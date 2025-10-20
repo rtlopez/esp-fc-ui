@@ -960,7 +960,7 @@ export type EspFlashReadResponse = {
   address: number
   size: number
   flags: number
-  data: number[]
+  buffer: ArrayBuffer
 }
 
 export const parseFlashReadResponse = (msg: MspMessage): EspFlashReadResponse => {
@@ -969,10 +969,7 @@ export const parseFlashReadResponse = (msg: MspMessage): EspFlashReadResponse =>
     address: reader.readU32(),
     size: reader.readU16(),
     flags: reader.readU16(),
-    data: [],
-  }
-  while (reader.remain()) {
-    v.data.push(reader.readU8())
+    buffer: reader.readAsBuffer(reader.remain()),
   }
   return v
 }

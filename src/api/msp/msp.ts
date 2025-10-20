@@ -151,6 +151,12 @@ export class MspReader {
     this.index += size
   }
 
+  readAsBuffer(size: number): ArrayBuffer {
+    const buffer = this.view.buffer.slice(this.index, this.index + size) as ArrayBuffer
+    this.index += size
+    return buffer
+  }
+
   readU8(): number {
     return this.view.getUint8(this.index++)
   }

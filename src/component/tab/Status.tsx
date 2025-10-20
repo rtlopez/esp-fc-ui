@@ -5,7 +5,10 @@ import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 import { AttitudeIndicator, HeadingIndicator } from 'react-typescript-flight-indicators'
 import { Badge, Button, Card, Col, ListGroup, Row } from 'react-bootstrap'
 import { createQuaternion, Euler, Quaternion, radToDeg } from '@/api/spatial'
-import { createAttitudeRequest, createCalibrateRequest, createDefaultsRequest, createRebootRequest, parseAttitudeResponse } from '@/api/esp'
+import {
+  createAttitudeRequest, createCalibrateRequest, createDefaultsRequest,
+  createRebootRequest, parseAttitudeResponse
+} from '@/api/esp'
 import { parseArmingDisableFlags, SensorType, sensorPresent } from "@/api/board"
 import TabView from './TabView'
 import { DroneX } from '../model'
@@ -23,18 +26,16 @@ const StatusTab = () => {
   const [attitudeE, setAttitudeE] = useState<Euler>(EULER_INIT)
   const [attitudeQ, setAttitudeQ] = useState<Quaternion>(QUATERNION_INIT)
   const { writeText, send, subscribeText } = useMsp()
-  const { append, finalize, clear, download, dateStr } = useBlobAccumulator("text/plain")
+  const { append, finalize, download, dateStr } = useBlobAccumulator("text/plain")
 
   useEffect(() => {
     return subscribeText((text: string) => {
-      append(textEncoder.encode(text))
+      append(textEncoder.encode(text).buffer)
       if (text.includes("#dump end")) {
-        const blob = finalize()
-        clear()
-        download(blob, `espfc_dump_${dateStr()}.txt`)
+        download(finalize(), `espfc_dump_${dateStr()}.txt`)
       }
     })
-  }, [subscribeText, append, clear, finalize, download, dateStr])
+  }, [subscribeText, append, finalize, download, dateStr])
 
   const onReset = useCallback(() => {
     setAttitudeQ(QUATERNION_INIT)

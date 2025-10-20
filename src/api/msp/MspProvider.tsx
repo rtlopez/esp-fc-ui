@@ -66,7 +66,8 @@ export class MspError extends Error {
 
 const logMsg = (msg: MspMessage) => {
   if (msg.variant === 'E') {
-    return msg.cmd === MspCommand.ESP_CMD_VERSION.value || msg.cmd >= MspCommand.ESP_CMD_MODE_NAMES.value
+    return (msg.cmd === MspCommand.ESP_CMD_VERSION.value || msg.cmd >= MspCommand.ESP_CMD_MODE_NAMES.value) &&
+      msg.cmd !== MspCommand.ESP_CMD_FLASH_READ.value
   }
   return true
 }
@@ -213,7 +214,7 @@ const MspProvider = ({ children }: MspProviderProps) => {
         }
         await write(msg.toDataBuffer())
       }
-    }, 5);
+    }, 3);
     return () => clearInterval(interval);
   }, [connected, write])
 
