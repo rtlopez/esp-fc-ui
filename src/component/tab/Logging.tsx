@@ -1,7 +1,6 @@
-import { FC, useCallback, useEffect, useMemo, useState } from 'react'
+import { FC, useCallback, useMemo, useState } from 'react'
 import { Button, Card, Col, Form, Modal, ProgressBar, Row, Spinner, Table } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspCommand } from '@/api/msp/msp'
 import {
   createBlackboxConfigRequest, createBlackboxNamesRequest, createDebugNamesRequest,
   createFlashEraseRequest, createFlashLogsRequest, createFlashReadRequest, createRebootRequest,
@@ -89,7 +88,7 @@ const LoggingTab = () => {
   const [logs, setLogs] = useState(LOGS_DEFAULT)
   const [showConfirm, setShowConfirm] = useState(false);
   const [dnldPerc, setDnldPerc] = useState(0);
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { connected, send } = useMsp()
   const { status, statistics } = useBoardInfo()
   const { append, finalize, clear, download, dateStr } = useBlobAccumulator("application/octet-stream")
 
@@ -104,72 +103,32 @@ const LoggingTab = () => {
     defaultValues: LOGGING_DEFAULTS
   });
 
-  const fieldMask = useWatch({control, name: 'fieldMask'})
+  const fieldMask = useWatch({ control, name: 'fieldMask' })
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_DEBUG_NAMES)) {
-        setDebugNames(parseDebugNamesResponse(msg).names)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_BLACKBOX_NAMES)) {
-        setFieldNames(parseBlackboxNamesResponse(msg).names)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_BLACKBOX_CONFIG)) {
-        const v = parseBlackboxConfigResponse(msg)
-        reset({ ...getValues(), ...v })
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_FLASH_ERASE)) {
-        setInProgress(false)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_FLASH_LOGS)) {
-        const v = parseFlashLogsResponse(msg)
-        setLogs(v.logs)
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_FLASH_READ)) {
-        const v = parseFlashReadResponse(msg)
-        if (statistics?.flashUsed) {
-          append(new Uint8Array(v.data))
-          // calc dnld proggress
-          const dnldProgress = Math.round(100 * v.address / statistics.flashUsed)
-          if (dnldPerc !== dnldProgress) {
-            setDnldPerc(dnldProgress)
-          }
-          // calc next chunk address
-          const address = v.address + v.size
-          const size = Math.min(DNLD_SIZE, statistics.flashUsed - address)
-          console.log("next", { address, size, total: statistics.flashUsed })
-          if (size && address < statistics.flashUsed) {
-            // continue reading
-            writeMsp(createFlashReadRequest({ address, size }))
-          } else {
-            // finish reading
-            console.log("finish")
-            setInProgress(false)
-            const blob = finalize()
-            clear()
-            download(blob, `espfc_log_${dateStr()}.bbl`)
-            setDnldPerc(0)
-          }
-        } else {
-          // flash empty
-          setInProgress(false)
-        }
-      }
-    })
-  }, [subscribeMsp, reset, getValues, writeMsp, append, clear, setDnldPerc, dnldPerc, finalize, statistics?.flashUsed, download, dateStr])
+  const updateBlackboxConfig = useCallback(async (data?: FormValues) => {
+    const r = await send(createBlackboxConfigRequest(data))
+    const v = parseBlackboxConfigResponse(r)
+    reset({ ...getValues(), ...v })
+  }, [send, reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    writeMsp(createBlackboxConfigRequest(data))
-    writeMsp(createSaveRequest())
-    writeMsp(createRebootRequest())
-  }
+  const updateFlashLogs = useCallback(async () => {
+    const r = await send(createFlashLogsRequest())
+    const v = parseFlashLogsResponse(r)
+    setLogs(v.logs)
+  }, [send])
+
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    await updateBlackboxConfig(data)
+    await send(createSaveRequest())
+    await send(createRebootRequest())
+  }, [send, updateBlackboxConfig])
 
   const onLoad = useCallback(async () => {
-    writeMsp(createDebugNamesRequest())
-    writeMsp(createBlackboxNamesRequest())
-    writeMsp(createBlackboxConfigRequest())
-    writeMsp(createFlashLogsRequest())
-  }, [writeMsp])
+    setDebugNames(parseDebugNamesResponse(await send(createDebugNamesRequest())).names)
+    setFieldNames(parseBlackboxNamesResponse(await send(createBlackboxNamesRequest())).names)
+    await updateBlackboxConfig()
+    await updateFlashLogs()
+  }, [send, updateBlackboxConfig, updateFlashLogs]);
 
   const onReset = useCallback(() => {
     setDebugNames(DEBUG_NAMES_DEFAULT)
@@ -194,20 +153,49 @@ const LoggingTab = () => {
     setShowConfirm(true)
   }
 
-  const flashEraseConfirm = () => {
-    setInProgress(false)
+  const flashEraseConfirm = async () => {
+    setInProgress(true)
     setShowConfirm(false)
-    writeMsp(createFlashEraseRequest())
+    await send(createFlashEraseRequest())
+    setInProgress(false)
   }
 
   const flashEraseCancel = () => {
     setShowConfirm(false)
   }
 
-  const flashRead = () => {
-    if ((statistics?.flashUsed || 0)) {
+  const flashRead = async () => {
+    if (statistics && statistics.flashUsed) {
       setInProgress(true)
-      writeMsp(createFlashReadRequest({ address: 0, size: DNLD_SIZE }))
+      while (true) {
+        const r = await send(createFlashReadRequest({ address: 0, size: DNLD_SIZE }))
+        const v = parseFlashReadResponse(r)
+
+        // append data chunk
+        append(new Uint8Array(v.data))
+        
+        // calc next chunk address
+        const address = v.address + v.size
+        const size = Math.min(DNLD_SIZE, statistics.flashUsed - address)
+        console.log("next", { address, size, total: statistics.flashUsed })
+
+        // calc dnld proggress
+        const dnldProgress = Math.round(100 * v.address / statistics.flashUsed)
+        if (dnldPerc !== dnldProgress) {
+          setDnldPerc(dnldProgress)
+        }
+        
+        // finish reading
+        if (!size || address >= statistics.flashUsed) {
+          console.log("finish")
+          setInProgress(false)
+          const blob = finalize()
+          clear()
+          download(blob, `espfc_log_${dateStr()}.bbl`)
+          setDnldPerc(0)
+          break
+        }
+      }
     } else {
       console.log('flash epmty')
     }
@@ -264,7 +252,7 @@ const LoggingTab = () => {
               </Button>
               <ConfirmModal show={showConfirm} onConfirm={flashEraseConfirm} onCancel={flashEraseCancel} />
             </Col>
-            
+
             {logs.length ? <Table striped hover>
               <thead>
                 <tr>
@@ -280,7 +268,7 @@ const LoggingTab = () => {
                   </tr>
                 })}
               </tbody>
-            </Table> : null }
+            </Table> : null}
 
           </Card.Body>
         </Card>

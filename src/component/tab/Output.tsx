@@ -1,7 +1,6 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
 import { useMsp } from '@/api/msp/MspProvider'
-import { MspCommand } from '@/api/msp/msp'
 import {
   createOutputChannelConfigRequest, createOutputConfigRequest,
   createOutputOverrideRequest, createOutputRequest, createRebootRequest,
@@ -135,7 +134,7 @@ const configChannelsApiToForm = (v: EspOutputChannelConfigResponse) => {
 
 const OutputTab = () => {
 
-  const { connected, writeMsp, subscribeMsp } = useMsp()
+  const { connected, send } = useMsp()
   const [outputValues, setOutputValues] = useState(OUTPUT_VALUE_DEFAULTS)
   const [outputOverrides, setOutputOverrides] = useState(OUTPUT_VALUE_DEFAULTS)
   const [outputOverride, setOutputOverride] = useState(false)
@@ -152,44 +151,39 @@ const OutputTab = () => {
     defaultValues: OUTPUT_DFAULTS
   });
 
-  const [outputCount] = useWatch({control, name: ['outputCount']})
+  const [outputCount] = useWatch({ control, name: ['outputCount'] })
   const { fields: outputChannels } = useFieldArray({ control, name: "outputChannels" });
 
-  useEffect(() => {
-    return subscribeMsp((msg) => {
-      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CONFIG)) {
-        const v = parseOutputConfigResponse(msg)
-        const d = configApiToForm(v)
-        reset({ ...getValues(), ...d })
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT_CHANNEL_CONFIG)) {
-        const v = parseOutputChannelConfigResponse(msg)
-        const d = configChannelsApiToForm(v)
-        reset({ ...getValues(), ...d })
-        if (!outputOverride) {
-          setOutputOverrides(v.channels.map(e => e.servo ? e.neutral : getValues().minCommand))
-        }
-      }
-      if (msg.isCmd(MspCommand.ESP_CMD_OUTPUT)) {
-        const v = parseOutputResponse(msg)
-        setOutputValues(v.channels)
-      }
-    })
-  }, [outputOverride, reset, getValues, setOutputValues, subscribeMsp])
+  const updateOutputConfig = useCallback(async (data?: FormValues) => {
+    const c = data ? configFormToApi(data) : undefined
+    const r = await send(createOutputConfigRequest(c))
+    const v = parseOutputConfigResponse(r)
+    const d = configApiToForm(v)
+    reset({ ...getValues(), ...d })
+  }, [send, reset, getValues])
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    const c = configFormToApi(data)
-    const v = configChannelsFormToApi(data)
-    writeMsp(createOutputConfigRequest(c))
-    writeMsp(createOutputChannelConfigRequest(v))
-    writeMsp(createSaveRequest())
-    writeMsp(createRebootRequest())
-  }
+  const updateOutputChannelConfig = useCallback(async (data?: FormValues) => {
+    const c = data ? configChannelsFormToApi(data) : undefined
+    const r = await send(createOutputChannelConfigRequest(c))
+    const v = parseOutputChannelConfigResponse(r)
+    const d = configChannelsApiToForm(v)
+    reset({ ...getValues(), ...d })
+    if (!outputOverride) {
+      setOutputOverrides(v.channels.map(e => e.servo ? e.neutral : getValues().minCommand))
+    }
+  }, [send, reset, getValues, outputOverride])
+
+  const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    await updateOutputConfig(data)
+    await updateOutputChannelConfig(data)
+    await send(createSaveRequest())
+    await send(createRebootRequest())
+  }, [send, updateOutputConfig, updateOutputChannelConfig])
 
   const onLoad = useCallback(async () => {
-    writeMsp(createOutputConfigRequest())
-    writeMsp(createOutputChannelConfigRequest())
-  }, [writeMsp])
+    await updateOutputConfig()
+    await updateOutputChannelConfig()
+  }, [updateOutputConfig, updateOutputChannelConfig])
 
   const onReset = useCallback(() => {
     reset(OUTPUT_DFAULTS)
@@ -202,26 +196,29 @@ const OutputTab = () => {
   // poll some msp messages
   useIntervalMsp(useCallback(async () => {
     if (outputOverride) {
-      writeMsp(createOutputOverrideRequest({ count: outputCount, values: outputOverrides }))
+      await send(createOutputOverrideRequest({ count: outputCount, values: outputOverrides }))
     }
-    writeMsp(createOutputRequest())
-  }, [outputOverride, outputCount, outputOverrides, writeMsp]), 200);
+    setOutputValues(parseOutputResponse(await send(createOutputRequest())).channels)
+  }, [outputOverride, outputCount, outputOverrides, send]), 200);
 
   // clear override sliders when turned off
   const prevOutputOverride = useRef(outputOverride);
   useEffect(() => {
-    if (prevOutputOverride.current === true && outputOverride === false) {
-      const updateOutputOverrides = (values: number[], allMotorsValue: number) => {
-        setOutputOverrides(values)
-        setOutputOverrideAllMotors(allMotorsValue)
+    const update = async () => {
+      if (prevOutputOverride.current === true && outputOverride === false) {
+        const updateOutputOverrides = (values: number[], allMotorsValue: number) => {
+          setOutputOverrides(values)
+          setOutputOverrideAllMotors(allMotorsValue)
+        }
+        const minCommand = getValues().minCommand
+        const values = getValues("outputChannels").map((c) => c.servo ? c.neutral : minCommand)
+        await send(createOutputOverrideRequest({ count: outputCount, values }))
+        updateOutputOverrides(values, minCommand)
       }
-      const minCommand = getValues().minCommand
-      const values = getValues("outputChannels").map((c) => c.servo ? c.neutral : minCommand)
-      writeMsp(createOutputOverrideRequest({ count: outputCount, values }))
-      updateOutputOverrides(values, minCommand)
+      prevOutputOverride.current = outputOverride;
     }
-    prevOutputOverride.current = outputOverride;
-  }, [outputOverride, outputCount, getValues, writeMsp])
+    update()
+  }, [outputOverride, outputCount, getValues, send])
 
   const createOverrideChangeHandler = useCallback((i: number) => (e: ChangeEvent<HTMLInputElement>) => {
     const copy = [...outputOverrides];
