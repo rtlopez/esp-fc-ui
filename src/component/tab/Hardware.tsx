@@ -99,8 +99,8 @@ const getFunctionName = (type: number, index: number): string => {
     case 3: return `${getI2CId(index)}`
     case 4: return `${getSPIId(index)}`
     case 5: switch(index) {
-      case 0: return `VBAT (ADC1)`
-      case 1: return `IBAT (ADC2)`
+      case 0: return `VBAT ADC`
+      case 1: return `IBAT ADC`
       default: return `ADC ${index + 1}`
     }
     case 6: return `BUTTON`

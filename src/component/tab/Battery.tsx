@@ -37,10 +37,14 @@ const INPUT_DEFAULTS = {
   ],
 }
 
-const adcSources = [
+const vbatSources = [
   { id: 0, name: "- None -" },
-  { id: 1, name: "VBAT (ADC1)" },
-  { id: 2, name: "IBAT (ADC2)" },
+  { id: 1, name: "VBAT ADC" },
+]
+
+const ibatSources = [
+  { id: 0, name: "- None -" },
+  { id: 1, name: "IBAT ADC" },
 ]
 
 const BatteryTab = () => {
@@ -66,21 +70,14 @@ const BatteryTab = () => {
   const updateVoltageConfig = useCallback(async (data?: FormValues) => {
     const r = data ? {
       count: data.voltageCount,
-      items: data.voltageItems.map(item => ({
-        source: item.source,
-        scale: item.scale,
-        cellWarning: item.cellWarning * 100,
-      }))
+      items: data.voltageItems.map(item => ({...item, cellWarning: item.cellWarning * 100 }))
     } : undefined
     const v = parseVoltageConfigResponse(await send(createVoltageConfigRequest(r)))
-    console.log('voltage', v)
     reset({
-      ...getValues(), voltageCount: v.count, voltageItems: v.items.map((item) => {
-        return {
-          source: item.source,
-          scale: item.scale,
-          cellWarning: item.cellWarning / 100,
-        }
+      ...getValues(),
+      voltageCount: v.count,
+      voltageItems: v.items.map((item) => {
+        return {...item, cellWarning: item.cellWarning * 0.01 }
       })
     })
   }, [getValues, reset, send])
@@ -88,7 +85,6 @@ const BatteryTab = () => {
   const updateCurrentConfig = useCallback(async (data?: FormValues) => {
     const r = data ? { count: data.currentCount, items: data.currentItems } : undefined
     const v = parseCurrentConfigResponse(await send(createCurrentConfigRequest(r)))
-    console.log('current', v)
     reset({ ...getValues(), currentCount: v.count, currentItems: v.items })
   }, [getValues, reset, send]);
 
@@ -132,13 +128,13 @@ const BatteryTab = () => {
               <div key={item.id} className="mb-3">
                 <FormItem id={`voltageItems.${index}.source`} label={`Source #${index + 1}`}>
                   <Form.Select {...register(`voltageItems.${index}.source`)} >
-                    {adcSources.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+                    {vbatSources.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                   </Form.Select>
                 </FormItem>
                 <FormItem id={`voltageItems.${index}.scale`} label="Scale">
                   <Form.Control type="number" min={1} max={10000} {...register(`voltageItems.${index}.scale`)} />
                 </FormItem>
-                <FormItem id={`voltageItems.${index}.cellWarning`} label="Cell Warning (V)">
+                <FormItem id={`voltageItems.${index}.cellWarning`} label="Cell Warning [V]">
                   <Form.Control type="number" step={0.01} min={0} max={4.3} {...register(`voltageItems.${index}.cellWarning`)} />
                 </FormItem>
                 <div className="mb-2 p-2 border-bottom">
@@ -161,13 +157,13 @@ const BatteryTab = () => {
               <div key={item.id} className="mb-3">
                 <FormItem id={`currentItems.${index}.source`} label={`Source #${index + 1}`}>
                   <Form.Select {...register(`currentItems.${index}.source`)} >
-                    {adcSources.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+                    {ibatSources.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                   </Form.Select>
                 </FormItem>
                 <FormItem id={`currentItems.${index}.scale`} label="Scale [mV/A]">
                   <Form.Control type="number" min={1} max={10000} {...register(`currentItems.${index}.scale`)} />
                 </FormItem>
-                <FormItem id={`currentItems.${index}.offset`} label="Offset">
+                <FormItem id={`currentItems.${index}.offset`} label="Offset [mV]">
                   <Form.Control type="number" min={-10000} max={10000} {...register(`currentItems.${index}.offset`)} />
                 </FormItem>
                 <div className="mb-2 p-2 border-bottom">
