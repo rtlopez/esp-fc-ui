@@ -7,7 +7,7 @@ import { Route, Switch, Router } from 'wouter'
 import {
   HardwareTab, InputTab, OutputTab, StatusTab,
   TesterTab, TuningTab, SensorsTab, ConfigurationTab,
-  MixerTab, ModesTab, LoggingTab, FlashTab,
+  MixerTab, ModesTab, LoggingTab, FlashTab, BatteryTab
 } from './component/tab'
 
 // https://blog.logrocket.com/react-hook-form-vs-react-19/
@@ -30,6 +30,7 @@ const App = () => {
                 <Route path="/configuration"><ConfigurationTab /></Route>
                 <Route path="/tuning"><TuningTab /></Route>
                 <Route path="/modes"><ModesTab /></Route>
+                <Route path="/battery"><BatteryTab /></Route>
                 <Route path="/logging"><LoggingTab /></Route>
                 <Route path="/cli"><TesterTab /></Route>
                 <Route path="/flash"><FlashTab /></Route>

@@ -69,9 +69,9 @@ const getSPIId = (index: number): string => {
     case 0: return "SCK"
     case 1: return "MOSI"
     case 2: return "MISO"
-    case 3: return "CS GYRO"
-    case 4: return "CS BARO"
-    case 5: return "CS EXT"
+    case 3: return "GYRO CS"
+    case 4: return "BARO CS"
+    case 5: return "EXT CS"
     default: return "UNKN"
   }
 }
@@ -98,7 +98,11 @@ const getFunctionName = (type: number, index: number): string => {
     case 2: return `PPM`
     case 3: return `${getI2CId(index)}`
     case 4: return `${getSPIId(index)}`
-    case 5: return `${index ? 'IBAT' : 'VBAT'}`
+    case 5: switch(index) {
+      case 0: return `VBAT (ADC1)`
+      case 1: return `IBAT (ADC2)`
+      default: return `ADC ${index + 1}`
+    }
     case 6: return `BUTTON`
     case 7: return `BUZZER`
     case 8: return `LED`

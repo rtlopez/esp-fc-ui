@@ -564,7 +564,7 @@ export interface EspVoltageConfig {
 }
 
 export const createVoltageConfigRequest = (data?: EspVoltageConfig): MspMessage => {
-  const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
+  const msg = new MspMessage(MspCommand.ESP_CMD_VOLTAGE_CONFIG)
   if (data) {
     msg.writeU8(data.count)
     for (let i = 0; i < data.count; i++) {
@@ -582,7 +582,7 @@ export const parseVoltageConfigResponse = (msg: MspMessage): EspVoltageConfig =>
     count: reader.readU8(),
     items: [],
   }
-  while (reader.remain() >= 5) {
+  while (reader.remain() >= 5 && v.items.length < v.count) {
     v.items.push({
       source: reader.readU8(),
       scale: reader.readU16(),
@@ -602,7 +602,7 @@ export interface EspCurrentConfig {
 }
 
 export const createCurrentConfigRequest = (data?: EspCurrentConfig): MspMessage => {
-  const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
+  const msg = new MspMessage(MspCommand.ESP_CMD_CURRENT_CONFIG)
   if (data) {
     msg.writeU8(data.count)
     for (let i = 0; i < data.count; i++) {
@@ -620,11 +620,11 @@ export const parseCurrentConfigResponse = (msg: MspMessage): EspCurrentConfig =>
     count: reader.readU8(),
     items: [],
   }
-  while (reader.remain() >= 5) {
+  while (reader.remain() >= 5 && v.items.length < v.count) {
     v.items.push({
       source: reader.readU8(),
       scale: reader.readU16(),
-      offset: reader.readU16(),
+      offset: reader.read16(),
     })
   }
   return v

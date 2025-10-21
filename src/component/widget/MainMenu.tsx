@@ -3,18 +3,18 @@ import { Link, useLocation } from "wouter"
 
 const menuItems = [
   { label: "Status", link: "/", icon: "bi-speedometer" },
-  { label: "Hardware", link: "/hardware", icon: "bi-cpu" },
-  { label: "Sensors", link: "/sensors", icon: "bi-activity" /* bi-phone-flip */ },
   { label: "Configuration", link: "/configuration", icon: "bi-wrench" },
-  { label: "Input", link: "/input", icon: "bi-controller" },
-  { label: "Output", link: "/output", icon: "bi-ui-radios-grid" },
+  { label: "Battery", link: "/battery", icon: "bi-battery-half" },
+  { label: "Receiver", link: "/input", icon: "bi-controller" },
   { label: "Mixer", link: "/mixer", icon: "bi-diagram-3" },
+  { label: "Output", link: "/output", icon: "bi-ui-radios-grid" },
   { label: "Tuning", link: "/tuning", icon: "bi-sliders2-vertical" },
   { label: "Modes", link: "/modes", icon: "bi-toggles" },
-  { label: "Battery", link: "/battery", icon: "bi-battery-half" },
-  { label: "VTX", link: "/vtx", icon: "bi-camera-video" /* bi-wifi */ },
   { label: "Logging", link: "/logging", icon: "bi-sd-card" /* bi-voicemail*/ },
+  { label: "Sensors", link: "/sensors", icon: "bi-activity" /* bi-phone-flip */ },
+  { label: "Pinout", link: "/hardware", icon: "bi-cpu" },
   { label: "Cli", link: "/cli", icon: "bi-terminal" },
+  //{ label: "VTX", link: "/vtx", icon: "bi-camera-video" /* bi-wifi */ },
 ]
 
 const MainMenu = () => {
