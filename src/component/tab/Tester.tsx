@@ -45,9 +45,7 @@ const TesterTab = () => {
   const sendMsp = useCallback(() => {
     //console.log(["sendMsp", mspCode, mspVariant])
     const msg = new MspMessage(mspCode, mspVariant)
-    setCmdResponse((old) => {
-      return old + msg.toString() + '\n'
-    })
+    setCmdResponse((old) => old + msg.toString() + '\n')
     writeMsp(msg)
   }, [writeMsp, mspCode, mspVariant])
 

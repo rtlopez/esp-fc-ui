@@ -49,7 +49,7 @@ export const parseMspVersionResponse = (msg: MspMessage): MspVersionResponse => 
     minor: reader.readU8(),
     magic: 0,
   }
-  if(reader.remain() > 0) {
+  if (reader.remain() > 0) {
     v.magic = reader.readU8()
   }
   return v
@@ -171,31 +171,139 @@ export const parseOutputResponse = (msg: MspMessage): EspOutputResponse => {
 }
 
 export interface EspVoltageResponse {
-  voltage: number
-  cells: number
+  count: number
+  items: {
+    source: number
+    voltage: number
+    cells: number
+  }[]
 }
 
 export const createVoltageRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_VOLTAGE)
 export const parseVoltageResponse = (msg: MspMessage): EspVoltageResponse => {
   const reader = msg.getReader()
-  const v = {
-    voltage: reader.readU16() * 0.01,
-    cells: reader.readU8(),
+  const v: EspVoltageResponse = {
+    count: reader.readU8(),
+    items: [],
+  }
+  while (reader.remain() >= 4) {
+    v.items.push({
+      source: reader.readU8(),
+      voltage: reader.readU16() * 0.01,
+      cells: reader.readU8(),
+    })
   }
   return v
 }
 
 export interface EspCurrentResponse {
-  current: number
-  consumption: number
+  count: number
+  items: {
+    source: number
+    current: number
+    consumption: number
+  }[]
 }
 
 export const createCurrentRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_VOLTAGE)
 export const parseCurrentResponse = (msg: MspMessage): EspCurrentResponse => {
   const reader = msg.getReader()
+  const v: EspCurrentResponse = {
+    count: reader.readU8(),
+    items: [],
+  }
+  while (reader.remain() >= 7) {
+    v.items.push({
+      source: reader.readU8(),
+      current: reader.readU16() * 0.01,
+      consumption: reader.readU32(),
+    })
+  }
+  return v
+}
+
+export interface EspGpsResponse {
+  time: number
+  fixType: number
+  sats: number
+  latitude: number
+  longitude: number
+  altitude: number
+  speed: number
+  course: number
+}
+
+export const createGpsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_GPS)
+export const parseGpsResponse = (msg: MspMessage): EspGpsResponse => {
+  const reader = msg.getReader()
   const v = {
-    current: reader.readU16() * 0.01,
-    consumption: reader.readU32(),
+    time: reader.readU32(),
+    fixType: reader.readU8(),
+    sats: reader.readU8(),
+    latitude: reader.readU32(),
+    longitude: reader.readU32(),
+    altitude: reader.readU32(),
+    speed: reader.readU32(),
+    course: reader.readU32(),
+  }
+  return v
+}
+
+export interface EspGpsInfoResponse {
+  count: number
+  svs: {
+    gnssId: number
+    id: number
+    quality: number
+    cno: number
+  }[]
+}
+
+export const createGpsInfoRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_GPS_INFO)
+export const parseGpsinfoResponse = (msg: MspMessage): EspGpsInfoResponse => {
+  const reader = msg.getReader()
+  const v: EspGpsInfoResponse = {
+    count: reader.readU8(),
+    svs: []
+  }
+  while (reader.remain() >= 4 && v.svs.length < v.count) {
+    v.svs.push({
+      gnssId: reader.readU8(),
+      id: reader.readU8(),
+      quality: reader.readU8(),
+      cno: reader.readU8(),
+    })
+  }
+  return v
+}
+
+export interface EspRpmTlmResponse {
+  count: number
+  items: {
+    rpm: number
+    errors: number
+    temperature: number
+    voltage: number
+    current: number
+  }[]
+}
+
+
+export const createRpmTlmRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_RPM_TLM)
+export const parseRpmTlmResponse = (msg: MspMessage): EspRpmTlmResponse => {
+  const reader = msg.getReader()
+  const v: EspRpmTlmResponse = {
+    count: reader.readU8(),
+    items: []
+  }
+  while (reader.remain() >= 8 && v.items.length < v.count) {
+    v.items.push({
+      rpm: reader.readU32(),
+      errors: reader.readU8() * 0.5,
+      temperature: reader.readU8(),
+      voltage: reader.readU8(),
+      current: reader.readU8(),
+    })
   }
   return v
 }
@@ -414,17 +522,12 @@ export interface EspSerialConfig {
   func: number
 }
 
-export interface EspSerialConfigRequest {
-  count: number
-  configs: EspSerialConfig[]
-}
-
 export interface EspSerialConfigResponse {
   count: number
   configs: EspSerialConfig[]
 }
 
-export const createSerialConfigRequest = (data?: EspSerialConfigRequest): MspMessage => {
+export const createSerialConfigRequest = (data?: EspSerialConfigResponse): MspMessage => {
   const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
   if (data) {
     msg.writeU8(data.count)
@@ -442,10 +545,86 @@ export const parseSerialConfigResponse = (msg: MspMessage): EspSerialConfigRespo
     count: reader.readU8(),
     configs: [],
   }
-  for (let i = 0; i < v.count; i++) {
+  while (reader.remain() >= 8) {
     v.configs.push({
       baud: reader.readU32(),
       func: reader.readU32(),
+    })
+  }
+  return v
+}
+
+export interface EspVoltageConfig {
+  count: number
+  items: {
+    source: number
+    scale: number
+    cellWarning: number
+  }[]
+}
+
+export const createVoltageConfigRequest = (data?: EspVoltageConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
+  if (data) {
+    msg.writeU8(data.count)
+    for (let i = 0; i < data.count; i++) {
+      msg.writeU8(data.items[i].source)
+      msg.writeU16(data.items[i].scale)
+      msg.writeU16(data.items[i].cellWarning)
+    }
+  }
+  return msg
+}
+
+export const parseVoltageConfigResponse = (msg: MspMessage): EspVoltageConfig => {
+  const reader = msg.getReader()
+  const v: EspVoltageConfig = {
+    count: reader.readU8(),
+    items: [],
+  }
+  while (reader.remain() >= 5) {
+    v.items.push({
+      source: reader.readU8(),
+      scale: reader.readU16(),
+      cellWarning: reader.readU16(),
+    })
+  }
+  return v
+}
+
+export interface EspCurrentConfig {
+  count: number
+  items: {
+    source: number
+    scale: number
+    offset: number
+  }[]
+}
+
+export const createCurrentConfigRequest = (data?: EspCurrentConfig): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_SERIAL_CONFIG)
+  if (data) {
+    msg.writeU8(data.count)
+    for (let i = 0; i < data.count; i++) {
+      msg.writeU8(data.items[i].source)
+      msg.writeU16(data.items[i].scale)
+      msg.writeU16(data.items[i].offset)
+    }
+  }
+  return msg
+}
+
+export const parseCurrentConfigResponse = (msg: MspMessage): EspCurrentConfig => {
+  const reader = msg.getReader()
+  const v: EspCurrentConfig = {
+    count: reader.readU8(),
+    items: [],
+  }
+  while (reader.remain() >= 5) {
+    v.items.push({
+      source: reader.readU8(),
+      scale: reader.readU16(),
+      offset: reader.readU16(),
     })
   }
   return v
@@ -912,7 +1091,7 @@ export const parseCalibrateResponse = (msg: MspMessage): EspCalibrate => {
 
 export const createCalibrateRequest = (data?: EspCalibrate): MspMessage => {
   const msg = new MspMessage(MspCommand.ESP_CMD_CALIBRATE)
-  if(data) {
+  if (data) {
     msg.writeU8(data.mode)
   }
   return msg

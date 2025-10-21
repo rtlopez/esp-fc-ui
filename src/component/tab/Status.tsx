@@ -51,7 +51,7 @@ const StatusTab = () => {
     const [q, e] = parseAttitudeResponse(msg)
     setAttitudeQ(q)
     setAttitudeE(e)
-  }, [send]), 190);
+  }, [send]), 120);
 
   const handleCalibrateGyro = useCallback(async () => {
     await send(createCalibrateRequest({ mode: 1 }))

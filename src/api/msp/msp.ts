@@ -11,7 +11,9 @@ import {
   parseBaroConfigResponse, parseMagConfigResponse, parseModesConfigResponse,
   parseDebugNamesResponse, parseBlackboxNamesResponse, parseBlackboxConfigResponse,
   parseFlashEraseResponse, parseFlashReadResponse, parseFlashLogsResponse,
-  parseOutputOverrideResponse, parseCalibrateResponse, parseMspVersionResponse
+  parseOutputOverrideResponse, parseCalibrateResponse, parseMspVersionResponse,
+  parseGpsResponse, parseGpsinfoResponse, parseRpmTlmResponse,
+  parseVoltageConfigResponse, parseCurrentConfigResponse
 } from "../esp"
 
 export const MspState = {
@@ -53,9 +55,9 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_OUTPUT: { value: 0x07, label: 'ESP_CMD_OUTPUT', ...E, parse: parseOutputResponse, group: 'info' },
   ESP_CMD_VOLTAGE: { value: 0x08, label: 'ESP_CMD_VOLTAGE', ...E, parse: parseVoltageResponse, group: 'info' },
   ESP_CMD_CURRENT: { value: 0x09, label: 'ESP_CMD_CURRENT', ...E, parse: parseCurrentResponse, group: 'info' },
-  ESP_CMD_GPS: { value: 0x0a, label: 'ESP_CMD_GPS', ...E, group: 'info' },
-  ESP_CMD_GPS_INFO: { value: 0x0b, label: 'ESP_CMD_GPS_INFO', ...E, group: 'info' },
-  ESP_CMD_RPM_TLM: { value: 0x0c, label: 'ESP_CMD_RPM_TLM', ...E, group: 'info' },
+  ESP_CMD_GPS: { value: 0x0a, label: 'ESP_CMD_GPS', ...E, parse: parseGpsResponse, group: 'info' },
+  ESP_CMD_GPS_INFO: { value: 0x0b, label: 'ESP_CMD_GPS_INFO', ...E, parse: parseGpsinfoResponse, group: 'info' },
+  ESP_CMD_RPM_TLM: { value: 0x0c, label: 'ESP_CMD_RPM_TLM', ...E, parse: parseRpmTlmResponse, group: 'info' },
   ESP_CMD_DEBUG: { value: 0x0f, label: 'ESP_CMD_DEBUG', ...E, parse: parseDebugResponse, group: 'info' },
 
   // ESP feature names commands
@@ -75,8 +77,8 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_GYRO_CONFIG: { value: 0x24, label: 'ESP_CMD_GYRO_CONFIG', ...E, parse: parseGyroConfigResponse, group: 'config' },
   ESP_CMD_ACCEL_CONFIG: { value: 0x25, label: 'ESP_CMD_ACCEL_CONFIG', ...E, parse: parseAccelConfigResponse, group: 'config' },
   ESP_CMD_SERIAL_CONFIG: { value: 0x26, label: 'ESP_CMD_SERIAL_CONFIG', ...E, parse: parseSerialConfigResponse, group: 'config' },
-  ESP_CMD_VOLTAGE_CONFIG: { value: 0x27, label: 'ESP_CMD_VOLTAGE_CONFIG', ...E, group: 'config' },
-  ESP_CMD_CURRENT_CONFIG: { value: 0x28, label: 'ESP_CMD_CURRENT_CONFIG', ...E, group: 'config' },
+  ESP_CMD_VOLTAGE_CONFIG: { value: 0x27, label: 'ESP_CMD_VOLTAGE_CONFIG', ...E, parse: parseVoltageConfigResponse, group: 'config' },
+  ESP_CMD_CURRENT_CONFIG: { value: 0x28, label: 'ESP_CMD_CURRENT_CONFIG', ...E, parse: parseCurrentConfigResponse, group: 'config' },
   ESP_CMD_PID_CONFIG: { value: 0x29, label: 'ESP_CMD_PID_CONFIG', ...E, group: 'config' },
   ESP_CMD_PID_COMMON_CONFIG: { value: 0x2a, label: 'ESP_CMD_PID_COMMON_CONFIG', ...E, group: 'config' },
   ESP_CMD_MODES_CONFIG: { value: 0x2b, label: 'ESP_CMD_MODES_CONFIG', ...E, parse: parseModesConfigResponse, group: 'config' },
@@ -265,7 +267,8 @@ export class MspMessage {
     let str = mspCommandFromValue(this.cmd, this.variant)?.label || 'MSP_UNKNOWN'
     str += '(' + this.variant + ':' + this.cmd + ') '
     str += '['
-    str += view.map(i => i).slice(0, this.size).join(', ')
+    str += Array.from(view.slice(0, this.size))
+      .map((n, i) => (i != 0 && i % 10 == 0 ? ' ' : '') + n.toString(16).padStart(2, '0')).join(' ')
     str += ']'
     return str
   }
