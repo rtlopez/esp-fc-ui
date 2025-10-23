@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Button, Card, Col, Form, ProgressBar, Row } from 'react-bootstrap'
+import { Alert, Button, Card, Col, Form, ProgressBar, Row, Spinner } from 'react-bootstrap'
 import { SERIAL_FILTERS } from '@/api/serial/serial'
 import { useMsp } from '@/api/msp/MspProvider'
-import { ESPLoader, FlashOptions, LoaderOptions, Transport } from 'esptool-js'
-import { serial } from 'web-serial-polyfill'
+import { ESPLoader, FlashOptions, Transport } from 'esptool-js'
+//import { serial, SerialPort as SerialPortPoly } from 'web-serial-polyfill'
 import { calcChecksum, extractZipFile, getLocalFirmware, getRemoteFirmware, toBinaryString, validateChecksum } from '@/api/firmware'
 import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 
@@ -17,7 +17,12 @@ type FirmwareVersion = {
   checksum?: string
 }
 
-const serialLib = !navigator.serial && navigator.usb ? serial : navigator.serial;
+type SerialPortType = SerialPort
+
+//const serialLib = !navigator.serial && navigator.usb ? serial : navigator.serial;
+//const serialLib = serial
+const serialLib = navigator.serial
+
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '')
 const VERSIONS_URL = `${BASE_URL}/fw/versions.json`
 
@@ -38,14 +43,16 @@ const preStyle = {
   borderRadius: 'var(--bs-border-radius)',
   background: 'var(--bs-tertiary-bg)',
   color: 'var(--bs-tertiary-color)',
-  padding: '2px', margin: '2px', minHeight: '550px', maxHeight: '550px'
+  padding: '2px', margin: '2px', minHeight: '280px', maxHeight: '280px'
 }
+
+const baudRates = [921600, 460800, 230400, 115200]
 
 const FlashTab = () => {
 
   const { connected } = useMsp()
-  const [isConnected, setIsConnected] = useState(false)
-  const deviceRef = useRef<SerialPort | null>(null)
+  const [isConnected, setIsConnected] = useState<'disconnected' | 'detecting' | 'disconnecting' | 'connected'>('disconnected')
+  const deviceRef = useRef<SerialPortType | null>(null)
   const transportRef = useRef<Transport | null>(null)
   const espLoaderRef = useRef<ESPLoader | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -61,14 +68,11 @@ const FlashTab = () => {
 
   const espLoaderTerminal = {
     clean() {
-      //term.clear()
     },
     writeLine(data: string) {
-      //console.log("TERM", data)
       setTerminalContents((old) => old + data + '\n')
     },
     write(data: string) {
-      //console.log("TERM", data)
       setTerminalContents((old) => old + data)
     },
   }
@@ -89,41 +93,45 @@ const FlashTab = () => {
     loadFirmwares()
   }, [])
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isConnected) {
-        e.preventDefault()
-      }
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [isConnected])
+  // useEffect(() => {
+  //   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  //     if (isConnected) {
+  //       e.preventDefault()
+  //     }
+  //   }
+  //   window.addEventListener('beforeunload', handleBeforeUnload)
+  //   return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  // }, [isConnected])
 
   const boardConnect = async () => {
-    deviceRef.current = await serialLib.requestPort({ filters: SERIAL_FILTERS }) as SerialPort
+    deviceRef.current = await serialLib.requestPort({ filters: SERIAL_FILTERS }) as SerialPortType
     transportRef.current = new Transport(deviceRef.current)
     transportRef.current.trace = () => { }
-    const loaderOptions: LoaderOptions = {
+    setIsConnected('detecting')
+    espLoaderRef.current = new ESPLoader({
       transport: transportRef.current,
-      port: deviceRef.current,
       terminal: espLoaderTerminal,
       baudrate: baudRate,
       romBaudrate: 115200,
       //debugLogging: true,
       //enableTracing: true,
-    }
-    espLoaderRef.current = new ESPLoader(loaderOptions)
+      //port: deviceRef.current,
+      // serialOptions: {
+      //   baudRate: 115200,
+      //   bufferSize: 32 * 1024,
+      // },
+    })
     const chip = await espLoaderRef.current.main()
     const features = await espLoaderRef.current.chip.getChipFeatures(espLoaderRef.current)
     const flashSize = await espLoaderRef.current.getFlashSize()
     setBoardFlashSize(flashSize)
     setBoard(espLoaderRef.current.chip.CHIP_NAME)
     setBoardFeatures(features.map(i => i.trim()).join(', '))
-    setIsConnected(true)
+    setIsConnected('connected')
     console.log("Connected to: " + chip)
   }
 
-  const boardDisconnect = async () => {
+  const _disconnect = async () => {
     if (transportRef.current) {
       console.log('Disconnecting...')
       await transportRef.current.disconnect()
@@ -135,9 +143,28 @@ const FlashTab = () => {
       setBoardFlashSize(null)
       setProgress(0)
       setTerminalContents('')
+      console.log('Disconnected')
     }
-    setIsConnected(false)
-    console.log('Disconnected')
+  }
+
+  const boardDisconnect = async () => {
+    setIsConnected('disconnecting')
+    await _disconnect()
+    setIsConnected('disconnected')
+  }
+
+  const boardRestart = async () => {
+    setIsConnected('disconnecting')
+    if (transportRef.current) {
+      console.log('Restarting...')
+      await transportRef.current.setDTR(false)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      await transportRef.current.setDTR(true)
+      console.log('Restrted')
+    }
+    await _disconnect()
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    setIsConnected('disconnected')
   }
 
   const isLocalIndex = () => {
@@ -218,14 +245,6 @@ const FlashTab = () => {
     }
   }
 
-  const boardReset = async () => {
-    if (transportRef.current) {
-      await transportRef.current.setDTR(false)
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      await transportRef.current.setDTR(true)
-    }
-  }
-
   const boardErase = async () => {
     try {
       if (espLoaderRef.current) {
@@ -238,15 +257,19 @@ const FlashTab = () => {
     }
   }
 
-  if (connected) {
-    return <Alert variant='danger'>Please disconnect from the flight controller before flashing new firmware!</Alert>
-  }
+  const preRef = useRef<HTMLPreElement>(null);
+  useEffect(() => {
+    if (preRef.current) {
+      preRef.current.scrollTop = preRef.current.scrollHeight;
+    }
+  }, [terminalContents]);
 
   return <Form className='mb-5'>
 
     <Row className='mb-3 align-items-center'>
       <Col>
         <h3>Flash ESP-FC firmware</h3>
+        {connected ? <Alert variant='danger'>Disconnect from the flight controller before flashing new firmware!</Alert> : null}
       </Col>
     </Row>
 
@@ -258,7 +281,19 @@ const FlashTab = () => {
 
             <Card.Title className="mb-3">Step 1: connect to board</Card.Title>
             <p>Connect board to your computer and click "Connect".</p>
-            <hr />
+            <div className="d-flex border-bottom pb-3 mb-3">
+              <div>
+                <Form.Select style={{ width: 'auto' }} onChange={e => setBaudRate(+e.target.value)} value={baudRate} disabled={isConnected !== 'disconnected'}>
+                  {baudRates.map(rate => <option key={rate} value={rate}>{rate}</option>)}
+                </Form.Select>
+              </div>
+              <div className='ms-auto d-flex align-items-center gap-1'>
+                {isConnected === 'detecting' ? <div className='pt-2 me-2 d-inline'><Spinner animation="border" variant="primary" className="" /></div> : null}
+                <Button onClick={boardRestart} className='me-2' variant="outline-warning">Restart</Button>
+                {isConnected === 'disconnected' ? <Button onClick={boardConnect} className=''>Connect</Button> : null}
+                {isConnected !== 'disconnected' ? <Button onClick={boardDisconnect} className='' variant='danger'>Disconnect</Button> : null}
+              </div>
+            </div>
 
             <Card.Title className="mb-3">Step 2: Choose firmware</Card.Title>
             <Form.Select className="mb-3" onChange={(e) => setFwIndex(+e.target.value)} value={fwIndex}>
@@ -267,31 +302,17 @@ const FlashTab = () => {
                 .filter(i => board === null || i.board === board || i.board === 'ALL')
                 .map(({ board, version, title, index }) => <option key={index} value={index}>{title ? title : `[${board}] - ${version}`}</option>)}
             </Form.Select>
-            {isLocalIndex() ? <Form.Control type="file" ref={fileInputRef} className='mb-3' /> : null}
-            <hr />
+            <Form.Control type="file" ref={fileInputRef} className='mb-3' disabled={!isLocalIndex()} />
+            <div className="d-flex border-bottom mb-3"></div>
 
             <Card.Title className="mb-3">Step 3: Flash firmware</Card.Title>
             <p>To upload selected firmware click "Flash firmware" and power cycle board after flashing</p>
             <ProgressBar now={progress} label={`${progress.toFixed(0)}%`} className="mb-3" />
             <div className="d-flex mt-3">
-              <div className='p-2'>
-                <Form.Select style={{ width: 'auto' }} onChange={e => setBaudRate(+e.target.value)} value={baudRate} disabled={isConnected}>
-                  <option value="921600">921600</option>
-                  <option value="460800">460800</option>
-                  <option value="256000">230400</option>
-                  <option value="115200">115200</option>
-                </Form.Select>
-              </div>
-              <div className='p-2 ms-auto'>
-                {isConnected ?
-                  <>
-                    <Button onClick={boardDisconnect} className='me-2'>Disconnect</Button>
-                    <Button onClick={boardRead} className='me-2'>Read</Button>
-                    <Button onClick={boardReset} className='me-2'>Reset</Button>
-                    <Button onClick={boardErase} className='me-2'>Erase</Button>
-                    <Button variant="danger" onClick={boardFlash}>Flash firmware</Button>
-                  </> :
-                  <Button onClick={boardConnect}>Connect</Button>}
+              <div className='ms-auto'>
+                <Button onClick={boardRead} className='me-2' disabled={isConnected !== 'connected'}>Read</Button>
+                <Button onClick={boardErase} className='me-2' disabled={isConnected !== 'connected'}>Erase</Button>
+                <Button onClick={boardFlash} className='' variant="warning" disabled={isConnected !== 'connected'}>Flash firmware</Button>
               </div>
             </div>
 
@@ -324,7 +345,7 @@ const FlashTab = () => {
                 <p>No firmware selected</p>)}
           </Card.Body>
         </Card>
-        <pre style={preStyle}>
+        <pre style={preStyle} ref={preRef}>
           {terminalContents}
         </pre>
       </Col>
