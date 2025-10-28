@@ -4,18 +4,13 @@ import { SERIAL_FILTERS } from '@/api/serial/serial'
 import { useMsp } from '@/api/msp/MspProvider'
 import { ESPLoader, FlashOptions, Transport } from 'esptool-js'
 //import { serial, SerialPort as SerialPortPoly } from 'web-serial-polyfill'
-import { calcChecksum, extractZipFile, getLocalFirmware, getRemoteFirmware, toBinaryString, validateChecksum } from '@/api/firmware'
+import {
+  calcChecksum, extractZipFile, getLocalFirmware, getRemoteFirmware,
+  toBinaryString, validateChecksum, FirmwareVersion
+} from '@/api/firmware'
 import { useBlobAccumulator } from '@/api/hook/useBlobAccumulator'
 
 // https://github.com/espressif/esptool-js/blob/feature/detect-chip/examples/typescript/src/index.ts
-
-type FirmwareVersion = {
-  version: string
-  file: string
-  board: string
-  title?: string
-  checksum?: string
-}
 
 type SerialPortType = SerialPort
 
@@ -48,6 +43,21 @@ const preStyle = {
 
 const baudRates = [921600, 460800, 230400, 115200]
 
+const types = [
+  { id: 'released', name: 'Released' },
+  { id: 'experimental', name: 'Experimental' },
+]
+
+const stables = ['ESP32', 'ESP32-S3']
+
+const makeBoards = (versions: FirmwareVersion[]) => {
+  const boards = versions.filter(v => v.board && v.board != 'ALL')
+  const boardNames = [...new Set(boards.map(v => {
+    return stables.includes(v.board) ? v.board : `${v.board} Experimental`
+  }))]
+  return boardNames.sort((a, b) => a.localeCompare(b))
+}
+
 const FlashTab = () => {
 
   const { connected } = useMsp()
@@ -56,9 +66,11 @@ const FlashTab = () => {
   const transportRef = useRef<Transport | null>(null)
   const espLoaderRef = useRef<ESPLoader | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [board, setBoard] = useState<string | null>(null)
+  const [board, setBoard] = useState<string>('')
+  const [boards, setBoards] = useState<string[]>([])
   const [boardFeatures, setBoardFeatures] = useState<string | null>(null)
   const [boardFlashSize, setBoardFlashSize] = useState<number | null>(null)
+  const [fwType, setFwType] = useState<string>('released')
   const [fwIndex, setFwIndex] = useState<number>(0)
   const [firmwares, setFirmwares] = useState<FirmwareVersion[]>([])
   const [progress, setProgress] = useState<number>(0)
@@ -84,8 +96,9 @@ const FlashTab = () => {
     const loadFirmwares = async () => {
       try {
         const res = await fetch(VERSIONS_URL)
-        const data = await res.json()
-        setFirmwares([{ version: '', board: 'ALL', file: '', title: 'Choose' }, ...data])
+        const data = await res.json() as FirmwareVersion[]
+        setFirmwares([{ version: 'Choose', board: 'ALL', file: '', group: 'released' }, ...data])
+        setBoards(['Choose', ...makeBoards(data)])
       } catch (e) {
         console.error(e)
       }
@@ -138,7 +151,7 @@ const FlashTab = () => {
       transportRef.current = null
       deviceRef.current = null
       espLoaderRef.current = null
-      setBoard(null)
+      setBoard('')
       setBoardFeatures(null)
       setBoardFlashSize(null)
       setProgress(0)
@@ -296,11 +309,17 @@ const FlashTab = () => {
             </div>
 
             <Card.Title className="mb-3">Step 2: Choose firmware</Card.Title>
+            <Form.Select className="mb-3" onChange={(e) => { setBoard(e.target.value) }} value={board} disabled={isConnected !== 'disconnected'}>
+              {boards.map((name) => <option value={name}>{name}</option>)}
+            </Form.Select>
+            <Form.Select className="mb-3" onChange={(e) => { setFwType(e.target.value) }} value={fwType}>
+              {types.map(({ id, name }) => <option value={id}>{name}</option>)}
+            </Form.Select>
             <Form.Select className="mb-3" onChange={(e) => setFwIndex(+e.target.value)} value={fwIndex}>
               {firmwares
                 .map((e, i) => ({ ...e, index: i }))
-                .filter(i => board === null || i.board === board || i.board === 'ALL')
-                .map(({ board, version, title, index }) => <option key={index} value={index}>{title ? title : `[${board}] - ${version}`}</option>)}
+                .filter(i => (i.board === board && i.group == fwType) || i.board === 'ALL')
+                .map(({ board, version, index }) => <option key={index} value={index}>{board === 'ALL' ? version : `[${board}] - ${version}`}</option>)}
             </Form.Select>
             <Form.Control type="file" ref={fileInputRef} className='mb-3' disabled={!isLocalIndex()} />
             <div className="d-flex border-bottom mb-3"></div>
@@ -339,8 +358,12 @@ const FlashTab = () => {
               <p>Local firmware selected</p> :
               (fwIndex && firmwares[fwIndex] ?
                 <>
-                  <p><strong>Board({fwIndex}):</strong> {firmwares[fwIndex].board}, <strong>Version:</strong> {firmwares[fwIndex].version}</p>
-                  <p><strong>File:</strong> <a href={getFwUrl(firmwares[fwIndex])} target="_blank" rel="noreferrer">{firmwares[fwIndex].file}</a></p>
+                  <p><strong>Board:</strong>&nbsp;{firmwares[fwIndex].board}, <strong>Version:</strong>&nbsp;
+                  {firmwares[fwIndex].url ?
+                    <a href={firmwares[fwIndex].url} target="_blank" rel="noreferrer">{firmwares[fwIndex].version}</a> :
+                    <span>{firmwares[fwIndex].version}</span>
+                  }</p>
+                  {firmwares[fwIndex].file ? <p><strong>File:</strong> <a href={getFwUrl(firmwares[fwIndex])} target="_blank" rel="noreferrer">{firmwares[fwIndex].file}</a></p> : null}
                 </> :
                 <p>No firmware selected</p>)}
           </Card.Body>

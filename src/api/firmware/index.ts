@@ -2,6 +2,15 @@
 import * as zip from "@zip.js/zip.js"
 import CryptoJS from 'crypto-js'
 
+export type FirmwareVersion = {
+  version: string
+  file: string
+  board: string
+  group: string
+  checksum?: string
+  url?: string
+}
+
 export const isZipFile = (arrayBuffer: ArrayBuffer): boolean => {
   if (arrayBuffer.byteLength < 4) return false
   // ZIP file header: 50 4B 03 04

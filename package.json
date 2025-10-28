@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:ci": "vitest run"
+    "test:ci": "vitest run",
+    "fw:update": "tsx bin/updateFirmwareBins.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.3.0",
@@ -39,6 +40,7 @@
     "wouter": "^3.7.1"
   },
   "devDependencies": {
+    "@octokit/rest": "^22.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/crypto-js": "^4.2.2",
@@ -56,6 +58,8 @@
     "eslint-plugin-react-refresh": "^0.4.6",
     "globals": "^16.2.0",
     "jsdom": "^27.0.0",
+    "node-fetch": "^3.3.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.18.2",
     "vite": "^7.0",
