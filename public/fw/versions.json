@@ -2,7 +2,7 @@
     {
         "version": "v0.2.1",
         "group": "released",
-        "file": "espfc_v0.2.1_esp32s2_0x00.bin",
+        "file": "espfc_v0.2.1_esp32s2_0x00.bin.zip",
         "checksum": "e617739c7f4cadbe13df6155a3155460",
         "board": "ESP32-S2",
         "url": "https://github.com/rtlopez/esp-fc/releases/tag/v0.2.1"
@@ -10,7 +10,7 @@
     {
         "version": "v0.2.1",
         "group": "released",
-        "file": "espfc_v0.2.1_esp32s3_0x00.bin",
+        "file": "espfc_v0.2.1_esp32s3_0x00.bin.zip",
         "checksum": "fc2f0b2676202ebadbe3360a52e7b1ef",
         "board": "ESP32-S3",
         "url": "https://github.com/rtlopez/esp-fc/releases/tag/v0.2.1"
@@ -18,7 +18,7 @@
     {
         "version": "v0.2.1",
         "group": "released",
-        "file": "espfc_v0.2.1_esp32_0x00.bin",
+        "file": "espfc_v0.2.1_esp32_0x00.bin.zip",
         "checksum": "fefa74927250f06fef9d0b9dfc06576e",
         "board": "ESP32",
         "url": "https://github.com/rtlopez/esp-fc/releases/tag/v0.2.1"
@@ -26,7 +26,7 @@
     {
         "version": "v0.2.0",
         "group": "released",
-        "file": "espfc_v0.2.0_esp32s2_0x00.bin",
+        "file": "espfc_v0.2.0_esp32s2_0x00.bin.zip",
         "checksum": "060f236250d22037238bb38ea268b67b",
         "board": "ESP32-S2",
         "url": "https://github.com/rtlopez/esp-fc/releases/tag/v0.2.0"
@@ -34,7 +34,7 @@
     {
         "version": "v0.2.0",
         "group": "released",
-        "file": "espfc_v0.2.0_esp32s3_0x00.bin",
+        "file": "espfc_v0.2.0_esp32s3_0x00.bin.zip",
         "checksum": "67eb13b732f3b3759c2f5e4efb617497",
         "board": "ESP32-S3",
         "url": "https://github.com/rtlopez/esp-fc/releases/tag/v0.2.0"
@@ -42,7 +42,7 @@
     {
         "version": "v0.2.0",
         "group": "released",
-        "file": "espfc_v0.2.0_esp32_0x00.bin",
+        "file": "espfc_v0.2.0_esp32_0x00.bin.zip",
         "checksum": "e1f61069c1ad5b4334cd5e5216969932",
         "board": "ESP32",
         "url": "https://github.com/rtlopez/esp-fc/releases/tag/v0.2.0"
@@ -50,32 +50,32 @@
     {
         "version": "PR176",
         "group": "experimental",
-        "file": "espfc_pr176_esp32c3_0x00.bin",
-        "checksum": "2f966997ab26fc20c09fddf3176f7c38",
+        "file": "espfc_pr176_esp32c3_0x00.bin.zip",
+        "checksum": "f105485e4f6afaf8e921733a25e24604",
         "board": "ESP32-C3",
         "url": "https://github.com/rtlopez/esp-fc/pull/176"
     },
     {
         "version": "PR176",
         "group": "experimental",
-        "file": "espfc_pr176_esp32s2_0x00.bin",
-        "checksum": "2f966997ab26fc20c09fddf3176f7c38",
+        "file": "espfc_pr176_esp32s2_0x00.bin.zip",
+        "checksum": "4621064ee79baf0336a8fd030e8c214d",
         "board": "ESP32-S2",
         "url": "https://github.com/rtlopez/esp-fc/pull/176"
     },
     {
         "version": "PR176",
         "group": "experimental",
-        "file": "espfc_pr176_esp32_0x00.bin",
-        "checksum": "2f966997ab26fc20c09fddf3176f7c38",
+        "file": "espfc_pr176_esp32_0x00.bin.zip",
+        "checksum": "c2755ad933b246d354cc7cc696ce7cb7",
         "board": "ESP32",
         "url": "https://github.com/rtlopez/esp-fc/pull/176"
     },
     {
         "version": "PR176",
         "group": "experimental",
-        "file": "espfc_pr176_esp32s3_0x00.bin",
-        "checksum": "2f966997ab26fc20c09fddf3176f7c38",
+        "file": "espfc_pr176_esp32s3_0x00.bin.zip",
+        "checksum": "96dd0f45e0cf02ece79563a7d1de2638",
         "board": "ESP32-S3",
         "url": "https://github.com/rtlopez/esp-fc/pull/176"
     },

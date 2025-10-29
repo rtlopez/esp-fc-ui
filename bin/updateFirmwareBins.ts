@@ -1,22 +1,18 @@
-// bin/updateFirmwareBins.ts
-
-// requirements: npm install @octokit/rest node-fetch jszip crypto-js @types/crypto-js
-
-import { Octokit } from '@octokit/rest'
+import './env'
 import fs from 'fs/promises'
 import path from 'path'
-import fetch from 'node-fetch'
-import JSZip from 'jszip'
-import CryptoJS from 'crypto-js'
-import { isZipFile, FirmwareVersion } from '../src/api/firmware'
+import { Octokit } from '@octokit/rest'
+import { isZipFile, FirmwareVersion, packZipFile, calcChecksum, extractZipFile } from '../src/api/firmware'
 
 const REPO_OWNER = 'rtlopez'
 const REPO_NAME = 'esp-fc'
 const PUBLIC_FW_DIR = './public/fw'
 const VERSIONS_FILE = path.join(PUBLIC_FW_DIR, 'versions.json')
 const FW_NAME_RE = /espfc_[vpr0-9.-]+_[a-z0-9]+_0x00\.bin(\.zip)?/
-const octokit = new Octokit()
 const PR_NUMS = [176, 175, 145]
+const octokit = new Octokit({
+  auth: process.env.GITHUB_ACCESS_TOKEN
+})
 
 const targetBoardMap: Record<string, string> = {
   esp32s2: 'esp32-s2',
@@ -25,11 +21,13 @@ const targetBoardMap: Record<string, string> = {
 }
 
 interface ArtifactEntry {
-  download_url: string,
-  issue_url?: string,
-  name: string,
+  downloadUrl: string
+  issueUrl?: string
+  name: string
   version?: string
   group: 'released' | 'experimental'
+  artifactId?: number
+  assetId?: number
 }
 
 async function getReleases() {
@@ -40,17 +38,6 @@ async function getReleases() {
   })
   return releases
 }
-
-// async function getActivePRs() {
-//   console.log('fetch pulls')
-//   const { data: pulls } = await octokit.pulls.list({
-//     owner: REPO_OWNER,
-//     repo: REPO_NAME,
-//     state: "open",
-//     per_page: 100,
-//   })
-//   return pulls;
-// }
 
 async function getPR(pull_number: number) {
   console.log('fetch pull', pull_number)
@@ -97,40 +84,33 @@ async function getWorkflowRunArticacts(run_id: number) {
   return data.artifacts
 }
 
-
-async function fetchArtifact(url: string, name: string) {
-  console.log('fetch', name, url)
-  const response = await fetch(url)
-  return await response.arrayBuffer()
-  //return Buffer.from(await response.arrayBuffer()) as ArrayBuffer
+async function downloadAsset(asset_id: number, name: string, url: string) {
+  console.log('dnld asset', asset_id, name, url)
+  const { data } = await octokit.rest.repos.getReleaseAsset({
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    asset_id,
+    headers: {
+      Accept: 'application/octet-stream',
+    }
+  })
+  return data as unknown as ArrayBuffer
 }
 
-async function unzipArtifact(zipBuffer: ArrayBuffer, name: string) {
-  if (!isZipFile(zipBuffer)) return zipBuffer
-  const zip = new JSZip()
-  await zip.loadAsync(zipBuffer)
-  for (const [filename, file] of Object.entries(zip.files)) {
-    if (!filename.endsWith('.bin')) continue
-    console.log('unzip', name, filename)
-    return (await file.async('nodebuffer')).buffer as ArrayBuffer
-  }
-  return null
-}
-
-function getChecksum(buffer: ArrayBuffer): string {
-  // Convert Buffer to WordArray that crypto-js understands
-  const words = CryptoJS.lib.WordArray.create(buffer)
-  //const words = Array.from(buffer).map(byte => byte.toString(16).padStart(2, '0')).join('')
-  return CryptoJS.MD5(words).toString()
+async function downloadArtifact(artifact_id: number, name: string, url: string) {
+  console.log('dnld artifact', name, artifact_id, url)
+  const { data } = await octokit.actions.downloadArtifact({
+    owner: REPO_OWNER,
+    repo: REPO_NAME,
+    artifact_id,
+    archive_format: 'zip'
+  });
+  return data as ArrayBuffer
 }
 
 async function saveArtifact(buffer: ArrayBuffer, targetPath: string) {
-  // Create directory
   const targetDir = path.dirname(targetPath)
-  //console.log('mkdir', targetDir)
   await fs.mkdir(targetDir, { recursive: true })
-
-  // Write target file
   console.log('save', targetPath)
   await fs.writeFile(targetPath, new Uint8Array(buffer))
 }
@@ -166,9 +146,10 @@ async function getLatestPRArtifacts(pull_number: number) {
     return {
       name: a.name,
       version: `PR${pull_number}`,
-      download_url: a.archive_download_url,
-      issue_url: pull.html_url,
+      downloadUrl: a.archive_download_url,
+      issueUrl: pull.html_url,
       group: 'experimental',
+      artifactId: a.id,
     } as ArtifactEntry
   });
 }
@@ -181,11 +162,12 @@ async function getReleasedArtifacts() {
     for (const asset of release.assets) {
       console.log('REL', version, asset.name, isArtifactNameValid(asset.name))
       result.push({
-        download_url: asset.browser_download_url,
-        issue_url: release.html_url,
+        downloadUrl: asset.browser_download_url,
+        issueUrl: release.html_url,
         name: asset.name,
         version,
-        group: 'released'
+        group: 'released',
+        assetId: asset.id,
       })
     }
   }
@@ -194,33 +176,60 @@ async function getReleasedArtifacts() {
 
 async function processArtifacts(artifacts: ArtifactEntry[]) {
   const versions: FirmwareVersion[] = []
-  const valid = artifacts.filter(a => isArtifactNameValid(a.name))
-  for (const a of valid) {
+  const validArtifacts = artifacts.filter(a => isArtifactNameValid(a.name))
+  for (const a of validArtifacts) {
     try {
-      const zipBuffer = await fetchArtifact(a.download_url, a.name)
-      const buffer = await unzipArtifact(zipBuffer, a.name)
+      let buffer = null
+      if (a.artifactId) buffer = await downloadArtifact(a.artifactId, a.name, a.downloadUrl)
+      if (a.assetId) buffer = await downloadAsset(a.assetId!, a.name, a.downloadUrl)
       if (buffer) {
-        const checksum = getChecksum(buffer)
+        buffer = await packZipFile(buffer, a.name)
+        const unzipped = await extractZipFile(buffer)
+        const checksum = calcChecksum(unzipped)
         const [prefix, version, target] = a.name.split('_')
         const board = (targetBoardMap[target] || target).toUpperCase()
-        const file = `${prefix}_${version}_${target}_0x00.bin`
-        const targetPath = path.join(PUBLIC_FW_DIR, version, file)
+        const targetFile = `${prefix}_${version}_${target}_0x00.bin${isZipFile(buffer) ? '.zip' : ''}`
+        const targetPath = path.join(PUBLIC_FW_DIR, version, targetFile)
         await saveArtifact(buffer, targetPath)
-
         versions.push({
           version: a.version || version,
           group: a.group,
-          file,
+          file: targetFile,
           checksum,
           board,
-          url: a.issue_url,
+          url: a.issueUrl,
         })
       }
-    } catch (e) {
-      console.error(e)
+    } catch (err) {
+      console.error(err)
     }
   }
   return versions
+}
+
+async function cleanupArtifacts() {
+  try {
+    const exists = await fs.access(PUBLIC_FW_DIR)
+      .then(() => true)
+      .catch(() => false)
+
+    if (!exists) return
+
+    const entries = await fs.readdir(PUBLIC_FW_DIR, { withFileTypes: true })
+
+    for (const entry of entries) {
+      const fullPath = path.join(PUBLIC_FW_DIR, entry.name)
+      console.log('cleanup', fullPath)
+
+      if (entry.isDirectory()) {
+        await fs.rm(fullPath, { recursive: true, force: true })
+      } else {
+        await fs.unlink(fullPath)
+      }
+    }
+  } catch (err) {
+    console.error('cleanup error', err)
+  }
 }
 
 async function main() {
@@ -229,11 +238,12 @@ async function main() {
   const releasedArtifacts = await getReleasedArtifacts()
   artifacts.push(...releasedArtifacts)
 
-  for(const pr_num of PR_NUMS) {
+  for (const pr_num of PR_NUMS) {
     const prArtifacts = await getLatestPRArtifacts(pr_num)
     artifacts.push(...prArtifacts)
   }
 
+  await cleanupArtifacts()
   const versions = await processArtifacts(artifacts)
 
   // Sort versions by version number (newest first)

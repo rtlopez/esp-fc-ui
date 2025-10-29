@@ -1,6 +1,5 @@
-//import JSZip from "jszip"
-import * as zip from "@zip.js/zip.js"
 import CryptoJS from 'crypto-js'
+import JSZip from 'jszip'
 
 export type FirmwareVersion = {
   version: string
@@ -17,45 +16,28 @@ export const isZipFile = (arrayBuffer: ArrayBuffer): boolean => {
   return new Uint8Array(arrayBuffer.slice(0, 4)).every((byte, index) => [0x50, 0x4B, 0x03, 0x04][index] === byte)
 }
 
-export const extractZipFile = async (arrayBuffer: ArrayBuffer): Promise<ArrayBuffer> => {
-  // check if it is a zip file by checking first 4 bytes
-  if (isZipFile(arrayBuffer)) {
-
-    // const zipContent = await JSZip.loadAsync(arrayBuffer, {
-    //   checkCRC32: true
-    // });
-
-    // // enumerate files
-    // const files = Object.keys(zipContent.files)
-    // console.log('Files in ZIP:', zipContent.files)
-    // if (files.length === 0) throw new Error('ZIP archive is empty')
-    // const firstFileName = files[0]
-
-    // // extract first file from zip
-    // const file = zipContent.file(firstFileName)
-    // if (!file) throw new Error(`No file found ${firstFileName} in the ZIP archive`)
-
-    // // read as ArrayBuffer
-    // const extracted = await file.async('arraybuffer');
-
-    // Utwórz ZipReader z pliku Blob
-    const reader = new zip.ZipReader(new zip.BlobReader(new Blob([arrayBuffer])));
-    
-    const entries = await reader.getEntries();
-    if (entries.length === 0) throw new Error("ZIP archive is empty")
-    const entry = entries[0] as zip.FileEntry
-    if(!entry || entry?.directory) throw new Error("Invalid ZIP entry")
-  
-    const extracted = await entry.arrayBuffer();
-
-    await reader.close();
-
-    //console.log(new Uint8Array(extracted).slice(0, 32));
-
-    return extracted
+export const extractZipFile = async (zipBuffer: ArrayBuffer): Promise<ArrayBuffer> => {
+  if (!isZipFile(zipBuffer)) return zipBuffer
+  const zip = new JSZip()
+  await zip.loadAsync(zipBuffer)
+  for (const [filename, file] of Object.entries(zip.files)) {
+    if (!filename.endsWith('.bin')) continue
+    return (await file.async('nodebuffer')).buffer as ArrayBuffer
   }
+  throw new Error('Invalid zip contents')
+}
 
-  return arrayBuffer
+export const packZipFile = async ( buffer: ArrayBuffer, filename: string): Promise<ArrayBuffer> => {
+  if (isZipFile(buffer)) return buffer
+  const zip = new JSZip()
+  zip.file(filename, buffer)
+  return await zip.generateAsync({
+    type: "arraybuffer",
+    compression: "DEFLATE",
+    compressionOptions: {
+      level: 9 // maksymalna kompresja
+    }
+  })
 }
 
 export const toBinaryString = (arrayBuffer: ArrayBuffer|string): string => {
