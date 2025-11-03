@@ -12,6 +12,7 @@ const menuItems = [
   { label: "Logging", link: "/logging", icon: "bi-sd-card" /* bi-voicemail*/ },
   { label: "Battery", link: "/battery", icon: "bi-battery-half" },
   { label: "Sensors", link: "/sensors", icon: "bi-activity" /* bi-phone-flip */ },
+  { label: "Gps", link: "/gps", icon: "bi-pin-map" /* bi-phone-flip */ },
   { label: "Pinout", link: "/hardware", icon: "bi-cpu" },
   { label: "Cli", link: "/cli", icon: "bi-terminal" },
   //{ label: "VTX", link: "/vtx", icon: "bi-camera-video" /* bi-wifi */ },

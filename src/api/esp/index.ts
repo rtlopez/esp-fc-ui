@@ -240,11 +240,11 @@ export const parseGpsResponse = (msg: MspMessage): EspGpsResponse => {
     time: reader.readU32(),
     fixType: reader.readU8(),
     sats: reader.readU8(),
-    latitude: reader.readU32(),
-    longitude: reader.readU32(),
-    altitude: reader.readU32(),
-    speed: reader.readU32(),
-    course: reader.readU32(),
+    latitude: reader.read32(),
+    longitude: reader.read32(),
+    altitude: reader.read32(),
+    speed: reader.read32(),
+    course: reader.read32(),
   }
   return v
 }

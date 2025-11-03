@@ -1,6 +1,7 @@
 import BatteryTab from "./Battery"
 import ConfigurationTab from "./Configuration"
 import FlashTab from "./Flash"
+import GpsTab from "./Gps"
 import HardwareTab from "./Hardware"
 import InputTab from "./Input"
 import LoggingTab from "./Logging"
@@ -16,6 +17,7 @@ export {
   BatteryTab,
   ConfigurationTab,
   FlashTab,
+  GpsTab,
   HardwareTab,
   InputTab,
   LoggingTab,

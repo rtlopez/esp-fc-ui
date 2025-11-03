@@ -5,7 +5,7 @@ import BoardInfoProvider from '@/api/BoardInfoProvider'
 import Layout from '@/component/Layout'
 import { Route, Switch, Router } from 'wouter'
 import {
-  HardwareTab, InputTab, OutputTab, StatusTab,
+  HardwareTab, InputTab, OutputTab, StatusTab, GpsTab,
   TesterTab, TuningTab, SensorsTab, ConfigurationTab,
   MixerTab, ModesTab, LoggingTab, FlashTab, BatteryTab
 } from './component/tab'
@@ -31,6 +31,7 @@ const App = () => {
                 <Route path="/tuning"><TuningTab /></Route>
                 <Route path="/modes"><ModesTab /></Route>
                 <Route path="/battery"><BatteryTab /></Route>
+                <Route path="/gps"><GpsTab /></Route>
                 <Route path="/logging"><LoggingTab /></Route>
                 <Route path="/cli"><TesterTab /></Route>
                 <Route path="/flash"><FlashTab /></Route>

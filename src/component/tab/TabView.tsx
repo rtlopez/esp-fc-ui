@@ -31,7 +31,7 @@ const TabView: FC<TabViewProps> = ({ title, children, nosave, reboot, onSubmit, 
         await onLoad?.()
       }
     }
-    doEffect().then(() => {})
+    doEffect()
   }, [connected, initialized, onReset, onLoad])
 
   useEffect(() => {
