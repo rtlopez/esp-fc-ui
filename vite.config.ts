@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { createHtmlPlugin } from 'vite-plugin-html'
 import path from 'path'
 import { copyFileSync } from 'fs'
 
@@ -18,7 +19,19 @@ const copyIndexPlugin = {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), copyIndexPlugin],
+  plugins: [
+    react(),
+    copyIndexPlugin,
+    createHtmlPlugin({
+      inject: {
+        data: {
+          GTM_ID: process.env.VITE_GTM_ID,
+          IS_PRODUCTION: process.env.NODE_ENV === 'production',
+          IS_DEVELOPMENT: process.env.NODE_ENV === 'development',
+        },
+      },
+    })
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
