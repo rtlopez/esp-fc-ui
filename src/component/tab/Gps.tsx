@@ -10,6 +10,8 @@ import { Card, Col, Row, Table } from 'react-bootstrap'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import TabView from './TabView'
 import { useIntervalMsp } from '@/api/hook/useIntervalMsp'
+import { MapContainer, Marker, TileLayer } from 'react-leaflet'
+import { LatLngTuple } from 'leaflet'
 
 type FormValues = {
   fake: number
@@ -78,6 +80,17 @@ const GpsTab = () => {
     setGpsSatelites(parseGpsinfoResponse(await send(createGpsInfoRequest())))
   }, [send]), 550)
 
+  const mapPos = [52.232733, 21.006615] as LatLngTuple
+  //const mapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+  //const mapCopy = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+
+  //const mapUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+  //const mapUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+  const mapUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+  //const mapUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}'
+  //const mapUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}'
+  const mapCopy = '&copy; Esri'
+
   return <TabView title='Status' nosave onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
 
@@ -85,6 +98,10 @@ const GpsTab = () => {
         <Card>
           <Card.Header>Status</Card.Header>
           <Card.Body>
+            <MapContainer center={mapPos} zoom={16} scrollWheelZoom={false} style={{ height: "40vh", width: "100%" }}>
+              <TileLayer attribution={mapCopy} url={mapUrl} />
+              <Marker position={mapPos} />
+            </MapContainer>
             <Table>
               <tbody>
                 <tr>
