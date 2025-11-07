@@ -29,6 +29,9 @@ jobs:
         run: npm run test:ci -- --reporter github-actions
 
       - name: Build project
+        env:
+          VITE_APP_VERSION: ${{ github.head_ref || github.ref_name }}
+          VITE_APP_REVISION: ${{ github.sha }}
         run: npm run build
 
       - name: Upload production-ready artifact

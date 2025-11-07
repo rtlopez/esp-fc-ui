@@ -19,7 +19,7 @@ const TopBar: React.FC<TopBarProps> = ({ menuShow }) => {
         <Button variant="outline-light" className="me-2 d-lg-none" onClick={menuShow}>
           <i className="bi bi-list" />
         </Button>
-        <Navbar.Brand as={Link} to="/" className="h1"><i className="bi bi-radar"></i> ESP-FC UI{!connected ? <i>{' - (DEMO MODE)'}</i> : null}</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/" className="h1"><i className="bi bi-radar"></i> ESP-FC UI{!connected ? <i>{' (DEMO MODE)'}</i> : null}</Navbar.Brand>
         <span>
           <Flash />
           <Connect />

@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createHtmlPlugin } from 'vite-plugin-html'
 import path from 'path'
-import { copyFileSync } from 'fs'
+import { copyFileSync, readFileSync } from 'fs'
 
 const copyIndexPlugin = {
   name: 'copy-index-to-404',
@@ -17,8 +17,11 @@ const copyIndexPlugin = {
   },
 }
 
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/esp-fc-ui/',
   plugins: [
     react(),
     copyIndexPlugin,
@@ -32,12 +35,14 @@ export default defineConfig({
       },
     })
   ],
+  define: {
+    'import.meta.env.VITE_PKG_VERSION': JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
-  base: '/esp-fc-ui/',
   test: {
     globals: true,
     environment: 'jsdom',
