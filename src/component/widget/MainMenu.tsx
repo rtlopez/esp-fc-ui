@@ -15,6 +15,7 @@ const menuItems = [
   { label: "Gps", link: "/gps", icon: "bi-pin-map" /* bi-phone-flip */ },
   { label: "Pinout", link: "/hardware", icon: "bi-cpu" },
   { label: "Cli", link: "/cli", icon: "bi-terminal" },
+  { label: "Charts", link: "/charts", icon: "bi-graph-up" },
   //{ label: "VTX", link: "/vtx", icon: "bi-camera-video" /* bi-wifi */ },
 ]
 
