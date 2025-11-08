@@ -964,11 +964,62 @@ export const parseMagConfigResponse = (msg: MspMessage): EspMagConfig => {
   }
 }
 
+export interface EspPidNames {
+  names: EspNameElement[]
+}
+
+export const createPidNamesRequest = (): MspMessage => {
+  return new MspMessage(MspCommand.ESP_CMD_PID_NAMES)
+}
+
+export const parsePidNamesResponse = (msg: MspMessage): EspPidNames => {
+  return { names: parseNames(msg) }
+}
+
 export interface EspPidConfig {
+  index?: number
   p: number
   i: number
   d: number
   f: number
+}
+
+export interface EspPidConfigResponse {
+  pidCount: number,
+  pids: EspPidConfig[]
+}
+
+export const createPidConfigRequest = (data?: EspPidConfigResponse): MspMessage => {
+  const msg = new MspMessage(MspCommand.ESP_CMD_PID_CONFIG)
+  if (data) {
+    msg.writeU8(data.pidCount)
+    data.pids.map(p => {
+      msg.writeU8(p.index!)
+      msg.writeU8(p.p)
+      msg.writeU8(p.i)
+      msg.writeU8(p.d)
+      msg.writeU16(p.f)
+    })
+  }
+  return msg
+}
+
+export const parsePidConfigResponse = (msg: MspMessage): EspPidConfigResponse => {
+  const reader = msg.getReader()
+  const result = {
+    pidCount: reader.readU8(),
+    pids: [],
+  } as EspPidConfigResponse
+  while (reader.remain() >= 6) {
+    result.pids.push({
+      index: reader.readU8(),
+      p: reader.readU8(),
+      i: reader.readU8(),
+      d: reader.readU8(),
+      f: reader.readU16(),
+    })
+  }
+  return result
 }
 
 export interface EspPidTuning {

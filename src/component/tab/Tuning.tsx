@@ -1,17 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMsp } from '@/api/msp/MspProvider'
 import { SubmitHandler, useFieldArray, useForm, useWatch } from 'react-hook-form'
-import { createPidTuningRequest, createSaveRequest, parsePidTuningResponse } from '@/api/esp'
+import {
+  createPidConfigRequest, createPidNamesRequest, createPidTuningRequest, createSaveRequest,
+  parsePidConfigResponse, parsePidNamesResponse, parsePidTuningResponse
+} from '@/api/esp'
 import { Card, Col, Row, Form } from 'react-bootstrap'
 import TabView from './TabView'
 
-type AxisNamesType = "roll" | "pitch" | "yaw"
 type PidNamesType = "p" | "i" | "d" | "f"
-
-const AxisNames: AxisNamesType[] = ['roll', 'pitch', 'yaw']
 const PidNames: PidNamesType[] = ['p', 'i', 'd', 'f']
 
 type FormPidValues = {
+  p: number
+  i: number
+  d: number
+  f: number
+}
+
+type FormNavPidValues = {
+  index: number
   p: number
   i: number
   d: number
@@ -27,6 +35,8 @@ type FormValues = {
   yawGain: number
   yawStability: number
   pids: FormPidValues[]
+  navPidCount: number,
+  navPids: FormNavPidValues[]
 }
 
 const PID_TUNING_DEFAULTS: FormValues = {
@@ -41,14 +51,38 @@ const PID_TUNING_DEFAULTS: FormValues = {
     { p: 80, i: 80, d: 80, f: 80 },
     { p: 80, i: 80, d: 80, f: 80 },
     { p: 80, i: 80, d: 80, f: 80 },
+  ],
+  navPidCount: 7,
+  navPids: [
+    { index: 3, p: 0, i: 0, d: 0, f: 0 },
+    { index: 4, p: 0, i: 0, d: 0, f: 0 },
+    { index: 5, p: 0, i: 0, d: 0, f: 0 },
+    { index: 6, p: 0, i: 0, d: 0, f: 0 },
+    { index: 7, p: 0, i: 0, d: 0, f: 0 },
+    { index: 8, p: 0, i: 0, d: 0, f: 0 },
+    { index: 9, p: 0, i: 0, d: 0, f: 0 },
   ]
 }
+
+const PID_NAMES_DEFAULTS = [
+  { id: 0, name: 'Roll' },
+  { id: 1, name: 'Pitch' },
+  { id: 2, name: 'Yaw' },
+  { id: 3, name: 'Alt Hold' },
+  { id: 4, name: 'Pos' },
+  { id: 5, name: 'Pos Rate' },
+  { id: 6, name: 'Nav Rate' },
+  { id: 7, name: 'Angle' },
+  { id: 8, name: 'Mag' },
+  { id: 9, name: 'Vel' },
+]
 
 const TuningTab = () => {
 
   const [rollRate, setRollRate] = useState(240)
   const [pitchRate, setPitchRate] = useState(240)
   const [yawRate, setYawRate] = useState(320)
+  const [pidNames, setPidNames] = useState(PID_NAMES_DEFAULTS)
   const { connected, send } = useMsp()
 
   const {
@@ -63,33 +97,47 @@ const TuningTab = () => {
   });
 
   const { fields: pidValues } = useFieldArray({ control, name: "pids", });
+  const { fields: navPidValues } = useFieldArray({ control, name: "navPids", });
 
-  const updatePidTuning = useCallback(async (persist: boolean, data?: FormValues) => {
+  const updatePidTuning = useCallback(async (persist: boolean, data?: Partial<FormValues>) => {
     const v = parsePidTuningResponse(await send(createPidTuningRequest(data && {
-      mode: data.mode | (persist ? 0x80 : 0), // change config?
-      rpGain: data.rpGain,
-      rpStability: data.rpStability,
-      rpAgility: data.rpAgility,
-      rpBalance: data.rpBalance,
-      yawGain: data.yawGain,
-      yawStability: data.yawStability,
-      pids: data.pids,
+      mode: data.mode! | (persist ? 0x80 : 0), // change config?
+      rpGain: data.rpGain!,
+      rpStability: data.rpStability!,
+      rpAgility: data.rpAgility!,
+      rpBalance: data.rpBalance!,
+      yawGain: data.yawGain!,
+      yawStability: data.yawStability!,
+      pids: data.pids!,
     })))
     reset({ ...getValues(), ...v })
   }, [send, reset, getValues])
 
+  const updatePidConfig = useCallback(async (data?: FormValues) => {
+    const v = parsePidConfigResponse(await send(createPidConfigRequest(data && {
+      pidCount: data.navPidCount,
+      pids: data.navPids,
+    })))
+    reset({ ...getValues(), navPidCount: v.pidCount, navPids: v.pids })
+  }, [send, reset, getValues])
+
   const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
     await updatePidTuning(true, data)
+    await updatePidConfig(data)
     await send(createSaveRequest())
     //await send(createRebootRequest())
-  }, [send, updatePidTuning])
+  }, [send, updatePidConfig, updatePidTuning])
 
   const onLoad = useCallback(async () => {
+    const v = parsePidNamesResponse(await send(createPidNamesRequest())).names
+    setPidNames(v)
     await updatePidTuning(false)
-  }, [updatePidTuning])
+    await updatePidConfig()
+  }, [send, updatePidConfig, updatePidTuning])
 
   const onReset = useCallback(() => {
     reset(PID_TUNING_DEFAULTS);
+    setPidNames(PID_NAMES_DEFAULTS)
   }, [reset]);
 
   const [mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability] = useWatch({
@@ -135,6 +183,12 @@ const TuningTab = () => {
     }
 
   }, [connected, mode, rpGain, rpStability, rpAgility, rpBalance, yawGain, yawStability, getValues, updatePidTuning])
+
+  const namesMap = useMemo(() => {
+    return pidNames.reduce((acc, v) => {
+      return {...acc, [v.id]: v.name}
+    }, {} as Record<number, string>)
+  }, [pidNames])
 
   return <TabView title='Tuning' onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
@@ -257,8 +311,8 @@ const TuningTab = () => {
           <Card.Header>PIDS</Card.Header>
           <Card.Body>
             <Row key={'h'} className="mb-2">
-              {['Axis', 'P', 'I', 'D', 'F'].map(col => (
-                <Col key={col} className="text-center">
+              {['Controller', 'P', 'I', 'D', 'F'].map((col, i) => (
+                <Col key={col} className={i ? 'text-center' : ''}>
                   <strong>{col}</strong>
                 </Col>
               ))}
@@ -266,17 +320,43 @@ const TuningTab = () => {
             {pidValues.map((_out, i) => {
               return <Row key={_out.id} className="mb-2">
                 <Col key={'label'}>
-                  {AxisNames[i][0].toUpperCase() + AxisNames[i].slice(1)}
+                  {namesMap[i]}
                 </Col>
-                {PidNames.map(col => (
+                {PidNames.map((col, n) => (
                   <Col key={col}>
-                    <Form.Control type="number" {...register(`pids.${i}.${col}`)} readOnly={!!mode} />
+                    <Form.Control type="number" min={0} max={n != 3 ? 255 : 1000} step={1} {...register(`pids.${i}.${col}`)} readOnly={!!mode} />
                   </Col>
                 ))}
               </Row>
             })}
           </Card.Body>
         </Card>
+
+        <Card className='mb-3'>
+          <Card.Header>Nav PIDS</Card.Header>
+          <Card.Body>
+            <Row key={'h'} className="mb-2">
+              {['Controller', 'P', 'I', 'D', 'F'].map((col, i) => (
+                <Col key={col} className={i ? 'text-center' : ''}>
+                  <strong>{col}</strong>
+                </Col>
+              ))}
+            </Row>
+            {navPidValues.map((_out, i) => {
+              return <Row key={_out.id} className="mb-2">
+                <Col key={'label'}>
+                  {namesMap[_out.index]}
+                </Col>
+                {PidNames.map((col, n) => (
+                  <Col key={col}>
+                    <Form.Control type="number" min={0} max={n != 3 ? 255 : 1000} step={1} {...register(`navPids.${i}.${col}`)} />
+                  </Col>
+                ))}
+              </Row>
+            })}
+          </Card.Body>
+        </Card>
+
       </Col>
 
     </Row>

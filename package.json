@@ -18,6 +18,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ci": "vitest run",
+    "clean": "rm -rf dist",
     "fw:update": "tsx bin/updateFirmwareBins.ts"
   },
   "dependencies": {

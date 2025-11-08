@@ -13,7 +13,8 @@ import {
   parseFlashEraseResponse, parseFlashReadResponse, parseFlashLogsResponse,
   parseOutputOverrideResponse, parseCalibrateResponse, parseMspVersionResponse,
   parseGpsResponse, parseGpsinfoResponse, parseRpmTlmResponse,
-  parseVoltageConfigResponse, parseCurrentConfigResponse
+  parseVoltageConfigResponse, parseCurrentConfigResponse, parsePidNamesResponse,
+  parsePidConfigResponse
 } from "../esp"
 
 export const MspState = {
@@ -65,7 +66,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_FEATURE_NAMES: { value: 0x11, label: 'ESP_CMD_FEATURE_NAMES', ...E, parse: parseFeaturesNamesResponse, group: 'names' },
   ESP_CMD_DEBUG_NAMES: { value: 0x12, label: 'ESP_CMD_DEBUG_NAMES', ...E, parse: parseDebugNamesResponse, group: 'names' },
   ESP_CMD_SERIAL_NAMES: { value: 0x13, label: 'ESP_CMD_SERIAL_NAMES', ...E, parse: parseSerialNamesResponse, group: 'names' },
-  ESP_CMD_PID_NAMES: { value: 0x14, label: 'ESP_CMD_PID_NAMES', ...E, group: 'names' },
+  ESP_CMD_PID_NAMES: { value: 0x14, label: 'ESP_CMD_PID_NAMES', ...E, parse: parsePidNamesResponse, group: 'names' },
   ESP_CMD_MIXER_NAMES: { value: 0x15, label: 'ESP_CMD_MIXER_NAMES', ...E, parse: parseMixerNamesResponse, group: 'names' },
   ESP_CMD_BLACKBOX_NAMES: { value: 0x16, label: 'ESP_CMD_BLACKBOX_NAMES', ...E, parse: parseBlackboxNamesResponse, group: 'names' },
 
@@ -79,7 +80,7 @@ export const MspCommand: Record<string, MspCommandEntry> = {
   ESP_CMD_SERIAL_CONFIG: { value: 0x26, label: 'ESP_CMD_SERIAL_CONFIG', ...E, parse: parseSerialConfigResponse, group: 'config' },
   ESP_CMD_VOLTAGE_CONFIG: { value: 0x27, label: 'ESP_CMD_VOLTAGE_CONFIG', ...E, parse: parseVoltageConfigResponse, group: 'config' },
   ESP_CMD_CURRENT_CONFIG: { value: 0x28, label: 'ESP_CMD_CURRENT_CONFIG', ...E, parse: parseCurrentConfigResponse, group: 'config' },
-  ESP_CMD_PID_CONFIG: { value: 0x29, label: 'ESP_CMD_PID_CONFIG', ...E, group: 'config' },
+  ESP_CMD_PID_CONFIG: { value: 0x29, label: 'ESP_CMD_PID_CONFIG', ...E, parse: parsePidConfigResponse, group: 'config' },
   ESP_CMD_PID_COMMON_CONFIG: { value: 0x2a, label: 'ESP_CMD_PID_COMMON_CONFIG', ...E, group: 'config' },
   ESP_CMD_MODES_CONFIG: { value: 0x2b, label: 'ESP_CMD_MODES_CONFIG', ...E, parse: parseModesConfigResponse, group: 'config' },
   ESP_CMD_FAILSAFE_CONFIG: { value: 0x2c, label: 'ESP_CMD_FAILSAFE_CONFIG', ...E, group: 'config' },
