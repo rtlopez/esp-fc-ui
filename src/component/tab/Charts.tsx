@@ -21,22 +21,22 @@ const makeOptions = ({ min, max }: MakeOptionsArg): ChartOptions<"line"> => {
     scales: {
       x: {
         type: "linear",
-        title: { display: true, text: "Time", color: "white" },
+        title: { display: false, text: "Time", color: "white" },
         grid: { color: "rgba(200,200,200,0.3)" },
         ticks: {
           color: "white",
           callback: (value: string | number) => {
             value = typeof value === 'string' ? parseInt(value, 10) : value
-            return ((value / 2000) * 2).toFixed(0)
+            return ((value / 1000)).toFixed(0)
           },
         },
       },
       y: {
-        title: { display: true, text: "Value" },
+        title: { display: false, text: "Value" },
         grid: { color: "rgba(200,200,200,0.3)" },
         ticks: { color: "white" },
-        min: min,
-        max: max,
+        suggestedMin: min,
+        suggestedMax: max,
       },
     },
     plugins: {
@@ -64,25 +64,30 @@ function makeDataSets(datasets: MakeDataSetArg[]): ChartData<'line'> {
   }
 }
 
-const gyroChartOptions = makeOptions({min: -1000, max: 1000})
+const gyroChartOptions = makeOptions({min: -500, max: 500})
 const gyroInitialData = makeDataSets([
   { label: 'Roll', color: 'red'},
-  { label: 'Pitch', color: 'lightgreen'},
-  { label: 'Yaw', color: '#2dace3'},
+  { label: 'Pitch', color: '#2dace3'},
+  { label: 'Yaw', color: 'yellow'},
 ])
 
-const accelChartOptions = makeOptions({min: -25, max: 25})
+const accelChartOptions = makeOptions({min: -15, max: 15})
 const acceInitialData = makeDataSets([
   { label: 'Roll', color: 'red'},
-  { label: 'Pitch', color: 'lightgreen'},
-  { label: 'Yaw', color: '#2dace3'},
+  { label: 'Pitch', color: '#2dace3'},
+  { label: 'Yaw', color: 'yellow'},
 ])
 
-const magChartOptions = makeOptions({min: -1.5, max: 1.5})
+const magChartOptions = makeOptions({min: -1, max: 1})
 const magInitialData = makeDataSets([
   { label: 'Roll', color: 'red'},
-  { label: 'Pitch', color: 'lightgreen'},
-  { label: 'Yaw', color: '#2dace3'},
+  { label: 'Pitch', color: '#2dace3'},
+  { label: 'Yaw', color: 'yellow'},
+])
+
+const baroChartOptions = makeOptions({min: -1, max: 1})
+const baroInitialData = makeDataSets([
+  { label: 'Altitude', color: 'red'},
 ])
 
 const SENSORS_DEFAULTS = {
@@ -98,6 +103,7 @@ const ChartsTab = () => {
   const gyroHandleRef = useRef<RealTimeChartRef>(null)
   const accelHandleRef = useRef<RealTimeChartRef>(null)
   const magHandleRef = useRef<RealTimeChartRef>(null)
+  const baroHandleRef = useRef<RealTimeChartRef>(null)
   const { send } = useMsp()
 
   const onLoad = useCallback(async () => {
@@ -110,40 +116,42 @@ const ChartsTab = () => {
   useIntervalMsp(useCallback(async () => {
     const sensors = parseSensorsResponse(await send(createSensorsRequest()))
     setSensors(sensors)
-    const {gyro, accel, mag } = sensors
-    gyroHandleRef.current?.addSample(Date.now(), [radToDeg(gyro.x), radToDeg(gyro.y), radToDeg(gyro.z)])
-    accelHandleRef.current?.addSample(Date.now(), [accel.x, accel.y, accel.z])
-    magHandleRef.current?.addSample(Date.now(), [mag.x, mag.y, mag.z])
+    const {gyro, accel, mag, baroAlt } = sensors
+    const now = Date.now()
+    gyroHandleRef.current?.addSample(now, [radToDeg(gyro.x), radToDeg(gyro.y), radToDeg(gyro.z)])
+    accelHandleRef.current?.addSample(now, [accel.x, accel.y, accel.z])
+    magHandleRef.current?.addSample(now, [mag.x, mag.y, mag.z])
+    baroHandleRef.current?.addSample(now, [baroAlt])
   }, [send]), 50)
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     handleRef.current?.addSample(0, Date.now(), Math.random() * 500)
-  //   }, 50)
-  //   return () => clearInterval(interval)
-  // }, [])
 
   return <TabView title='Status' nosave onLoad={onLoad} onReset={onReset}>
     <Row>
       <Col>
         <Card className='mb-2'>
-          <Card.Header>Gyro [{radToDeg(sensors.gyro.x).toFixed(1)}, {radToDeg(sensors.gyro.y).toFixed(1)}, {radToDeg(sensors.gyro.z).toFixed(1)}]</Card.Header>
+          <Card.Header>Gyro [deg/s] ({radToDeg(sensors.gyro.x).toFixed(2)}, {radToDeg(sensors.gyro.y).toFixed(2)}, {radToDeg(sensors.gyro.z).toFixed(2)})</Card.Header>
           <Card.Body>
             <RealtimeChart data={gyroInitialData} options={gyroChartOptions} ref={gyroHandleRef} />
           </Card.Body>
         </Card>
 
         <Card className='mb-2'>
-          <Card.Header>Accelerometer [{sensors.accel.x.toFixed(1)}, {sensors.accel.y.toFixed(1)}, {sensors.accel.z.toFixed(1)}]</Card.Header>
+          <Card.Header>Accelerometer [m/s^2] ({sensors.accel.x.toFixed(2)}, {sensors.accel.y.toFixed(2)}, {sensors.accel.z.toFixed(2)})</Card.Header>
           <Card.Body>
             <RealtimeChart data={acceInitialData} options={accelChartOptions} ref={accelHandleRef} />
           </Card.Body>
         </Card>
 
         <Card className='mb-2'>
-          <Card.Header>Magnetometer [{sensors.mag.x.toFixed(1)}, {sensors.mag.y.toFixed(1)}, {sensors.mag.z.toFixed(1)}]</Card.Header>
+          <Card.Header>Magnetometer [Gaus] ({sensors.mag.x.toFixed(2)}, {sensors.mag.y.toFixed(2)}, {sensors.mag.z.toFixed(2)})</Card.Header>
           <Card.Body>
             <RealtimeChart data={magInitialData} options={magChartOptions} ref={magHandleRef} />
+          </Card.Body>
+        </Card>
+
+        <Card className='mb-2'>
+          <Card.Header>Altitude [m] ({sensors.baroAlt.toFixed(2)})</Card.Header>
+          <Card.Body>
+            <RealtimeChart data={baroInitialData} options={baroChartOptions} ref={baroHandleRef} />
           </Card.Body>
         </Card>
 

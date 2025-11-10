@@ -4,10 +4,10 @@ import {
   LineElement,
   PointElement,
   LinearScale,
-  TimeScale,
-  Tooltip,
+  //TimeScale,
+  //Tooltip,
+  //CategoryScale,
   Legend,
-  CategoryScale,
   ChartOptions,
   ChartData,
 } from 'chart.js'
@@ -20,11 +20,10 @@ Chart.register(
   LineElement,
   PointElement,
   LinearScale,
-  TimeScale,
-  CategoryScale,
-  Tooltip,
+  //TimeScale,
+  //CategoryScale,
+  //Tooltip,
   Legend,
-  //  streamingPlugin,
 )
 
 type RealTimeChartProps = {
@@ -44,18 +43,13 @@ const RealtimeChart = forwardRef<RealTimeChartRef, RealTimeChartProps>(({ data, 
     addSample(dt: number, values: number[]) {
       const chart = chartRef.current
       if (!chart) return
-      const ttl = 15000
+      const ttl = 30000
       const now = Date.now() - startTimeRef.current
 
-      //let yMin, yMax
       values.forEach((v, i) => {
         const data = chart.data.datasets[i].data as { x: number, y: number }[]
         data.push({ x: dt - startTimeRef.current, y: v });
         chart.data.datasets[i].data = data.filter(p => now - p.x <= ttl)
-
-        //const y = data.map(p => p.y)
-        //yMin = Math.min(...y)
-        //yMax = Math.max(...y)
       })
 
       const data = chart.data.datasets[0].data as { x: number, y: number }[]
@@ -63,13 +57,6 @@ const RealtimeChart = forwardRef<RealTimeChartRef, RealTimeChartProps>(({ data, 
       chart.options.scales!.x!.min = now - ttl
       chart.options.scales!.x!.max = x[x.length-1]
       
-      // TODO: calculate min/max
-
-      // if(chart.options.scales!.y!.min !== undefined) yMin = Math.min(yMin, +chart.options.scales!.y!.min)
-      // if(chart.options.scales!.y!.max !== undefined) yMax = Math.max(yMax, +chart.options.scales!.y!.max)
-      // chart.options.scales!.y!.min = yMin
-      // chart.options.scales!.y!.max = yMax
-
       chart.update('none')
     },
   }))
@@ -83,7 +70,7 @@ const RealtimeChart = forwardRef<RealTimeChartRef, RealTimeChartProps>(({ data, 
   }, [])
 
   return (
-    <div style={{ width: "100%", height: "250px" }}>
+    <div style={{ width: "100%", height: "200px" }}>
       <Line ref={chartRef} data={data} options={options} />
     </div>
   )
