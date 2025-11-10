@@ -190,12 +190,12 @@ const SensorsTab = () => {
   }, [send, updateSensorConfig, updateGyroConfig, updateAccelConfig, updateBaroConfig, updateMagConfig])
 
   const onLoad = useCallback(async () => {
-    await send(createSensorConfigRequest())
-    await send(createGyroConfigRequest())
-    await send(createAccelConfigRequest())
-    await send(createBaroConfigRequest())
-    await send(createMagConfigRequest())
-  }, [send])
+    updateSensorConfig(parseSensorConfigResponse(await send(createSensorConfigRequest())))
+    updateGyroConfig(parseGyroConfigResponse(await send(createGyroConfigRequest())))
+    updateAccelConfig(parseAccelConfigResponse(await send(createAccelConfigRequest())))
+    updateBaroConfig(parseBaroConfigResponse(await send(createBaroConfigRequest())))
+    updateMagConfig(parseMagConfigResponse(await send(createMagConfigRequest())))
+  }, [send, updateSensorConfig, updateGyroConfig, updateAccelConfig, updateMagConfig, updateBaroConfig])
 
   const onReset = useCallback(() => {
     reset(SENSOR_DEFAULTS);

@@ -6,6 +6,7 @@ import MainMenu from "./MainMenu"
 import Preview3DModel from "./Preview3DModel"
 import RcControls from "./RcControls"
 import TopBar from "./TopBar"
+import RealTimeChart from './RealTimeChart'
 
 export {
   BottomBar,
@@ -16,4 +17,5 @@ export {
   Preview3DModel,
   RcControls,
   TopBar,
+  RealTimeChart,
 }
