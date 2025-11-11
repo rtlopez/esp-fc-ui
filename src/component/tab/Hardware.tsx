@@ -4,7 +4,7 @@ import {
   createPinConfigRequest, createRebootRequest, createSaveRequest,
   EspPinConfigResponse, parsePinConfigResponse
 } from '@/api/esp'
-import { Card, Col, Form, Row } from 'react-bootstrap'
+import { Alert, Card, Col, Form, Row } from 'react-bootstrap'
 import { SubmitHandler, useFieldArray, useForm } from 'react-hook-form'
 import TabView from './TabView'
 
@@ -98,7 +98,7 @@ const getFunctionName = (type: number, index: number): string => {
     case 2: return `PPM`
     case 3: return `${getI2CId(index)}`
     case 4: return `${getSPIId(index)}`
-    case 5: switch(index) {
+    case 5: switch (index) {
       case 0: return `VBAT ADC`
       case 1: return `IBAT ADC`
       default: return `ADC ${index + 1}`
@@ -120,7 +120,9 @@ const HardwareTab = () => {
     handleSubmit,
     reset,
     getValues,
-    //formState: { errors }
+    setError,
+    clearErrors,
+    formState: { errors }
   } = useForm<FormValues>({
     defaultValues: {}
   });
@@ -131,11 +133,27 @@ const HardwareTab = () => {
     reset({ ...getValues(), ...v })
   }, [reset, getValues])
 
+  const validatePins = useCallback((data: FormValues): boolean => {
+    // validate for duplicates
+    let valid = true
+    data.pins.forEach((lhs, i) => {
+      data.pins.forEach((rhs, j) => {
+        if (i !== j && lhs.pin != -1 && lhs.pin == rhs.pin) {
+          setError(`pins.${i}.pin`, { message: 'Duplicated' })
+          valid = false
+        }
+      })
+    })
+    return valid
+  }, [setError])
+
   const onSubmit: SubmitHandler<FormValues> = useCallback(async (data) => {
+    clearErrors()
+    if(!validatePins(data)) return
     updatePinConfig(parsePinConfigResponse(await send(createPinConfigRequest(data))))
     await send(createSaveRequest())
     await send(createRebootRequest())
-  }, [send, updatePinConfig])
+  }, [clearErrors, validatePins, send, updatePinConfig])
 
   const onLoad = useCallback(async () => {
     updatePinConfig(parsePinConfigResponse(await send(createPinConfigRequest())))
@@ -160,6 +178,10 @@ const HardwareTab = () => {
 
   return <TabView title='Hardware' reboot onSubmit={handleSubmit(onSubmit)} onLoad={onLoad} onReset={onReset}>
     <Row>
+      <Alert variant='warning'>
+        You can only assign one function to pin. Consult your board documentation to get pins available to use.<br/>
+        CAUTION! Incorrect pin configuration may brick your device. If it happen, you need to erase flash completely to recover.
+      </Alert>
       {Object.entries(grouped).map(([func, funcPins], k) => {
         return <Col lg={6} key={k}>
           <Card className='mb-3'>
@@ -167,11 +189,12 @@ const HardwareTab = () => {
             <Card.Body>
               <Row>
                 {funcPins.map((pin, i) => {
+                  const err = errors?.pins?.[pin.key!]?.pin
                   return <Col key={i} md={6}>
                     <Form.Group as={Row} controlId={`pin_${pin.key!}`} className="mb-3">
                       <Form.Label column>{`${getFunctionName(pin.type, pin.index)}`}</Form.Label>
                       <Col sm={6}>
-                        <Form.Control type="number" min={-1} max={48} {...register(`pins.${pin.key!}.pin`)} />
+                        <Form.Control type="number" min={-1} max={48} {...register(`pins.${pin.key!}.pin`, { valueAsNumber: true })} isInvalid={!!err} />
                       </Col>
                     </Form.Group >
                   </Col>
