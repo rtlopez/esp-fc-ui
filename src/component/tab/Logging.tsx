@@ -254,18 +254,18 @@ const LoggingTab = () => {
               <ConfirmModal show={showConfirm} onConfirm={flashEraseConfirm} onCancel={flashEraseCancel} />
             </Col>
 
-            {logs.length ? <Table striped hover>
+            {logs.length ? <Table size='sm' striped borderless>
               <thead>
                 <tr>
                   <th>Num</th>
-                  <th>Size</th>
+                  <th className='text-end'>Size</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log, i) => {
                   return <tr key={i}>
                     <td>{i + 1}</td>
-                    <td>{(log.size / 1000).toFixed(1)} kB</td>
+                    <td className='text-end'>{(log.size / 1000).toFixed(1)} kB</td>
                   </tr>
                 })}
               </tbody>

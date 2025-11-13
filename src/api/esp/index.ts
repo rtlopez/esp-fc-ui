@@ -231,20 +231,26 @@ export interface EspGpsResponse {
   altitude: number
   speed: number
   course: number
+  pDop: number
+  hAccu: number
+  vAccu: number
 }
 
 export const createGpsRequest = (): MspMessage => new MspMessage(MspCommand.ESP_CMD_GPS)
 export const parseGpsResponse = (msg: MspMessage): EspGpsResponse => {
   const reader = msg.getReader()
   const v = {
-    time: reader.readU32(),
+    time: reader.readU32() * 1000,
     fixType: reader.readU8(),
     sats: reader.readU8(),
-    latitude: reader.read32(),
-    longitude: reader.read32(),
-    altitude: reader.read32(),
-    speed: reader.read32(),
-    course: reader.read32(),
+    latitude: reader.read32() * 1e-7,
+    longitude: reader.read32() * 1e-7,
+    altitude: reader.read32() * 0.001,
+    speed: reader.read32() * 0.001,
+    course: reader.read32() * 0.00001,
+    pDop: reader.readU16() * 0.01,
+    hAccu: reader.readU16() * 0.01,
+    vAccu: reader.readU16() * 0.01,
   }
   return v
 }
